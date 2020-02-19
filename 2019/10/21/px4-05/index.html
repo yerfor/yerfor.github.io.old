@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要本文介绍了几种应用在PX4固定翼飞控中的控制器的原理及调参方法，包括：  PID控制，具体应用场景为 P控制器，应用于姿态控制的外环，输入期望姿态角和风速，输出期望角速度; PI控制器，应用于姿态控制的内环，输入期望角速度和风速，输出期望角加速度   L1控制，具体应用场景为 应用于位置控制，主要是用于得到飞机期望的滚转角(roll)和偏航(yaw)角   TECS控制，具体应用场景为">
+<meta property="og:type" content="article">
+<meta property="og:title" content="px4学习笔记[05]-PID控制、L1控制和TECS控制">
+<meta property="og:url" content="http://yoursite.com/2019/10/21/px4-05/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要本文介绍了几种应用在PX4固定翼飞控中的控制器的原理及调参方法，包括：  PID控制，具体应用场景为 P控制器，应用于姿态控制的外环，输入期望姿态角和风速，输出期望角速度; PI控制器，应用于姿态控制的内环，输入期望角速度和风速，输出期望角加速度   L1控制，具体应用场景为 应用于位置控制，主要是用于得到飞机期望的滚转角(roll)和偏航(yaw)角   TECS控制，具体应用场景为">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/0.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/555.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/3.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/4.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/5.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/6.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/7.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/8.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/10.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/11.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/9.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/12.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/13.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/14.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/15.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/16.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/17.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/19.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/18.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/20.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/21.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/22.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/23.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/3.svg">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/24.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/hh.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/21/px4-05/25.jpg">
+<meta property="article:published_time" content="2019-10-21T05:03:45.000Z">
+<meta property="article:modified_time" content="2019-12-12T08:17:58.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="PX4">
+<meta property="article:tag" content="Cybernetic">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/10/21/px4-05/0.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/10/21/px4-05/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>px4学习笔记[05]-PID控制、L1控制和TECS控制 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/21/px4-05/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          px4学习笔记[05]-PID控制、L1控制和TECS控制
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-21 13:03:45" itemprop="dateCreated datePublished" datetime="2019-10-21T13:03:45+08:00">2019-10-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:17:58" itemprop="dateModified" datetime="2019-12-12T16:17:58+08:00">2019-12-12</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>本文介绍了几种应用在PX4固定翼飞控中的控制器的原理及调参方法，包括：</p>
+<ul>
+<li>PID控制，具体应用场景为<ul>
+<li>P控制器，应用于姿态控制的外环，输入期望姿态角和风速，输出期望角速度;</li>
+<li>PI控制器，应用于姿态控制的内环，输入期望角速度和风速，输出期望角加速度</li>
+</ul>
+</li>
+<li>L1控制，具体应用场景为<ul>
+<li>应用于位置控制，主要是用于得到飞机期望的滚转角(roll)和偏航(yaw)角</li>
+</ul>
+</li>
+<li>TECS控制，具体应用场景为<ul>
+<li>应用于位置控制，主要是用于得到期望的油门(Throttle)和俯仰(pitch)角</li>
+</ul>
+</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-PID控制"><a href="#1-PID控制" class="headerlink" title="1. PID控制"></a>1. PID控制</h1><p>PID控制是工程实际中应用最为广泛控制器，按照控制规律为比例（Proportion）、积分（Intergration)、微分(Differentiation) 控制。</p>
+<p>当被控对象结构和参数不能完全掌握，或找不到精确数学模型时，控制理论其它技术难以采用时，系统控制器结构和参数必须依靠经验和现场调试来确定，这时应用PID控制技术最为方便。</p>
+<p>PID控制的是系统误差err，利用比例、积分、微分计算出控制量u，进行控制，控制关系如下所示：</p>
+<p><code>err(t)=X-x(t)</code>—&gt;<code>u(t)=PID(err(t))</code>—&gt;<code>x(t+1)=x(t)+u(t)</code>—&gt;<code>下一时刻...</code></p>
+<p>下式是连续PID控制的表达式：</p>
+<p><img src="/2019/10/21/px4-05/0.png" alt="0"></p>
+<p>在实际使用中，常常使用离散PID控制：<br>$$<br>u_{k}=K_{P}\cdot[err_{k}+\frac{1}{T_{I}}\Sigma err_j + T_{d}\frac{err_{k}-err_{k-1}}{\Delta T}]<br>$$</p>
+<h2 id="1-1-基本原理"><a href="#1-1-基本原理" class="headerlink" title="1.1 基本原理"></a>1.1 基本原理</h2><p>参考资料： <a href="http://blog.csdn.net/qq_25352981/article/details/81007075" target="_blank" rel="noopener">一文读懂PID控制算法</a></p>
+<h3 id="1-1-1-比例控制（Proportion）"><a href="#1-1-1-比例控制（Proportion）" class="headerlink" title="1.1.1 比例控制（Proportion）"></a>1.1.1 比例控制（Proportion）</h3><p><strong>原理部分</strong></p>
+<p>比例控制是一种最简单的控制方式。其控制器的输出与输入误差信号成比例关系。</p>
+<p>假设我有一个水缸，最终的控制目的是要保证水缸里的水位永远的维持在1米的高度。假设初试时刻，水缸里的水位是0.2米，那么当前时刻的水位和目标水位之间是存在一个误差的<code>error</code>，且<code>error</code>为0.8.这个时候，假设旁边站着一个人，这个人通过往缸里加水的方式来控制水位。如果单纯的用比例控制算法，就是指加入的水量<code>u</code>和误差<code>error</code>是成正比的。即<code>u=kp * error</code>。<br>假设<code>kp</code>取0.5，那么t=1时（表示第1次加水，也就是第一次对系统施加控制），那么<code>u=0.5 * 0.8=0.4</code>，所以这一次加入的水量会使水位在0.2的基础上上升0.4，达到0.6。 接着，<code>t=2</code>时刻（第2次施加控制），当前水位是0.6，所以<code>error</code>是0.4。`u=0.5 * 0.4=0.21，会使水位再次上升0.2，达到0.8。如此这么循环下去，就是比例控制算法的运行方法。可以看到，最终水位会达到我们需要的1米。<br>但是，一旦水桶存在漏水现象，那么当P项输出等于漏水的量时，P控制系统就会停止在不等于理想输出的某一值，即<strong>系统存在稳态误差</strong>。</p>
+<p><strong>总结</strong></p>
+<ul>
+<li><p>比例控制是<code>PID</code>中最基础的一种控制方式，反映了对误差最直接的负反馈，一般是必须的;</p>
+</li>
+<li><p>当仅有比例控制时系统输出存在稳态误差;</p>
+</li>
+<li><p>增大比例系数使系统反应灵敏，调节速度加快，并且可以减小稳态误差;</p>
+</li>
+<li><p>比例系数过大会使超调量增大，振荡次数增加，调节时间加长，动态性能变坏，比例系数太大甚至会使闭环系统不稳定。</p>
+</li>
+</ul>
+<h3 id="1-1-2-积分控制（Integration）"><a href="#1-1-2-积分控制（Integration）" class="headerlink" title="1.1.2 积分控制（Integration）"></a>1.1.2 积分控制（Integration）</h3><p><strong>原理部分</strong></p>
+<p>单纯的P控制可能会导致被控量和期待值之间有一个稳态误差，针对这一点，加入了积分控制。</p>
+<p>从离散PID公式中可以看出，积分项是对整个时间段的<code>error</code>进行加和后取平均。由于这个积分项会将前面若干次的误差进行累计，所以可以很好的消除稳态误差（假设在仅有比例项的情况下，系统卡在稳态误差了，即上例中的0.8，由于加入了积分项的存在，会让输入增大，从而使得水缸的水位可以大于0.8，渐渐到达目标的1.0）这就是积分项的作用。</p>
+<p><strong>总结</strong></p>
+<ul>
+<li>积分控制可以减小系统的稳态误差;</li>
+<li>对快变量的控制过程中，积分作用一般是必须的。</li>
+<li>对慢变量的控制过程中，因为跟踪误差变化较慢，若采用积分环节会导致误差的迅速积累，使控制器饱和，控制参数不易选取。[感谢韩师兄的分享]<ul>
+<li>对“积分饱和”问题，有积分分离方法，当积分项到达上限后，将其置为零，其他方法有待<a href="http://www.cnki.com.cn/Article/CJFDTotal-GYJR198803003.htm" target="_blank" rel="noopener">后续研究</a>。</li>
+</ul>
+</li>
+</ul>
+<h3 id="1-1-3-微分控制"><a href="#1-1-3-微分控制" class="headerlink" title="1.1.3 微分控制"></a>1.1.3 微分控制</h3><p><strong>原理部分</strong></p>
+<p>换一个另外的例子，考虑刹车情况。平稳的驾驶车辆，当发现前面有红灯时，为了使得行车平稳，基本上提前几十米就放松油门并踩刹车了。当车辆离停车线非常近的时候，则使劲踩刹车，使车辆停下来。整个过程可以看做一个加入微分的控制策略。</p>
+<p>5微分，说白了在离散情况下，就是<code>error</code>的差值，就是<code>t</code>时刻和<code>t-1</code>时刻error的差，其中的<code>kd</code>是一个系数项。可以看到，在刹车过程中，因为<code>error</code>是越来越小的，所以这个微分控制项一定是负数，在控制中加入一个负数项，他存在的作用就是为了防止汽车由于刹车不及时而闯过了线。从常识上可以理解，越是靠近停车线，越是应该注意踩刹车，不能让车过线，所以这个微分项的作用，就可以理解为刹车，当车离停车线很近并且车速还很快时，这个微分项的绝对值（实际上是一个负数）就会很大，从而表示应该用力踩刹车才能让车停下来。<br>切换到上面给水缸加水的例子，就是当发现水缸里的水快要接近1的时候，加入微分项，可以防止给水缸里的水加到超过1米的高度，说白了就是减少控制过程中的震荡。</p>
+<p>闭环控制系统的振荡甚至不稳定的根本原因在于有较大的滞后因素，微分项能预测误差变化的趋势，这种“超前”的作用可以抵消滞后因素的影响。如果不采用微分控制，单纯的PI控制系统可能会发生“超调”，微分项的作用就是预知这种情况，并提前“踩下刹车”。</p>
+<p><strong>总结</strong></p>
+<ul>
+<li>适当的微分控制作用可以使超调量减小，增加系统的稳定性;</li>
+<li>微分控制的缺点是对干扰噪声敏感，使系统抑制干扰的能力降低，为此可在微分部分增加惯性滤波环节。</li>
+</ul>
+<h2 id="1-2-PID参数的整定方法"><a href="#1-2-PID参数的整定方法" class="headerlink" title="1.2 PID参数的整定方法"></a>1.2 PID参数的整定方法</h2><p>1.为了减少需要整定的参数，先采取比例控制，将<code>kp</code>从较小调大到刚好震荡，然后再调小一点;</p>
+<p>2.然后加上积分控制，调整稳态误差;</p>
+<p>3.如果阶跃响应的超调量太大，经过多次振荡才能稳定或者根本不稳定，应减小比例系数<code>kp</code>、减小积分系数<code>ki</code> ; 如果阶跃响应没有超调量，但是被控量上升过于缓慢，过渡过程时间太长，应增大比例系数<code>kp</code>，增大积分系数<code>ki</code>。 如果消除误差的速度较慢，可以适当增大<code>ki</code>，增强积分作用。</p>
+<p>4.反复调节比例系数和积分时间，如果超调量仍然较大，可以加入微分控制，微分系数<code>kp</code>从0逐渐增大，反复调节控制器的比例、积分和微分部分的参数。</p>
+<p><a href="https://yerfor.github.io/img/profile.pdf" target="_blank" rel="noopener">https://yerfor.github.io/img/profile.pdf</a> 总之，PID参数的调试是一个综合的、各参数互相影响的过程，实际调试过程中的多次尝试是非常重要的，也是必须的。</p>
+<h2 id="1-3-PX4中PID参数修改方法"><a href="#1-3-PX4中PID参数修改方法" class="headerlink" title="1.3 PX4中PID参数修改方法"></a>1.3 PX4中PID参数修改方法</h2><p>通过修改参数：</p>
+<ul>
+<li><code>FW_&lt;angle_rate&gt;_FF</code></li>
+<li><code>FW_&lt;angle_rate&gt;_I</code></li>
+<li><code>FW_&lt;angle_rate&gt;_P</code></li>
+</ul>
+<p>上述参数中的<angle_rate>，包括：</angle_rate></p>
+<ul>
+<li><code>PR</code> ：Pitch Rate，俯仰角速度</li>
+<li><code>RR</code> ：Roll Rate，滚转角速度</li>
+<li><code>YR</code> ：Yaw Rate，偏航角速度</li>
+<li><code>WR</code> ：Wheel Steering Rate，舵轮操舵速度</li>
+</ul>
+<p>修改上述参数，可以修改如下图所示的，固定翼姿态控制器（<code>fw_att_control</code>）内环的PI &amp; FF控制器的参数。</p>
+<p><img src="/2019/10/21/px4-05/555.png" alt="5"></p>
+<p>具体调参方法有待日后学习，可参见下述的两个拓展阅读资料：</p>
+<p><a href="https://dev.px4.io/master/en/advanced/parameter_reference.html" target="_blank" rel="noopener"><strong>PX4参数Reference</strong></a></p>
+<p><strong><a href="https://docs.px4.io/master/en/config_fw/pid_tuning_guide_fixedwing.html" target="_blank" rel="noopener">PX4固定翼PID调参教程</a></strong></p>
+<h1 id="2-L1控制"><a href="#2-L1控制" class="headerlink" title="2. L1控制"></a>2. L1控制</h1><p>L1控制算法源于2004年MIT的<code>Sanghyuk Park</code>等人在AIAA发表的《A New Nonlinear Guidance Logic for<br>Trajectory Tracking》。目前已经被用在PX4,APM等主流飞控的路径跟随算法中。</p>
+<p>在L1控制算法面世以前，业界普遍采用PD控制器用于控制航迹误差，这种方法在目标路径为直线时可以提供良好的外环性能，然而，当任务需要对复杂的曲线路径进行紧密跟踪时，航迹误差的线性反馈可能无法提供满意的性能。</p>
+<p>L1算法的创新点在于，针对曲线路径，增加了一个超前控制参数，用于克服PD控制的固有缺陷;此外在曲线路径。</p>
+<h2 id="2-1-论文解读"><a href="#2-1-论文解读" class="headerlink" title="2.1 论文解读"></a>2.1 论文解读</h2><p>论文下载： </p>
+<p> <a href="https://yerfor.github.io/img/L1.pdf" target="_blank" rel="noopener">《A New Nonlinear Guidance Logic for Trajectory Tracking》</a> </p>
+<h3 id="2-1-1-基本模型"><a href="#2-1-1-基本模型" class="headerlink" title="2.1.1 基本模型"></a>2.1.1 基本模型</h3><p>L1算法会选择期望航迹的一个参考点，然后计算一个向心加速度，以圆弧轨迹接近该参考点。</p>
+<p>下图表示的是飞行器达到reference point所需的提供的向心加速度的计算公式。</p>
+<p><img src="/2019/10/21/px4-05/2.png" alt="2"></p>
+<p>实际上，在一个时间间隔内，飞行器并不会到达那个参考点，换句话说，不等飞行器跑完上时刻设定的圆弧轨迹，在下一个时刻开始时，又会重新选取目标轨迹上的下一个目标点，然后以该点为目标再计算一个新的圆弧轨迹和相应的向心加速度，如此周而复始。</p>
+<p>所以，在一个时间间隔里，飞行器的真实飞行轨迹是下图这样的：</p>
+<p><img src="/2019/10/21/px4-05/3.png" alt="3"></p>
+<p>而在一段连续的时间里，飞行器的轨迹是这样的：</p>
+<p><img src="/2019/10/21/px4-05/4.png" alt="4"></p>
+<p>飞行器就这样一步步地接近目标轨迹。</p>
+<p>当然，在上述模型中，有一个地方需要注意：每个时刻选择的向心加速度方向取决于<code>L1</code>线段和飞行器速度向量之间夹角的正负。飞行器总是趋向于将他的速度方向与<code>L1</code>线段的方向对齐。这一点可以在上图Figure3中看出来。</p>
+<h3 id="2-1-2-跟踪直线"><a href="#2-1-2-跟踪直线" class="headerlink" title="2.1.2 跟踪直线"></a>2.1.2 跟踪直线</h3><p>下图是在航迹为直线时建立的模型。</p>
+<p><img src="/2019/10/21/px4-05/5.png" alt="5"></p>
+<p>由基础几何，对于$\eta_{1}$和$\eta_{2}$有</p>
+<p><img src="/2019/10/21/px4-05/6.png" alt="6"></p>
+<p>而鉴于<img src="/2019/10/21/px4-05/7.png" alt="7">，</p>
+<p>由2.1.1推导出的向心加速度公式，我们可以得到航迹为直线时向心加速度的计算公式为：</p>
+<p><img src="/2019/10/21/px4-05/8.png" alt="8"></p>
+<p>由上式可以知道，跟踪直线时，L1算法实际是通过一个控制d的PD控制器来控制航迹误差，这个控制器的<code>kp</code>和<code>kd</code>由飞行器的速度<code>V</code>和到目标点的距离<code>L1</code>确定。</p>
+<p>由于相信加速度和飞机与航迹间距离有近似关系：</p>
+<p><img src="/2019/10/21/px4-05/10.png" alt="10"></p>
+<p>因此以d为控制对象的控制系统可以用以下方程描述：</p>
+<p><img src="/2019/10/21/px4-05/11.png" alt="11"></p>
+<p>上式表明了在直线跟踪的情况下，L1算法是一个简单的二阶系统，阻尼比为0.707，而自然频率取决与速度<code>V</code>和距离<code>L1</code>的比值。</p>
+<h3 id="2-1-3-跟踪一条由直线扰动得到的曲线"><a href="#2-1-3-跟踪一条由直线扰动得到的曲线" class="headerlink" title="2.1.3 跟踪一条由直线扰动得到的曲线"></a>2.1.3 跟踪一条由直线扰动得到的曲线</h3><p>下图是在航迹为一条由直线绕动得到的曲线时建立的模型。</p>
+<p><img src="/2019/10/21/px4-05/9.png" alt="9"></p>
+<p>与2.1.2类似的，有：</p>
+<p><img src="/2019/10/21/px4-05/12.png" alt="12"></p>
+<p>对上式做拉氏变换，有：</p>
+<p><img src="/2019/10/21/px4-05/13.png" alt="13"></p>
+<p>假设设定的路径是相对基准直线的一条正弦曲线</p>
+<p><img src="/2019/10/21/px4-05/14.png" alt="14"></p>
+<p>其中<img src="/2019/10/21/px4-05/15.png" alt="15">，</p>
+<p>注意，上式与直线轨迹不同点在于，输入是reference point到基准线的距离<code>d_{ref.pt}^{*}</code>，论文里指出，飞机轨迹和参考点轨迹的时间差为<code>L_1/V</code>，即</p>
+<p><img src="/2019/10/21/px4-05/16.png" alt="16"></p>
+<p>那么代入到系统定义式中，有</p>
+<p><img src="/2019/10/21/px4-05/17.png" alt="17"></p>
+<p>那么上面所描述的路径使系统在截止角频率附近被激励。</p>
+<h3 id="2-1-4-跟踪一条圆弧轨迹"><a href="#2-1-4-跟踪一条圆弧轨迹" class="headerlink" title="2.1.4 跟踪一条圆弧轨迹"></a>2.1.4 跟踪一条圆弧轨迹</h3><p>下图是在航迹为一条圆弧时建立的模型。</p>
+<p><img src="/2019/10/21/px4-05/19.png" alt="19"></p>
+<p>在这个分析中，假设$\eta_{1}$和$\eta_{2}$都很小（但$\eta_{3}$不需要很小）。</p>
+<p><img src="/2019/10/21/px4-05/18.png" alt="18"></p>
+<p>又是一阵平面几何的推导，得到和直线轨迹类似的模型，区别在于截止频率不同：</p>
+<p><img src="/2019/10/21/px4-05/20.png" alt="20"></p>
+<h3 id="2-1-5-总结"><a href="#2-1-5-总结" class="headerlink" title="2.1.5 总结"></a>2.1.5 总结</h3><p>L1算法实际上是一个类似PD控制的系统：</p>
+<p>在跟随直线轨迹时，L1控制的传递函数和PD控制形式相同;</p>
+<p>在跟随由直线扰动得到的曲线时，L1的传递函数形式上多了一个前馈;</p>
+<p>在跟踪圆时，和跟随直线轨迹的轨迹的传递函数形式类似，区别在于截止频率不同。</p>
+<p>L1算法在跟踪曲线轨迹时的表现优于PD控制：</p>
+<p><img src="/2019/10/21/px4-05/21.png" alt="21"></p>
+<h2 id="2-2-L1参数调整方法"><a href="#2-2-L1参数调整方法" class="headerlink" title="2.2 L1参数调整方法"></a>2.2 L1参数调整方法</h2><p>从2.1可以知道，L1控制参数可变的只有速度<code>V</code>、距离<code>L1</code>和阻尼比$\xi$。</p>
+<p>在PX4中，关于L1算法定义了两个参数，分别是：</p>
+<ul>
+<li>FW_L1_DAMPING：对应阻尼比$\xi$</li>
+</ul>
+<p><img src="/2019/10/21/px4-05/22.png" alt="22"></p>
+<ul>
+<li>FW_L1_PERIOD：对应距离<code>L1</code></li>
+</ul>
+<p><img src="/2019/10/21/px4-05/23.png" alt="23"></p>
+<p>我们在飞行中主要调试<code>FW_L1_PERIOD</code>，当无人机转弯不够快时把此参数调小，直到飞机出现些许震荡后调大此参数2-3左右即可，至于<code>FW_L1_DAMPING</code>一般在0.65-0.85之间，每次调整0.05找到最好的飞行状态即$sin(\gamma)\approx\gamma$，$sin(\gamma)\approx\gamma$，可。</p>
+<h1 id="3-TECS-控制"><a href="#3-TECS-控制" class="headerlink" title="3. TECS 控制"></a>3. TECS 控制</h1><p>参考材料： <a href="https://blog.csdn.net/Miku_HU/article/details/88632526" target="_blank" rel="noopener">固定翼位置控制_TECS</a>，<a href="https://dev.px4.io/master/en/flight_stack/controller_diagrams.html#total-energy-control-system-tecs" target="_blank" rel="noopener">PX4官网Controller_Diagram</a></p>
+<p>TECS主要控制纵向的高度和速度。因为升降舵可以控制飞机的高度，油门可以控制飞机的速度，但是单单通过升降舵改变高度会使速度下降或者上升，单单通过油门改变速度会使高度改变，所以我们通过TECS将二者解耦，协调油门和俯仰角要求来控制飞机的高度和速度达到预设的值。</p>
+<p><strong>Tecs算法的功能：输入设定的高度和速度，输出目标油门和俯仰角。</strong></p>
+<p><img src="/2019/10/21/px4-05/3.svg" alt="3">)$sin(\gamma)\approx\gamma$，</p>
+<h2 id="3-1-油门控制方法"><a href="#3-1-油门控制方法" class="headerlink" title="3.1 油门控制方法"></a>3.1 油门控制方法</h2><p><img src="/2019/10/21/px4-05/24.jpg" alt="24"></p>
+<p>定义一个飞行器的总能量为:<br>$$<br>E_{T}=\frac{1}{2}mV_{T}^{2}+mgh<br>$$<br>将总能量对时间求导，得到其变化率为：<br>$$<br>\dot{E_{T}}=mV_{T}\dot{V_{T}}+mg\dot{h}<br>$$<br>将其除以<code>mgv</code>，得到无量纲的“特征能量变化率”（specific energy rate）：<br>$$<br>\dot{E}=\frac{\dot{E_{T}}}{mgV_{T}}=\frac{\dot{V_{T}}}{g}+\frac{\dot{h}}{V_{T}}=\frac{\dot{V_{T}}}{g}+sin(\gamma)<br>$$<br>其中，<code>gamma</code>是飞机上升的迎角，上式的第二步转化基于飞行动力学的爬升速率公式：<br>$$<br>\dot{h}=\dot{V}sin(\gamma)<br>$$<br>对于小的爬升迎角，我们有<br>$$<br>sin(\gamma)\approx\gamma<br>$$<br>因此特征能量变化率公式进一步推导为：<br>$$<br>\dot{E}\approx\frac{\dot{V_{T}}}{g}+\gamma<br>$$<br>根据飞行动力学的飞机运动方程，有：<br>$$<br>\Delta T=T-D=mg(\frac{\dot{V_{T}}}{g}+sin(\gamma))\approx mg(\frac{\dot{V_{T}}}{g}+\gamma)<br>$$<br>上式中，<code>T</code>是推力，<code>D</code>是阻力。在平飞过程中，初始推力与阻力方向相反。二者合力$\Delta T$的变化与能量消耗的速度成正比：</p>
+<p>$$<br>\Delta T\propto \dot{E}<br>$$</p>
+<p>我们可以在已知期望特征能量变化率的情况下求出前馈的期望油门（Throttle Setpoint），使用本公式：</p>
+<p><img src="/2019/10/21/px4-05/hh.png" alt="hh"></p>
+<p>对前馈的期望油门，还使用了控制特征能量差和特征能量变化率之差的ID控制器进行了修正。油门的修正值为：</p>
+<p>$$<br>T_{ID}=ID_Controller(error_{E},error_{\dot{E}})\cdot K_{\dot{E}\rightarrow\Delta T}<br>$$</p>
+<p>上式最后一部分定义了总能量变化率到油门的增益，（这里的定义和上图有差异，把油门时间常数也包括了进来）其计算式为：</p>
+<p>$$<br>K_{\dot{E}\rightarrow\Delta T}=\frac{1}{\tau_{thr}\cdot (\dot{E_{max}}-\dot{E_{min}})}<br>$$</p>
+<p>将修正值<code>T_ID</code>加到前馈的期望油门<code>T_FF</code>上，即可得到油门的期望值<code>T_SP</code>：<br>$$<br>T_{SP}=T_{FF}+T_{ID}<br>$$</p>
+<h2 id="3-2-俯仰角控制方法"><a href="#3-2-俯仰角控制方法" class="headerlink" title="3.2 俯仰角控制方法"></a>3.2 俯仰角控制方法</h2><p><img src="/2019/10/21/px4-05/25.jpg" alt="25"></p>
+<p>飞机爬升的控制过程被认为是机械能守恒的，在这个过程中重力势能和动能相互转化。</p>
+<p>因此定义几个参数：</p>
+<ul>
+<li><p>控制权重，决定了能量的控制重要性，其中有势能控制权重和动能控制权重，二者相加总合为2。</p>
+</li>
+<li><p>能量平衡$B = 势能\cdot势能的控制权重 - 动能\cdot动能的控制权重$</p>
+</li>
+<li><p>无量纲数”特征能量平衡变化率“（specific energy balance rate）$\dot{B}$：</p>
+</li>
+</ul>
+<p>$$<br>\dot{B}=\gamma-\frac{\dot{V_{T}}}{g}<br>$$</p>
+<p>俯仰角和特征能量平衡变化率之间存在转化关系：<br>$$<br>\theta=\frac{\dot{B}}{V_{T}\cdot g}<br>$$<br><a href="https://yerfor.github.io/img/profile.pdf接下来的过程与3.1类似，需要详细了解可以参照第一篇参考材料。" target="_blank" rel="noopener">https://yerfor.github.io/img/profile.pdf接下来的过程与3.1类似，需要详细了解可以参照第一篇参考材料。</a></p>
+<h2 id="3-3-TECS参数调整"><a href="#3-3-TECS参数调整" class="headerlink" title="3.3 TECS参数调整"></a>3.3 TECS参数调整</h2><p>参考资料： <strong><a href="https://docs.px4.io/master/en/config_fw/pid_tuning_guide_fixedwing.html" target="_blank" rel="noopener">PX4固定翼PID调参教程</a></strong>， <strong><a href="http://www.moz8.com/thread-86242-1-14.html?_dsign=1fb2e568" target="_blank" rel="noopener">机翻中文版</a></strong></p>
+<p>总能量控制系统几乎总是可以使用默认增益，但是需要关于主机身属性的一些信息来正确地执行。</p>
+<ul>
+<li><code>FW_AIRSPD_TRIM</code> - 设置为手动水平飞行的空速$sin(\gamma)\approx\gamma$，$sin(\gamma)\approx\gamma$，$sin(\gamma)\approx\gamma$，$sin(\gamma)\approx\gamma$，</li>
+<li><code>FW_AIRSPD_MIN</code> - 设置为手动爬升的空速</li>
+<li><code>FW_AIRSPD_MAX</code> - 设置为手动下降时的空速</li>
+<li><code>FW_THR_CRUISE</code> - 设置为在FW_AIRSPEED_TRIM空速的手动水平飞行的油门（杆位置在0和1.0之间）</li>
+<li><code>FW_THR_MIN</code> - 设置为手动下降的油门</li>
+<li><code>FW_THR_MAX</code> - 设置为手动爬升时的油门</li>
+<li><code>FW_T_CLMB_MAX</code> - 设置为手动爬升的爬升速率（以米为单位）</li>
+<li><code>FW_T_SINK_MAX</code> - 设置为手动下降中的下降速率</li>
+<li><code>FW_T_SINK_MIN</code> - 这是飞机的下降率，其中节气门设置为FW_THR_MIN，并以与用于测量FW_T_CLMB_MAX相同的空速飞行</li>
+</ul>
+<p>一旦这些参数被设置，将系统置于具有航路点和观察者的高度保持和空速保持性能的图8模式中。默认增益为“柔和”且温和。为了提高高度保持（也使节气门响应更加快速，减少时间常数：</p>
+<ul>
+<li><code>FW_T_TIME_CONST</code> - 减少以提高高度保持性能，但降低效率和增加磨损。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/PX4/" rel="tag"># PX4</a>
+              <a href="/tags/Cybernetic/" rel="tag"># Cybernetic</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/19/px4-04/" rel="prev" title="px4学习笔记[04]-飞行日志分析">
+      <i class="fa fa-chevron-left"></i> px4学习笔记[04]-飞行日志分析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/10/22/dl-01/" rel="next" title="牛顿法和梯度下降法">
+      牛顿法和梯度下降法 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-PID控制"><span class="nav-text">1. PID控制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-基本原理"><span class="nav-text">1.1 基本原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-比例控制（Proportion）"><span class="nav-text">1.1.1 比例控制（Proportion）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-积分控制（Integration）"><span class="nav-text">1.1.2 积分控制（Integration）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-3-微分控制"><span class="nav-text">1.1.3 微分控制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-PID参数的整定方法"><span class="nav-text">1.2 PID参数的整定方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-PX4中PID参数修改方法"><span class="nav-text">1.3 PX4中PID参数修改方法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-L1控制"><span class="nav-text">2. L1控制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-论文解读"><span class="nav-text">2.1 论文解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1-基本模型"><span class="nav-text">2.1.1 基本模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2-跟踪直线"><span class="nav-text">2.1.2 跟踪直线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-3-跟踪一条由直线扰动得到的曲线"><span class="nav-text">2.1.3 跟踪一条由直线扰动得到的曲线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-4-跟踪一条圆弧轨迹"><span class="nav-text">2.1.4 跟踪一条圆弧轨迹</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-5-总结"><span class="nav-text">2.1.5 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-L1参数调整方法"><span class="nav-text">2.2 L1参数调整方法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-TECS-控制"><span class="nav-text">3. TECS 控制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-油门控制方法"><span class="nav-text">3.1 油门控制方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-俯仰角控制方法"><span class="nav-text">3.2 俯仰角控制方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-TECS参数调整"><span class="nav-text">3.3 TECS参数调整</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

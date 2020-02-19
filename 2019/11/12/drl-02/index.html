@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要在上篇强化学习随笔里对强化学习中的三个基本算法进行了学习，分别是：  Policy Gradient 算法 通过梯度下降法对Agent进行训练，输出的是在环境s下做所有操作的概率分布（归一化）。   Q-Learning 算法 定义了一个Q-Table, 该表可以不断迭代更新，在决策时Agent总会根据当前s从Q-Table中选择使Q值最大的操作action。   Actor-Criti">
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习随笔[02]-DQN&#x2F;AC&#x2F;DDPG算法学习">
+<meta property="og:url" content="http://yoursite.com/2019/11/12/drl-02/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要在上篇强化学习随笔里对强化学习中的三个基本算法进行了学习，分别是：  Policy Gradient 算法 通过梯度下降法对Agent进行训练，输出的是在环境s下做所有操作的概率分布（归一化）。   Q-Learning 算法 定义了一个Q-Table, 该表可以不断迭代更新，在决策时Agent总会根据当前s从Q-Table中选择使Q值最大的操作action。   Actor-Criti">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/dqn.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/target.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/ddqn-0.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/ddqn.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/ddqn-2.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/duel.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/duel-2.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/preplay.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/0.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/1.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/2.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/ac.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/3.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/4.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/dpg.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/drl-02%5C222.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/12.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/h2.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/h1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/h3.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/222.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/ddpg1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/ddpg.png">
+<meta property="article:published_time" content="2019-11-12T06:01:42.000Z">
+<meta property="article:modified_time" content="2019-12-12T08:02:33.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="ReinforceLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/12/drl-02/dqn.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/12/drl-02/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>强化学习随笔[02]-DQN/AC/DDPG算法学习 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/12/drl-02/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          强化学习随笔[02]-DQN/AC/DDPG算法学习
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-12 14:01:42" itemprop="dateCreated datePublished" datetime="2019-11-12T14:01:42+08:00">2019-11-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:02:33" itemprop="dateModified" datetime="2019-12-12T16:02:33+08:00">2019-12-12</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>在<a href="https://yerfor.github.io/2019/11/05/drl-01/" target="_blank" rel="noopener">上篇强化学习随笔</a>里对强化学习中的三个基本算法进行了学习，分别是：</p>
+<ul>
+<li>Policy Gradient 算法<ul>
+<li>通过梯度下降法对Agent进行训练，输出的是在环境<code>s</code>下做所有操作的概率分布（归一化）。</li>
+</ul>
+</li>
+<li>Q-Learning 算法<ul>
+<li>定义了一个Q-Table, 该表可以不断迭代更新，在决策时Agent总会根据当前<code>s</code>从Q-Table中选择使Q值最大的操作<code>action</code>。</li>
+</ul>
+</li>
+<li>Actor-Critic算法<ul>
+<li>AC算法是PG算法和Q-Learning算法的结合体，它的主要思想是：<ul>
+<li>定义一个专注于决策的函数：Actor，它的优化采用PG算法</li>
+<li>定义一个用于对在环境<code>s</code>时做操作<code>a</code>进行评价的函数： Critic，它的优化采用Q-Learning算法</li>
+<li>Actor的PG算法提供梯度方向，Critic的Q-Learning算法提供权重，二者相乘执行Actor的参数更新。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>上述的三个算法都是强化学习比较naive的理论，目前学界使用的比较多的是在它们的基础上发展来的DQN、DDPG等模型。</p>
+<p>本文的主要内容有：</p>
+<ul>
+<li><code>DQN</code>（Deep Q Learning）</li>
+<li><code>AC</code> （Actor-Critic）</li>
+<li><code>DDPG</code> （Deep Deterministic Policy Gradient）</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-DQN-算法（Deep-Q-Learning）"><a href="#1-DQN-算法（Deep-Q-Learning）" class="headerlink" title="1. DQN 算法（Deep Q Learning）"></a>1. DQN 算法（Deep Q Learning）</h1><p>DQN算法（Deep Q Learning）是DeepMind在于2013年提出的算法。这个算法首次提出了由一个可以训练的函数（critic）来生成reward。事实上，后续的大多数算法如DDPG、MADDPG都延续了这种思想。当然上述算法大多采用了A-C框架，值得注意的是DQN本身并没有一个专门训练的Actor函数，它的决策函数是简单的argmaxQ，和后期成熟的基于AC框架的算法中，专门训练Actor函数是由区别的。</p>
+<p>不过，深入理解DQN还是十分重要，我们主要可以通过学习DQN来提升对Critic函数训练过程的理解。</p>
+<h2 id="1-1-DQN-详解"><a href="#1-1-DQN-详解" class="headerlink" title="1.1 DQN 详解"></a>1.1 DQN 详解</h2><p>DQN的最大创新在于将Q-Learning中Critic采用的Q-Table改成了一个深度神经网络，这也是Deep Q Learning名字的来历。所述的替代Q-Table的神经网络输入为上述的元组（s,a），输出是一个标量（scaler）。</p>
+<p>在上述用DNN替换Q-Table的过程中，引入了两个创新点：</p>
+<ul>
+<li>经验池（experience replay buffer）的概念，因为传统监督学习要求训练数据不能由关联性，所以把每一次做操作并接受反馈的过程保存成一个元组<code>(s,a,r,s&#39;)</code>，训练前先采集大量的上述元组，保存到经验池里。在训练时，每次取<code>batch_size</code>个元组出来，进行<code>batch_size</code>次迭代更新。</li>
+<li>实际上采用了两个网络来替换原来的Q-Table。一个网络用于输出Q-value的目标值（Target），一个网络则用于输出实际的Q-value，在训练时，实际的Q值会努力向Target值靠近。</li>
+<li>DQN的policy是argmaxQ(s,a)</li>
+</ul>
+<p><img src="/2019/11/12/drl-02/dqn.png" alt="dqn"></p>
+<h3 id="1-1-1-DQN新feature之一：Target网络"><a href="#1-1-1-DQN新feature之一：Target网络" class="headerlink" title="1.1.1 DQN新feature之一：Target网络"></a>1.1.1 DQN新feature之一：Target网络</h3><p><img src="/2019/11/12/drl-02/target.PNG" alt="target"></p>
+<p>在训练Q网络的时候，我们希望上面的方程两边尽可能相等，所以将其作为LOSS。注意这里要用到两次Q函数。左边的Q(s,a)是当前时刻Critic的输出，右边是它的目标，但在多次迭代的过程中，因为右边也有Q，所以随着Q的update，目标也会改变。这样的方程不好收敛，会有波动。</p>
+<p>所以我们会额外创建一个用作target的网络，每次迭代target的网络参数固定；每次迭代我们原来的现实网络会不断更新，在update好几次之后，我们再用显示网路的参数来更新Target网络。</p>
+<h3 id="1-1-2-DQN新feature之二：Replay-Buffer"><a href="#1-1-2-DQN新feature之二：Replay-Buffer" class="headerlink" title="1.1.2 DQN新feature之二：Replay Buffer"></a>1.1.2 DQN新feature之二：Replay Buffer</h3><p>DQN的一大创新就是它的经验池概念，经验池由一个个<code>(s,a,r,s&#39;)</code> 元组组成，the buffer comes from different policies, drop the old experience if the buffer is full。</p>
+<p>我们认为不同policy走出来的路径会比较diverse，元组的种类会比较多，有利于提升网络的性能。</p>
+<p>可能会有这样一个疑问：为什么可以用不同的Poilicy采集得到的数据来训练当前数据？</p>
+<p>答案是：我们并不是选了一个轨迹，只是选了一个步骤下的变化情况及其回报，这个元组里的四个东西与policy无关，只和环境固有的规律有关。</p>
+<h3 id="1-1-3-Exploration"><a href="#1-1-3-Exploration" class="headerlink" title="1.1.3 Exploration"></a>1.1.3 Exploration</h3><p>上述的DQN算法中，policy是argmaxQ，为了让机器有一定的探索过程，可以采用epsilon-greedy方法，有一定几率让policy不按argmaxQ决策。</p>
+<h2 id="1-2-DQN的一些拓展"><a href="#1-2-DQN的一些拓展" class="headerlink" title="1.2 DQN的一些拓展"></a>1.2 DQN的一些拓展</h2><h3 id="1-2-1-Double-DQN"><a href="#1-2-1-Double-DQN" class="headerlink" title="1.2.1 Double DQN"></a>1.2.1 Double DQN</h3><p>Q-value 总是被高估，Double DQN 可以更准地估计Target Q-value，并且得到的Policy效果更好。</p>
+<p><img src="/2019/11/12/drl-02/ddqn-0.PNG" alt="ddqn-0"></p>
+<p>为什么Q-Value会被高估？这是因为神经网络总是会高估某些Action，而DQN的target值总是会选最高的动作。当有动作被高估，就会被选取。</p>
+<p><img src="/2019/11/12/drl-02/ddqn.PNG" alt="ddqn"></p>
+<p>Double DQN则另外创建了一个网络Q’，用Q网络找出使之最大的a，然后用Q’算出值。</p>
+<p>这样，当Q高估了a时，Q‘并不会高估；当Q‘高估了a时，Q又不会选择a。综上，解决了target被高估的问题。</p>
+<p><img src="/2019/11/12/drl-02/ddqn-2.PNG" alt="ddqn-2"></p>
+<h3 id="1-2-2-Dueling-DQN"><a href="#1-2-2-Dueling-DQN" class="headerlink" title="1.2.2 Dueling DQN"></a>1.2.2 Dueling DQN</h3><p>Dueling DQN只将原来的网络输出层修改了一下，原来DQN输出的是一个一维的vector<code>Q(s,a)</code>(a的数量长)，而Duel除了原来的矢量外，还输出了一个标量V（s），然后与矢量A（s,a）做了一个加和，相当于原来的Q（s,a）多了一个偏置。</p>
+<p><img src="/2019/11/12/drl-02/duel.PNG" alt="duel"></p>
+<p>这样做有没有什么好处呢?</p>
+<p>我们看这V（s），只要它一个数字改了，对应Q（s,a）里就是某个state的所有值一起改变了。这样我们就可以很有效率地对网络进行更新。</p>
+<p>为了防止网络偷懒不用V（s），我们可以给A（s,a）加一些约束，比如每一列加和等于0。这样网络就会多用V。</p>
+<p><img src="/2019/11/12/drl-02/duel-2.PNG" alt="duel-2"></p>
+<h3 id="1-2-3-Prioritized-Replay"><a href="#1-2-3-Prioritized-Replay" class="headerlink" title="1.2.3 Prioritized Replay"></a>1.2.3 Prioritized Replay</h3><p>在选择batch时，优先选择网络表现不好的经验。</p>
+<p><img src="/2019/11/12/drl-02/preplay.PNG" alt="preplay"></p>
+<h1 id="2-Actor-Critic-算法回顾"><a href="#2-Actor-Critic-算法回顾" class="headerlink" title="2. Actor-Critic 算法回顾"></a>2. Actor-Critic 算法回顾</h1><p>Actor-Critic是目前大多数深度强化模型的设计模板，也是DDPG的基础。AC算法在DQN的基础上将Actor也作为一个新的函数进行训练。在上一篇笔记中我只是对AC算法进行了定性的分析，所以这次来仔细回顾一下。</p>
+<p><a href="https://blog.csdn.net/weixin_37895339/article/details/74612572" target="_blank" rel="noopener">参考文章</a></p>
+<h3 id="2-1-PG算法的劣势：过高的方差"><a href="#2-1-PG算法的劣势：过高的方差" class="headerlink" title="2.1 PG算法的劣势：过高的方差"></a>2.1 PG算法的劣势：过高的方差</h3><p>在之前的PG算法中，我们可以采用类似蒙特卡洛的方法采样一条轨迹后对策略进行更新，如下所示 ：</p>
+<p><img src="/2019/11/12/drl-02/0.PNG" alt="0"></p>
+<p>我们用整个轨迹的回报表示整个序列的价值，这个估计是准确无偏的，但是在真实的训练过程中，为了控制学习时间，我们无法完成足够数量的交互采样，有限次的采样有时并不能很好的代表轨迹真实的期望。每一个交互得到的序列会存在一定的差异，对应的回报也会存在一定的差异。</p>
+<ul>
+<li><strong>因此不充足的交互会给轨迹回报引入较大的方差</strong>，这就是蒙特卡洛方法的缺陷，<strong>没有偏差但是方差大</strong>。</li>
+<li>此外，随着Policy中参数的增加，方差也会增大。</li>
+<li>在PG算法中我们引入基线<code>baseline</code>以减小方差。</li>
+</ul>
+<h3 id="2-2-Actor-Critic的核心思想：通过一个单独的模型来估计轨迹的累积回报"><a href="#2-2-Actor-Critic的核心思想：通过一个单独的模型来估计轨迹的累积回报" class="headerlink" title="2.2 Actor-Critic的核心思想：通过一个单独的模型来估计轨迹的累积回报"></a>2.2 Actor-Critic的核心思想：通过一个单独的模型来估计轨迹的累积回报</h3><p>Actor-Critic算法就是牺牲一定的偏差来减小方差的方法。其核心思想是通过一个单独的模型来<strong>估计</strong>轨迹的累积回报，而不再用<strong>采样</strong>完一条轨迹后的真实累积回报。</p>
+<p>其实AC算法还有一个更重要的好处就是，<strong>可以在每一次操作步后进行模型的更新</strong>，而不用等到一条轨迹交互结束后才能更新一次模型。每一次采样使用类似DQN的方法更新价值函数模型，然后利用价值函数估计的轨迹价值进行策略函数的更新。<br>在<code>1.1.0</code>中我们给出了PG算法的梯度公式，受到Q-Learning的启发，我们最初想到可以用以下方法来替代公式最右侧的轨迹梯度权值<code>r-b</code>：</p>
+<ul>
+<li>一个评价在场景<code>s</code>做<code>a</code>的好坏的Q函数，Q(s,a)</li>
+</ul>
+<p>后来想要在Q的基础上减去一个Baseline，使权重有正有负，于是变为：</p>
+<ul>
+<li>Q函数减去状态价值估计函数V， Q(s,a) - V(s)</li>
+</ul>
+<p>但是上面的公式有两个自定义的函数，这难道说明我们要训练两个网络吗？其实可以化简。</p>
+<p>我们其实可以对Q函数做如下近似（不要感到困惑，V函数其实就是在这里得到明确定义的！）：</p>
+<p><img src="/2019/11/12/drl-02/1.PNG" alt="1"></p>
+<p>所以上述权重公式变为：</p>
+<ul>
+<li><p>当前操作步骤的reward<code>r(s,a)</code>加上下一状态的价值<code>V(s&#39;)</code>减去当前状态的价值<code>V(s)</code>:</p>
+<p><img src="/2019/11/12/drl-02/2.PNG" alt="2"></p>
+</li>
+</ul>
+<p>可能会对上面的公式有一点困惑，可以记住：某一状态价值函数v，包括了该状态及以后所有状态的价值，所以状态越靠后，价值越小。上述公式左边两项其实就是理想状态下的<code>V(s)</code>的理想最大值。</p>
+<p>下图展示了AC算法的详细流程：</p>
+<p><img src="/2019/11/12/drl-02/ac.png" alt="ac"></p>
+<p>归纳一下，AC算法的训练流程如下：</p>
+<ul>
+<li>Actor获取当前环境状态<code>s</code>，拿去跑pi网络（也就是policy函数），得到操作<code>a</code></li>
+<li>执行操作<code>a</code>后，从环境观察到下一时刻的状态<code>s&#39;</code>，以及该步骤的reward <code>r</code></li>
+<li>Critic根据当前的状态<code>s</code>和下一时刻的状态<code>s&#39;</code>还有该步骤的<code>r</code>，拿去跑v网络（也就是状态价值函数），得到权重$\delta$</li>
+<li>更新v网络的参数，迭代公式如下，$\alpha$为学习率，$\delta$是上一步的权重，最后一项是状态价值函数关于参数的梯度方向<ul>
+<li><img src="/2019/11/12/drl-02/3.PNG" alt="3"></li>
+</ul>
+</li>
+<li>更新Actor的pi网络的参数，迭代公式如下，$\alpha$为学习率，$\delta$是上一步的权重，最后一项是PG算法推导出来的梯度方向<ul>
+<li><img src="/2019/11/12/drl-02/4.PNG" alt="4"></li>
+</ul>
+</li>
+<li>如果有必要，上面的两个迭代公式会有一个衰减系数。</li>
+<li>更新状态<code>s=s&#39;</code></li>
+<li>开始下一次循环</li>
+</ul>
+<h1 id="3-DDPG-算法"><a href="#3-DDPG-算法" class="headerlink" title="3. DDPG 算法"></a>3. DDPG 算法</h1><h2 id="3-1-DPG算法（Deterministic-Policy-Gradient）"><a href="#3-1-DPG算法（Deterministic-Policy-Gradient）" class="headerlink" title="3.1 DPG算法（Deterministic Policy Gradient）"></a>3.1 DPG算法（Deterministic Policy Gradient）</h2><p>DPG（Deterministic Policy Gradient）确定性行为策略是D.Silver等在2014年提出的，DPG每一步的行为通过函数μ直接获得确定的值。在DPG之前业界普遍认为，环境模型无关的确定性策略是不存在的，而D.Silver等通过严密的数学推导证明了DPG的存在。根据DPG论文的证明，当概率策略的方差趋近于0的时候，就是确定性策略。</p>
+<p>在之前的文章中，Policy Network通过ln损失和discount reward来引策略导梯度的更新，AC方法通过log损失和TD error来引策略导梯度的更新，最后得到的策略都是一个action的概率分布。我们在选择action的时候其实是根据概率分布进行采样，因此Policy Gradient本质上是一个随机策略。采用随机策略时，即使在相同的状态，每次所采取的动作也很可能不一样。而确定性策略能够得到一个确定的action。</p>
+<p><strong>Policy Gradient：</strong>顾名思义就是策略梯度算法，能够在连续的动作空间根据所学习到的策略（动作分布）随机筛选动作<br><strong>Deterministic :</strong> 它的作用就是用来帮助Policy Gradient不让他随机选择，只输出一个动作值</p>
+<p><img src="/2019/11/12/drl-02/dpg.png" alt="dpg"></p>
+<p>现在来看PG和DPG的区别：</p>
+<ul>
+<li>PG：随机性策略，<code>∑π(a|s)=1</code> 策略输出的是动作的概率，使用正态分布对动作进行采样选择，即每个动作都有概率被选到；<ul>
+<li>优点，将探索和改进集成到一个策略中；</li>
+<li>缺点，需要大量训练数据。</li>
+</ul>
+</li>
+<li>DPG：确定性策略，<code>π(s)S→A</code>策略输出即是动作。<ul>
+<li>优点，需要采样的数据少，算法效率高；</li>
+<li>缺点，无法探索环境。<ul>
+<li>然而因为我们引用了DQN的结构利用off-Policy采样<strong>(所谓off-policy，就是迭代公式里的<code>maxQ(s&#39;,a?)</code>而不是<code>Q(s&#39;,a&#39;)</code>)</strong>，这样就解决了无法探索环境的问题。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-2-DDPG算法-（Deep-Deterministic-Policy-Gradient）"><a href="#3-2-DDPG算法-（Deep-Deterministic-Policy-Gradient）" class="headerlink" title="3.2 DDPG算法 （Deep Deterministic Policy Gradient）"></a>3.2 DDPG算法 （Deep Deterministic Policy Gradient）</h2><p>DDPG算法是从DPG的基础上发展来的，它主要借鉴了DQN里的Target Network(见<code>1.1.1</code> )和经验池(见<code>1.1.2</code>)方法</p>
+<p>DDPG采用了类似DQN的双网络结构，我们之前介绍过DQN有两个神经网络，即Critic的Target（也叫现实网络，因为这个Target的网络是fixed的，且是状态估计网络的目标）和状态估计网络。而DDPG的Actor和Critic都有Target和现实网络。需要强调的是，我们只需要训练动作估计网络和状态估计网络的参数，而动作现实网络和状态现实网络的参数是由前面两个网络每隔一定的时间复制过去的。</p>
+<p>我们先来说说Critic这边，Critic这边的学习过程跟DQN类似，我们都知道DQN根据下面的损失函数来进行网络学习，即现实的Q’值和估计的Q值的平方损失：<br>$$<br>Loss_{critic} = [R+\gamma max_{a’}Q’(S’,a’)-Q(s,a)]^2<br>$$<br>Critic中的状态估计网络就是通过最小化上述Loss的梯度下降法执行自身的优化，与DQN不同，DDPG在每次更新后，都会用：<br>$$<br>Q’\leftarrow \tau Q’ + (1-\tau)Q<br>$$<br>实现target（现实）网络参数更新，这个更新有两个好处，首先是每步都更新，比DQN每隔几步更新可能更加up-to-date，其次就是他不是简单的覆盖，而是一个比较温和的加权更新。</p>
+<p>接下来看看Actor是如何更新的，下式是Actor网络的梯度公式，似乎和我们之前所学有一些差异：</p>
+<p><img src="/2019/11/12/drl-02/drl-02%5C222.png" alt="222"></p>
+<p>为了理解这个式子，我先去复习了一下Policy Gradient里的梯度公式，如下：<br>$$<br>\nabla R_{\theta}=\frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\nabla lnP(\tau^{n}|\theta)<br>$$<br>而经过发展，在基于Q-learning的AC算法中，Actor的梯度公式如下：</p>
+<p><img src="/2019/11/12/drl-02/12.png" alt="12"></p>
+<p>上面这个公式和最初PG算法的一个明显区别就是它的输入不再是一个个轨迹trajectory，而是experience replay buffer的元组<code>(s,a,r,s&#39;)</code>，它用<code>Q(s,a)</code>评价Policy在做出某个<code>(s,a)</code>决策的好坏，这个Q作为权重，乘在了针对Policy作出(s,a)的概率的梯度向量<code>lnP(a,s)</code>上，这是一个TD(Temporal Difference)的更新过程。</p>
+<p>现在将目光转回DDPG，我们先看在DDPG如何评价一个Actor的好坏：</p>
+<p><img src="/2019/11/12/drl-02/h2.png" alt="h2"></p>
+<p>上面的式子其实就是所有环境情况<code>s</code>下Q值的加权平均，从感性角度认识，<code>J(u)</code>其实就是Policy<code>u</code>的Q值期望。Actor的梯度下降法的目标就是训练u的参数$\theta$，将J(u)函数尽可能最大化：<br>$$<br>\theta^{\mu} = \theta^{\mu} + \eta \cdot \nabla_{\theta} J(\mu)<br>$$<br>现在我们对该<code>J</code>公式关于$\theta$求梯度：</p>
+<p><img src="/2019/11/12/drl-02/h1.png" alt="h1"></p>
+<p>因为是确定性策略，即：<br>$$<br>a=\mu(s|\theta^{\mu})<br>$$<br>所以根据链式法则，梯度公式推导为：</p>
+<p><img src="/2019/11/12/drl-02/h3.png" alt="h3"></p>
+<p>将上述公式中的两项进行转换，即为：</p>
+<p><img src="/2019/11/12/drl-02/222.png" alt="222"></p>
+<p>下图直观地描述了上述DDPG执行流程：</p>
+<p><img src="/2019/11/12/drl-02/ddpg1.png" alt="ddpg-2"></p>
+<p>最后给出DDPG算法的伪代码：</p>
+<p><img src="/2019/11/12/drl-02/ddpg.png" alt="ddpg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/ReinforceLearning/" rel="tag"># ReinforceLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/09/dl-05/" rel="prev" title="多相机行人跟踪[02]-用TensorRT加速YOLO(2)">
+      <i class="fa fa-chevron-left"></i> 多相机行人跟踪[02]-用TensorRT加速YOLO(2)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/13/drl-03/" rel="next" title="强化学习随笔[03]-MADDPG算法学习与实践">
+      强化学习随笔[03]-MADDPG算法学习与实践 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-DQN-算法（Deep-Q-Learning）"><span class="nav-text">1. DQN 算法（Deep Q Learning）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-DQN-详解"><span class="nav-text">1.1 DQN 详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-DQN新feature之一：Target网络"><span class="nav-text">1.1.1 DQN新feature之一：Target网络</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-DQN新feature之二：Replay-Buffer"><span class="nav-text">1.1.2 DQN新feature之二：Replay Buffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-3-Exploration"><span class="nav-text">1.1.3 Exploration</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-DQN的一些拓展"><span class="nav-text">1.2 DQN的一些拓展</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-1-Double-DQN"><span class="nav-text">1.2.1 Double DQN</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-2-Dueling-DQN"><span class="nav-text">1.2.2 Dueling DQN</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-3-Prioritized-Replay"><span class="nav-text">1.2.3 Prioritized Replay</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Actor-Critic-算法回顾"><span class="nav-text">2. Actor-Critic 算法回顾</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-PG算法的劣势：过高的方差"><span class="nav-text">2.1 PG算法的劣势：过高的方差</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Actor-Critic的核心思想：通过一个单独的模型来估计轨迹的累积回报"><span class="nav-text">2.2 Actor-Critic的核心思想：通过一个单独的模型来估计轨迹的累积回报</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-DDPG-算法"><span class="nav-text">3. DDPG 算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-DPG算法（Deterministic-Policy-Gradient）"><span class="nav-text">3.1 DPG算法（Deterministic Policy Gradient）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-DDPG算法-（Deep-Deterministic-Policy-Gradient）"><span class="nav-text">3.2 DDPG算法 （Deep Deterministic Policy Gradient）</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

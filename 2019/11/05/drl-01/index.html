@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要毕业设计的题目与基于强化学习的多Agent协同任务规划相关。之前只接触过基于深度学习的CV相关项目，这次的课题对我而言是个较大的挑战。花费了几天时间学习了强化学习的基本概念和常用算法，主要参考的是台湾大学李宏毅教授的强化学习课程，以及南京大学周志华教授的西瓜书。 初学强化学习，感觉其中的概念、算法繁多，但各个算法之间的思路有些地方是相通，所以做个总结，强化记忆。欢迎交流、指导！ 本文总结">
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习随笔[01]-PG&#x2F;Q-Learning&#x2F;A3C算法学习">
+<meta property="og:url" content="http://yoursite.com/2019/11/05/drl-01/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要毕业设计的题目与基于强化学习的多Agent协同任务规划相关。之前只接触过基于深度学习的CV相关项目，这次的课题对我而言是个较大的挑战。花费了几天时间学习了强化学习的基本概念和常用算法，主要参考的是台湾大学李宏毅教授的强化学习课程，以及南京大学周志华教授的西瓜书。 初学强化学习，感觉其中的概念、算法繁多，但各个算法之间的思路有些地方是相通，所以做个总结，强化记忆。欢迎交流、指导！ 本文总结">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/1.jpeg">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/2.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/4.jpeg">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/7.jpeg">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/8.jpeg">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/11.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/3.PNG">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/555.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/12.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/13.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/14.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/15.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/16.webp">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/drl-01/17.webp">
+<meta property="article:published_time" content="2019-11-05T09:11:42.000Z">
+<meta property="article:modified_time" content="2019-12-12T08:01:29.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="ReinforceLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/05/drl-01/1.jpeg">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/05/drl-01/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>强化学习随笔[01]-PG/Q-Learning/A3C算法学习 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/05/drl-01/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          强化学习随笔[01]-PG/Q-Learning/A3C算法学习
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-05 17:11:42" itemprop="dateCreated datePublished" datetime="2019-11-05T17:11:42+08:00">2019-11-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:01:29" itemprop="dateModified" datetime="2019-12-12T16:01:29+08:00">2019-12-12</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>毕业设计的题目与基于强化学习的多Agent协同任务规划相关。之前只接触过基于深度学习的CV相关项目，这次的课题对我而言是个较大的挑战。花费了几天时间学习了强化学习的基本概念和常用算法，主要参考的是台湾大学<a href="https://www.bilibili.com/video/av63546968?from=search&seid=8588499706669408642" target="_blank" rel="noopener">李宏毅教授的强化学习课程</a>，以及南京大学周志华教授的西瓜书。</p>
+<p>初学强化学习，感觉其中的概念、算法繁多，但各个算法之间的思路有些地方是相通，所以做个总结，强化记忆。欢迎交流、指导！</p>
+<p>本文总结了：</p>
+<ul>
+<li>Policy Gradient算法</li>
+<li>Q-Learning算法</li>
+<li>A2C算法</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-Policy-Gradient（基于概率）"><a href="#1-Policy-Gradient（基于概率）" class="headerlink" title="1. Policy Gradient（基于概率）"></a>1. Policy Gradient（基于概率）</h1><p>强化学习的目标是训练一个Agent，可以感受外界的环境状态（State，符号<code>s</code>），然后根据训练的行为准则（Policy，符号$\pi$），做出操作（Action，符号<code>a</code>）。</p>
+<p>每当Agent做出操作<code>a</code>后，都会改变环境状态<code>s</code>，并从环境获得一个反馈（Reward，符号<code>r</code>）, 这个反馈会指导Agent的行为准则$\pi$朝增大Reward的方向进行改变。</p>
+<p><img src="/2019/11/05/drl-01/1.jpeg" alt="1"></p>
+<p>在强化学习中，一次行动的好坏不仅由当前步骤的reward决定，之后几步的reward可能也是部分基于当前步骤的。比如说控制机器人去射击，可能存在瞄准和射击两个Action，两个Action中只有击杀的那个步骤会产生reward，但是瞄准的步骤其实也是有贡献的。如果评价一个步骤的好坏时只考虑当前步骤带来的reward的话，可能训练出来的机器人就只会射击，不考虑瞄准了。我们评价一个操作的好坏时（也就是评价做出该操作的policy的好坏时），必须考虑在该操作之后的其他操作的reward。（在Policy Gradient中详细解释）</p>
+<p>所以，秉持从全局考虑问题的思想，，定义了轨迹（Trajectory，符号$\tau$）的概念，一场游戏从开始到结束，经过的所有状态和相应的action都储存在轨迹里。这样一个完整的游戏过程被称作一个<code>episode</code>。Policy的每次更新都需要若干个<code>episode</code>。</p>
+<p><img src="/2019/11/05/drl-01/2.webp" alt="2"></p>
+<p>环境$s_i$对每次操作$a_{i}$都会有单次的reward，表示为<code>ri</code>。将轨迹中的所有reward累加，即为该轨迹的总reward：<code>R</code>。</p>
+<p>这里我们把给出单次reward的环境看成一个黑盒子，只需要知道他和Policy网络没有关系即可，最初的强化学习，reward的值是由人为给出的。</p>
+<p>对一个Policy，其所带来的<code>R的期望</code>越高，说明训练的Policy越好。具体可以这样理解，好的Policy函数，在其指导下，Agent能更倾向于走那些总reward<code>R</code>较高的轨迹。</p>
+<p>所以要训练一个好的Policy，我们的目标就是要让这个Policy的<code>R</code>的期望尽可能地高。</p>
+<p>如下图所示，参考深度学习中的梯度下降法，我们要优化Policy的参数，只需要求解<code>R</code>的期望相对于Policy网络中各个参数$\theta$的梯度。</p>
+<p><img src="/2019/11/05/drl-01/4.jpeg" alt="4"></p>
+<p>那么，先来考察一下<code>R</code>的期望的数学表达式，因为他是各个轨迹的总回报的期望，所以我们用条件概率公式有：<br>$$<br>R_{\theta}=\sum_{\tau}R(\tau)P(\tau|\theta)<br>$$<br>对<code>R</code>其相对于参数$\theta$求梯度，有：<br>$$<br>\nabla R_{\theta}=\sum_{\tau}R(\tau)\nabla P(\tau|\theta)=\sum_{\tau}R(\tau)P(\tau|\theta)\frac{\nabla P(\tau|\theta)}{P(\tau|\theta)}\approx \frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\nabla lnP(\tau^{n}|\theta)<br>$$<br>对上式来说，$R(\tau^{n})$是直接用采样获取训练中各个<code>episode</code>的总reward的均值。而如下图所示，我们可以求解$\nabla lnP$项：</p>
+<p><img src="/2019/11/05/drl-01/7.jpeg" alt="7"></p>
+<p>至此，我们已经化简了R的期望的梯度公式，如下：<br>$$<br>\nabla R_{\theta}=\frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\cdot \sum_{t=1}^{T}\nabla lnP(a_{t}|s_{t},\theta)<br>$$<br>上述化简后的梯度公式，里面的概率$P(a|s,\theta)$就是policy网络的输出。所以梯度公式中已经可以求解了。</p>
+<p>总结一下，Policy Gradient的总体步骤如下：</p>
+<p>1.先随机正向推理N个episode，得到N条轨迹和对应的总reward；</p>
+<p>2.用上面得到的公式得到梯度，然后更新参数；</p>
+<p>3.循环1,2步。</p>
+<p><img src="/2019/11/05/drl-01/8.jpeg" alt="8"></p>
+<p>现在我们来看这个最后得到的梯度公式，其实和深度学习里的交叉熵损失函数很像。$\nabla logP(\tau)$这一项用于指出要增大网络在$S_{t}^{n}$情况下输出操作是$a_{t}^{n}$的概率，需要修改$\theta$的方向矢量；而$R(\tau)$相当于是一个权重，$R$越大，说明这条轨迹越好，那么我们就认为这条轨迹里的这步决策很好，那么参数$\theta$就多往那个方向改变一点，如果R是负的，那参数就往相反的方向改变，一切以增大R为目的。</p>
+<h1 id="2-Q-Learning（基于值）"><a href="#2-Q-Learning（基于值）" class="headerlink" title="2. Q-Learning（基于值）"></a>2. Q-Learning（基于值）</h1><p>Q-Learning是另一种用于Agent决策的算法。</p>
+<p>Q-Learning算法流程如下：</p>
+<p><img src="/2019/11/05/drl-01/11.jpg" alt="11"></p>
+<p>Q函数的作用是对任一个环境状态$s$下，要执行动作$a$，都返回一个值对其进行评价。</p>
+<p>Q-Learning的思路就是不断训练Q函数，提升其评价($s,a)$的准确率。</p>
+<p>先假设我们已经有一个训练得很好的Q函数了，在决策时，给定环境$s$，我们在Q函数中寻找使Q值最大的$a$即可，即：<br>$$<br>a=\pi(s)=argmax Q(s,a)<br>$$<br>在经典的Q-Learning中，Q函数往往是简单的表格（纵轴是State，横轴是Action，表中的block就是该(s,a)对的Q值，Q值越大说明在s时做a这个操作越好，机器会直接选择这个最好的值）。如下图所示，如果环境<code>s=4</code>，那么Policy就会选择第四行中使Q值最大的那个操作$a$，也就是<code>right</code>。</p>
+<p><img src="/2019/11/05/drl-01/3.PNG" alt="3"></p>
+<p>每次做出如上推理，都会更新Q函数（Q-table），接下来来看Q-Learning如何实现Q函数（Q-table）的更新。</p>
+<p>首先通过上述推理，可以得到在当前环境$s$下要做的决策$a$，接下来观察该操作$a$带来的反馈$r$和下一时刻的环境$s’$。</p>
+<p>在Policy Gradient里我们知道操作$a$的好坏要看两部分，首先是当时刻的反馈如何，另外还要看$a$操作造成的新环境$s’$，它的得分期望怎么样。因为也许$a$操作虽然当前没有得到分数，但它是<code>happy ending</code>的必要操作呢。所以，Q函数的更新迭代公式综合考虑了当前的reward和下一时刻环境的得分期望，如下：<br>$$<br>Q_{n}(s,a_{i})= Q_{n-1}(s,a_{i})+\alpha[r_{i}^{t}+\gamma\cdot maxQ(s’,a’)-Q_{n-1}(s,a_{i})]<br>$$<br>上面的$r_{i}^{t}$即为当前reward，$maxQ(s’)$即为下一时刻环境的最大得分期望，$\gamma$是一个小于1的衰减系数，这个系数会随着迭代而不断升次，换句话说里当前时刻越往后的时刻，它的得分我们认为和当前时刻的操作$a_i$干系越不大。$\alpha$则是学习率，是一个超参数。</p>
+<p>事实上，从数学意义上看，当前步骤的$r$和下一步骤的最大Q值，不就是当前步骤理论的最大Q值吗？这样我们着眼整个迭代公式，会发现Q-table的更新实际上就是一个Q-table在自身基础上以a为学习率向理论的最大Q值努力迭代靠近的过程。</p>
+<p>经过上述讲述，可能仍然不明白迭代公式的形式为何是这个样子的。为此我参考了西瓜书上<code>K-摇臂赌博机</code>的例子。</p>
+<p>一个赌博机有k个摇臂，我们要用Q函数评价某一环境<code>s</code>下按下各个摇臂（其实就是k个action<code>a</code>）的好坏。一个很自然的想法就是分别统计各个摇臂被按下时的reward情况，求其平均值，将该值作为Q函数的值，也即：<br>$$<br>Q(s,a_{i})=\frac{1}{T}\Sigma r_{i}^{t}<br>$$<br>这种表示方法需要统计下每次摇臂的reward，效率十分低下，于是转换成增量式计算的形式，即：<br>$$<br>Q_{n}(s,a_{i})= \frac {n-1}{n}Q_{n-1}(s,a_{i})+\frac {1}{n}r_{i}^{t}<br>$$<br>这样，就只需要记录前一时刻的Q值和当前时刻的reward了，再将它等价地转换一下，就得到了类似Q-Learning更新迭代公式的形式：<br>$$<br>Q_{n}(s,a_{i})= Q_{n-1}(s,a_{i})+\frac {1}{n}(r_{i}^{t}-Q_{n-1}(s,a_{i}))<br>$$<br>比较一下两个公式，发现只要将上式的<code>1/n</code>变成学习率，在括号里加上考虑下一时刻环境的得分期望的项，就得到了Q-Learning的迭代公式。</p>
+<p>至此我们介绍完了Q-Learning算法的基本思想和公式推导。为了Exploration，在已知环境$s$，选择操作$a$的时候可以不完全根据Q函数的值来。最常用的有$\epsilon-greedy$算法，即有一定几率不依据Q-table，而是用随机数，随机选取$a$。（和模拟退火法的思想类似）</p>
+<h1 id="3-Actor-Critic结构"><a href="#3-Actor-Critic结构" class="headerlink" title="3. Actor-Critic结构"></a>3. Actor-Critic结构</h1><p>在上文中，我们分别介绍了基于概率决策的Policy Gradient算法和基于数值决策的Q-Learning算法。A3C算法可以说是结合了二者优点的方法。我们在这篇文章中只是简略介绍了Actor-Critic的思想，详细算法可以看<a href="https://yerfor.github.io/2019/11/12/drl-02/" target="_blank" rel="noopener">下一篇博文</a>。</p>
+<p><img src="/2019/11/05/drl-01/555.webp" alt="555"></p>
+<h2 id="3-1-AC-Actor-Critic"><a href="#3-1-AC-Actor-Critic" class="headerlink" title="3.1 AC(Actor-Critic)"></a>3.1 AC(Actor-Critic)</h2><p>在Policy Gradient算法中，如果我们用Q函数来代替<code>R</code>的期望，同时我们创建一个Critic网络来计算Q函数值，那么我们就得到了Actor-Critic方法。Actor参数的梯度变为：</p>
+<p><img src="/2019/11/05/drl-01/12.webp" alt="12"> </p>
+<p>感觉可以这么理解，Q值由critic网络输出，它只是梯度方向矢量的一个权重weight。即critic来告诉actor这方向有多好，但参数转移的方向还是由actor自己得到的。因为参数的梯度方向是actor对自己的网络求导的到的。</p>
+<p>此时的Critic根据估计的Q值和实际Q值的平方误差进行更新， 对Critic来说，其$loss$为：</p>
+<p><img src="/2019/11/05/drl-01/13.webp" alt="13"></p>
+<p>上述公式的推导详见下一篇博文的DQN部分。</p>
+<h2 id="3-2-A2C-Advantage-Actor-Critic"><a href="#3-2-A2C-Advantage-Actor-Critic" class="headerlink" title="3.2 A2C(Advantage Actor-Critic)"></a>3.2 A2C(Advantage Actor-Critic)</h2><p>我们常常给Q值增加一个基线，使得反馈有正有负，这里的基线通常用某一状态的<strong>价值函数</strong>来表示，因此梯度就变为了：</p>
+<p><img src="/2019/11/05/drl-01/14.webp" alt="14"></p>
+<p>但是，这样的话我们需要有两个网络分别计算状态-动作价值Q和状态价值V，因此我们做这样的转换：</p>
+<p><img src="/2019/11/05/drl-01/15.webp" alt="15"></p>
+<p>这样会是增加一定的方差，不过可以忽略不计，这样我们就得到了Advantage Actor-Critic方法，此时的Critic变为估计状态价值V的网络。因此Critic网络的损失变为实际的状态价值和估计的状态价值的平方损失：</p>
+<p><img src="/2019/11/05/drl-01/16.webp" alt="16"></p>
+<h2 id="3-3-Asynchronous-同步训练"><a href="#3-3-Asynchronous-同步训练" class="headerlink" title="3.3 Asynchronous 同步训练"></a>3.3 Asynchronous 同步训练</h2><p>我们都知道，直接更新策略的方法，其迭代速度都是非常慢的，为了充分利用计算资源，又有了Asynchronous Advantage Actor-Critic 方法，拿火影的例子来说，鸣人想要修炼螺旋手里剑，但是时间紧迫，因此制造了1000个影分身，这样它的学习速度也可以提升500倍：</p>
+<p><img src="/2019/11/05/drl-01/17.webp" alt="17"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/ReinforceLearning/" rel="tag"># ReinforceLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/03/opencv-04/" rel="prev" title="OpenCV学习笔记[04]-OpenCV拾遗">
+      <i class="fa fa-chevron-left"></i> OpenCV学习笔记[04]-OpenCV拾遗
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/09/dl-05/" rel="next" title="多相机行人跟踪[02]-用TensorRT加速YOLO(2)">
+      多相机行人跟踪[02]-用TensorRT加速YOLO(2) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-Policy-Gradient（基于概率）"><span class="nav-text">1. Policy Gradient（基于概率）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Q-Learning（基于值）"><span class="nav-text">2. Q-Learning（基于值）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-Actor-Critic结构"><span class="nav-text">3. Actor-Critic结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-AC-Actor-Critic"><span class="nav-text">3.1 AC(Actor-Critic)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-A2C-Advantage-Actor-Critic"><span class="nav-text">3.2 A2C(Advantage Actor-Critic)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-Asynchronous-同步训练"><span class="nav-text">3.3 Asynchronous 同步训练</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要在上一篇文章中，我们已经详细介绍了MADDPG算法的原理，并跑通了官方提供的代码。我们简单测试后发现，算法效果很不错，我们的主要工作应该集中在设计自己的Environment，也就是创建Scenario。 那么，在maddpg项目框架里，创建一个Scenario需要什么呢？  本文以simple_push.py为例介绍了Scenario类的接口、范式；  测试了官方提供的所有sample">
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习随笔[04]-maddpg项目:创建场景Scenario">
+<meta property="og:url" content="http://yoursite.com/2019/11/14/drl-04/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要在上一篇文章中，我们已经详细介绍了MADDPG算法的原理，并跑通了官方提供的代码。我们简单测试后发现，算法效果很不错，我们的主要工作应该集中在设计自己的Environment，也就是创建Scenario。 那么，在maddpg项目框架里，创建一个Scenario需要什么呢？  本文以simple_push.py为例介绍了Scenario类的接口、范式；  测试了官方提供的所有sample">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/World.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/Agent.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/Entity.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/Landmark.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/State.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/reward.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/agentReward.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/adversaryReward.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/observe.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/simple_push.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/simple_spread.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/drl-04/simple_tag.gif">
+<meta property="article:published_time" content="2019-11-14T11:14:42.000Z">
+<meta property="article:modified_time" content="2019-12-30T16:11:17.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="ReinforceLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/14/drl-04/World.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/14/drl-04/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>强化学习随笔[04]-maddpg项目:创建场景Scenario | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/14/drl-04/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          强化学习随笔[04]-maddpg项目:创建场景Scenario
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-14 19:14:42" itemprop="dateCreated datePublished" datetime="2019-11-14T19:14:42+08:00">2019-11-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-31 00:11:17" itemprop="dateModified" datetime="2019-12-31T00:11:17+08:00">2019-12-31</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">基于深度强化学习的多机协同算法研究</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>在<a href="https://yerfor.github.io/2019/11/13/drl-03/" target="_blank" rel="noopener">上一篇文章</a>中，我们已经详细介绍了MADDPG算法的原理，并跑通了官方提供的代码。我们简单测试后发现，算法效果很不错，我们的主要工作应该集中在设计自己的Environment，也就是创建<code>Scenario</code>。</p>
+<p>那么，在maddpg项目框架里，创建一个Scenario需要什么呢？</p>
+<ul>
+<li><p>本文以<code>simple_push.py</code>为例介绍了Scenario类的接口、范式；</p>
+</li>
+<li><p>测试了官方提供的所有sample，归纳了设计reward需要遵循的规律和思想。</p>
+</li>
+</ul>
+<p>总的来说，本文为我们自己设计Scenario提供了基础。</p>
+<a id="more"></a>
+
+<h1 id="1-定义Scenario类"><a href="#1-定义Scenario类" class="headerlink" title="1. 定义Scenario类"></a>1. 定义Scenario类</h1><p>首先，引用依赖，定义Scenario类：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> multiagent.core <span class="keyword">import</span> World, Agent, Landmark</span><br><span class="line"><span class="keyword">from</span> multiagent.scenario <span class="keyword">import</span> BaseScenario</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Scenario</span><span class="params">(BaseScenario)</span>:</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="1-1-make-world-self"><a href="#1-1-make-world-self" class="headerlink" title="1.1 make_world(self)"></a>1.1 make_world(self)</h2><h3 id="1-1-1-World类"><a href="#1-1-1-World类" class="headerlink" title="1.1.1 World类"></a>1.1.1 World类</h3><p>我们要先创建一个世界，这个世界包括了agent和landmark等，它提供了对二维空间的物理描述，包括时间、位置、加速度和速度等。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_world</span><span class="params">(self)</span>:</span></span><br><span class="line">    world = World()</span><br></pre></td></tr></table></figure>
+
+<p>这里我们调用了<code>multiagent.core</code>中定义的<code>World</code>对象:</p>
+<p><img src="/2019/11/14/drl-04/World.png" alt="World"></p>
+<p>至此我们创建了一个初始的World，这个World里储存agents和landmarks的列表是空的，需要我们创建对象后添加进去，如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># set any world properties first</span></span><br><span class="line">world.dim_c = <span class="number">2</span></span><br><span class="line">num_agents = <span class="number">5</span></span><br><span class="line">num_adversaries = <span class="number">4</span></span><br><span class="line">num_landmarks = <span class="number">2</span></span><br><span class="line"><span class="comment"># add agents</span></span><br><span class="line"><span class="comment"># 创建了5个初始的Agent的对象，传到world中</span></span><br><span class="line">world.agents = [Agent() <span class="keyword">for</span> i <span class="keyword">in</span> range(num_agents)]</span><br><span class="line"><span class="comment"># 遍历所有agent，设定他们的名字、是否可碰撞、是否是哑巴（不能通信）</span></span><br><span class="line"><span class="comment"># 此外还要设定adversary这个属性以标示是否是敌人</span></span><br><span class="line"><span class="keyword">for</span> i, agent <span class="keyword">in</span> enumerate(world.agents):</span><br><span class="line">    agent.name = <span class="string">'agent %d'</span> % i</span><br><span class="line">    agent.collide = <span class="literal">True</span></span><br><span class="line">    agent.silent = <span class="literal">True</span></span><br><span class="line">    <span class="keyword">if</span> i &lt; num_adversaries:</span><br><span class="line">        agent.adversary = <span class="literal">True</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        agent.adversary = <span class="literal">False</span></span><br><span class="line"><span class="comment"># add landmarks</span></span><br><span class="line">world.landmarks = [Landmark() <span class="keyword">for</span> i <span class="keyword">in</span> range(num_landmarks)]</span><br><span class="line"><span class="keyword">for</span> i, landmark <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">    landmark.name = <span class="string">'landmark %d'</span> % i</span><br><span class="line">    landmark.collide = <span class="literal">False</span></span><br><span class="line">    landmark.movable = <span class="literal">False</span></span><br><span class="line"><span class="comment"># make initial conditions</span></span><br><span class="line">self.reset_world(world)</span><br><span class="line"><span class="keyword">return</span> world</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-1-2-Agent类"><a href="#1-1-2-Agent类" class="headerlink" title="1.1.2 Agent类"></a>1.1.2 Agent类</h3><p>让我们看看Agent有哪些属性：</p>
+<p><img src="/2019/11/14/drl-04/Agent.png" alt="Agent"></p>
+<p>Agent继承自Entity，所以还拥有Entity的属性和方法：</p>
+<p><img src="/2019/11/14/drl-04/Entity.png" alt="Entity"></p>
+<p>本例中，因为不能通信，我们把silence设为True；给每个Agent取了个名字；</p>
+<ul>
+<li>值得注意的是，我们在类外面定义了一个类的属性adversary以此辨别敌我，没想到类外面也能定义属性，Python实在是太任性了！</li>
+</ul>
+<h3 id="1-1-3-Landmark类"><a href="#1-1-3-Landmark类" class="headerlink" title="1.1.3 Landmark类"></a>1.1.3 Landmark类</h3><p>接下来看Landmark类，从下图可以看到Landmark类全盘继承自我们在<code>1.2</code>节提到的Entity。</p>
+<p><img src="/2019/11/14/drl-04/Landmark.png" alt="Landmark"></p>
+<p>示例中给landmark的collide属性设置为False，因此我们的Agent可以安然位于其上。</p>
+<h2 id="1-2-reset-world-self-world"><a href="#1-2-reset-world-self-world" class="headerlink" title="1.2 reset_world(self, world)"></a>1.2 reset_world(self, world)</h2><p>在将<code>agent</code>和<code>landmark</code>加入<code>world</code>中后，<code>make_world</code>还运行了一次<code>reset_world</code>来刷新重置世界，事实上这个刷新重置的函数每个<code>episode</code>都要执行，所以我们另开一章介绍。</p>
+<p>我们先定义reset_world函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reset_world</span><span class="params">(self, world)</span>:</span></span><br></pre></td></tr></table></figure>
+
+<p>首先，设置每个landmark的颜色和index：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># random properties for landmarks</span></span><br><span class="line"><span class="keyword">for</span> i, landmark <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">    landmark.color = np.array([<span class="number">0.1</span>, <span class="number">0.1</span>, <span class="number">0.1</span>])</span><br><span class="line">    landmark.color[i + <span class="number">1</span>] += <span class="number">0.8</span></span><br><span class="line">    landmark.index = i</span><br></pre></td></tr></table></figure>
+
+<p>注意，上面这个color的设置方法只能用于landmark数量小于等于2个的时候，当大于2个的时候就会有color[i+1]下标越界的情况，这时可以直接把color的生成方案换成随机数。其实是小事情。</p>
+<p>接着，从所有landmarks中随机找一个landmark作为目标goal。然后告诉每个agent目标是哪个landmark，注意这里他们又在Agent外面定义了一个属性，这个习惯真的很不好哈哈哈。然后再给agent和敌人设定颜色。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># set goal landmark</span></span><br><span class="line">goal = np.random.choice(world.landmarks)</span><br><span class="line"><span class="keyword">for</span> i, agent <span class="keyword">in</span> enumerate(world.agents):</span><br><span class="line">    agent.goal_a = goal</span><br><span class="line">    agent.color = np.array([<span class="number">0.25</span>, <span class="number">0.25</span>, <span class="number">0.25</span>])</span><br><span class="line">    <span class="keyword">if</span> agent.adversary:</span><br><span class="line">        agent.color = np.array([<span class="number">0.75</span>, <span class="number">0.25</span>, <span class="number">0.25</span>])</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        j = goal.index</span><br><span class="line">        agent.color[j + <span class="number">1</span>] += <span class="number">0.5</span></span><br></pre></td></tr></table></figure>
+
+<p>最后，用标准正态分布和0初始化了agent和landmark的初始状态<code>agent.state</code>，包括位置和速度。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># set random initial states</span></span><br><span class="line"><span class="keyword">for</span> agent <span class="keyword">in</span> world.agents:</span><br><span class="line">    agent.state.p_pos = np.random.uniform(<span class="number">-1</span>, +<span class="number">1</span>, world.dim_p)</span><br><span class="line">    agent.state.p_vel = np.zeros(world.dim_p)</span><br><span class="line">    agent.state.c = np.zeros(world.dim_c)</span><br><span class="line"><span class="keyword">for</span> i, landmark <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">    landmark.state.p_pos = np.random.uniform(<span class="number">-1</span>, +<span class="number">1</span>, world.dim_p)</span><br><span class="line">    landmark.state.p_vel = np.zeros(world.dim_p)</span><br></pre></td></tr></table></figure>
+
+<p>这里发现忘了交代State类的定义，其实很简单，只有位置<code>p_pos</code>、速度<code>p_vel</code>和通讯渠道<code>c</code>：</p>
+<p><img src="/2019/11/14/drl-04/State.png" alt="State"></p>
+<h2 id="1-3-reward-self-agent-world"><a href="#1-3-reward-self-agent-world" class="headerlink" title="1.3 reward(self, agent, world)"></a>1.3 reward(self, agent, world)</h2><p>因为simple_push的场景同时用到了协作和竞争，所以我们需要对agent和adversary分别设立reward。</p>
+<p>因此脚本里的reward函数实际上起到一个十字路口的作用：</p>
+<p><img src="/2019/11/14/drl-04/reward.png" alt="reward"></p>
+<p>之前定义的<code>agent.adversary</code>属性起到了辨识的作用，使agent和adversary分别执行不同的reward函数。</p>
+<p>先来看agent的reward，因为他的目标比较简单，就是离目标的Landmark尽可能的近：</p>
+<p><img src="/2019/11/14/drl-04/agentReward.png" alt="agentReward"></p>
+<p>上式中，<code>p_pos</code>是<code>(x,y)</code>形式的向量，所以agent的reward实际上就是agent和goal的欧氏距离：<br>$$<br>r_{agent}^{i}=\sqrt{\Delta x^{2}+\Delta y^{2}}<br>$$</p>
+<ul>
+<li>这里因为设定的场景里只有一个<code>goal</code>，所以<code>reward</code>设置的比较简单。实际上，设计一个<code>Scenario</code>最大的难点可能就在于<code>reward</code>的选定，所以为了更好地指导我们根据自己的场景选择合适的<code>reward</code>，我在本文的最后对<code>MADDPG</code>提供的所有<code>scenario</code>示例的场景和对应的<code>reward</code>做了一个总结。</li>
+</ul>
+<p>接下来看adversary的reward，它的任务比agent复杂，是尽量避免agent触及goal-Landmark：</p>
+<p><img src="/2019/11/14/drl-04/adversaryReward.png" alt="adversaryReward"></p>
+<p>首先计算了环境中所有agent（非adversary）和目标Goal-Landmark之间的欧氏距离，保存成一个列表agent_list，随后选择其中最小值（即距离目标最近的agent和目标之间的距离），储存为<code>pos_rew</code>，我们看到return是<code>pos_rew-neg_rew</code>，所以只要离目标最近的agent和目标之间的距离（等价于所有的agent离目标越远），adversary的reward越高。</p>
+<p>后面又计算了所有agent到目标的距离的平方和再开根，即：<br>$$<br>neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}<br>$$<br>可以看出这一项考虑的是所有adversary离目标的距离。如果<code>neg_rew</code>很小，即所有adversary离目标都很近，那么我们认为这是很好的，体现在return的 <code>pos_rew-neg_rew</code>里，减的<code>neg_rew</code>比较小，reward比较大。</p>
+<h2 id="1-4-关于reward的确定"><a href="#1-4-关于reward的确定" class="headerlink" title="1.4 关于reward的确定"></a>1.4 关于reward的确定</h2><ul>
+<li>虽然打算到最后本文最后好好总结一下所有reward的设计后再来发表感想的，但是看完这个示例的reward设计之后觉得，reward应该是<code>正相关于我们想要尽可能高的东西，负相关于我们不想要的东西</code>的一个式子。我们在设计reward时，可以好好想一下我们想要达到什么效果，这个效果下什么参数要尽可能大，什么参数要尽可能小。</li>
+<li>然后就是adversary的reward，让我觉得可能这种竞争的reward，阻挠对方完成任务的一方，它的reward需要综合双方的属性，即削弱彼方，增强己方。</li>
+<li>总之，设定reward时思考的点一定要全面，斗胆给一个结论吧：<ul>
+<li>设定reward就像培养孩子，给孩子定人生目标，我们给reward设定的什么样子，训练出来的模型就是在reward强调的方面做的很好的样子。</li>
+</ul>
+</li>
+</ul>
+<p>在本文末，会对官方给出的所有sample的reward做一个汇总，对其设计策略进行评析、总结。</p>
+<h2 id="1-5-Observation-self-agent-world"><a href="#1-5-Observation-self-agent-world" class="headerlink" title="1.5 Observation(self, agent, world)"></a>1.5 Observation(self, agent, world)</h2><p>Observation函数用于单个agent观察它周围的环境，agent会首先计算自己和所有Landmark之间的相对位置（一个向量），储存在名为<code>entity_pos</code>的list里：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">observation</span><span class="params">(self, agent, world)</span>:</span></span><br><span class="line">    <span class="comment"># get positions of all entities in this agent's reference frame</span></span><br><span class="line">    entity_pos = []</span><br><span class="line">    <span class="keyword">for</span> entity <span class="keyword">in</span> world.landmarks:  <span class="comment"># world.entities:</span></span><br><span class="line">        entity_pos.append(entity.state.p_pos - agent.state.p_pos)</span><br></pre></td></tr></table></figure>
+
+<p>再把所有landmark的颜色储存在名为<code>entity_color</code>的list里：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">entity_color = []</span><br><span class="line"><span class="keyword">for</span> entity <span class="keyword">in</span> world.landmarks:  <span class="comment"># world.entities:</span></span><br><span class="line">    entity_color.append(entity.color)</span><br></pre></td></tr></table></figure>
+
+<p>接下来是通信阶段，如果有通信的话，每个agent都会把设定分享的东西放到<code>agent.state.c</code>（不妨叫它<code>共享区</code>）里，然后某个agent执行observe时就会把所有agent的<code>共享区</code>的东西存到名叫<code>comm</code>的list里，在这个例子里没有用到。</p>
+<p>然后这个环境还默认每个agent都知道其他agent的位置，所以可以得到名叫<code>other_pos</code>的list，里面存的是其他agent和当前agent的相对位置。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># communication of all other agents</span></span><br><span class="line">        comm = []</span><br><span class="line">        other_pos = []</span><br><span class="line">        <span class="keyword">for</span> other <span class="keyword">in</span> world.agents:oushijulki</span><br><span class="line">            <span class="keyword">if</span> other <span class="keyword">is</span> agent: <span class="keyword">continue</span></span><br><span class="line">            comm.append(other.state.c)</span><br><span class="line">            other_pos.append(other.state.p_pos - agent.state.p_pos)</span><br></pre></td></tr></table></figure>
+
+<p>最后是将数据保存起来return回去，这里的concatenate函数内部用<code>+</code>的方法有点没看懂，但想来不可能是数组相加，可能和(a,b,c)是同一个用法吧。</p>
+<p><img src="/2019/11/14/drl-04/observe.png" alt="observe"></p>
+<h1 id="2-讨论：如何设计reward？"><a href="#2-讨论：如何设计reward？" class="headerlink" title="2. 讨论：如何设计reward？"></a>2. 讨论：如何设计reward？</h1><p>我首先对官方提供的所有Scenario sample进行了阅读和训练测试，各个sample的场景和reward设计如下：</p>
+<table>
+<thead>
+<tr>
+<th>sample</th>
+<th>agent任务</th>
+<th>adversary任务</th>
+<th>agent_reward</th>
+<th>adversary_reward</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>simple</td>
+<td>单个agent尽可能地靠近一个goal_landmark</td>
+<td>/</td>
+<td>agent自身到目标landmark的欧氏距离的相反数$-dist(agent_{i},goal)$</td>
+<td>/</td>
+</tr>
+<tr>
+<td><strong>simple_push</strong></td>
+<td>单个尽可能地靠近一个goal_landmark</td>
+<td>多个adversary阻止agent靠近goal_landmark</td>
+<td>agent自身到目标landmark的欧氏距离的相反数$-dist(agent_{i},goal)$</td>
+<td>离目标最近的agent到目标的距离，减去所有adversary到目标landmark的距离的平方和$min(dist(agent_{i},goal))$$-\sqrt{\Sigma_{i} (dist(adversary_{i},goal)^2)}$</td>
+</tr>
+<tr>
+<td>simple_adversary</td>
+<td>多个agent尽可能占据单个goal_Landmark</td>
+<td>单个adversary试图占据单个goal_Landmark</td>
+<td>adversary到目标Landmark的距离减去最近的agent到目标的距离$dist(adversary,goal)$$-min(dist(agent_i,goal))$</td>
+<td>该adversary到目标Landmark的距离的平方的相反数$-dist(adversary,goal)^2$</td>
+</tr>
+<tr>
+<td>simple_crypto</td>
+<td>（程序有bug）</td>
+<td>/</td>
+<td>/</td>
+<td>/</td>
+</tr>
+<tr>
+<td>simple_speaker_listener</td>
+<td>有一个speaker和listener，speaker有$goal_a=listener,$$goal_b=landmark$，目标是使两个目标最小(需要训练次数较simple大大提高，且平均训练时间变长)</td>
+<td>/</td>
+<td>两个agent共用一个reward，即两个goal之间距离的相反数$-dist(goal_a,goal_b)^2$</td>
+<td>/</td>
+</tr>
+<tr>
+<td>simple_reference</td>
+<td>有两个agent，同时是对方的listener和speaker，目标是使各自的两个目标最小。</td>
+<td>/</td>
+<td>agent关注的是自己的goal_a和goal_b的距离，即另一个agent有没有靠近goal_b$-dist(goal_a,goal_b)^2$</td>
+<td>/</td>
+</tr>
+<tr>
+<td><strong>simple_spread</strong></td>
+<td>有三个agent和三个目标Landmark，目标是agents分别占领三个Landmark</td>
+<td>/</td>
+<td>step1.将左右目标点和它们距离最近的agent之间的距离取线性加和后取负值，即想要所有目标都有离它比较近的agent$reward=-\Sigma_i min(dist(goal_i,agent))$step2.考察该agent有没有参与扎堆冲向同一个目标，如果有和其他agent发生collide的情况，要扣分。</td>
+<td>/</td>
+</tr>
+<tr>
+<td><strong>simple_tag</strong></td>
+<td>有一个agent，目标是逃脱adversary的追捕，不和它们有collide</td>
+<td>有多个adversary，目标是和agent有collide</td>
+<td>如果agent和adversaries有collide，那么有<code>reward-=10</code>；如果考虑shape（默认不考虑），reward会有一个和其他所有adv的距离的根平方和：$0.1\Sigma_i dist(agent,adversary_i)$;对agent跑出窗口有巨大惩罚。</td>
+<td>和agent刚好相反。考虑shape时和agent的距离越近越好（注意这里也是adversary整体的加和）；如果有adversary和agent有collide，所有adversary都有奖励。</td>
+</tr>
+</tbody></table>
+<p>下面是几个我觉得有参考意义的sample的训练结果demo：</p>
+<ul>
+<li>simple_push：一个agent想要靠近目标，其他几个adversary的任务是阻止他靠近目标<ul>
+<li>(after 40000 epsidodes…) </li>
+<li><img src="/2019/11/14/drl-04/simple_push.gif" alt="simple_push"></li>
+</ul>
+</li>
+<li>simple_spread：三个agent要尽快占领三个目标点<ul>
+<li>(after 50000 episodes…) </li>
+<li><img src="/2019/11/14/drl-04/simple_spread.gif" alt="simple_spread"></li>
+</ul>
+</li>
+<li>simple_tag：一个agent要躲避三个adversary的追捕<ul>
+<li>(after 30000 episodes…)</li>
+<li><img src="/2019/11/14/drl-04/simple_tag.gif" alt="simple_tag"></li>
+</ul>
+</li>
+</ul>
+<p>对上面sample做了训练和测试后，关于网络结构的设计有一点感想：</p>
+<ul>
+<li>上面的sample中，simple_speaker_listener和simple_reference的训练过程中，我发现要达到同样的效果（如speaker_listener是训练两个网络，训练speaker网络告诉listener要往哪走；这个sample实现的问题实际上和单个agent前往目标点的sample:<code>simple</code>是一样的。但前者训练了40000个Episode效果还是不好，而后者训练了10000个就已经很不错了），包含<strong>执行时通信</strong>的网络结构总是会更难训练，如果可以，尽量还是使用<strong>“集中训练、分散执行”</strong>的结构。</li>
+</ul>
+<p>对于Reward的设计，也有一些收获的：</p>
+<ul>
+<li><p>reward的设计有”shape”与否的概念，如果shape的，那么在游戏的每一步，都会根据相对位置等得到reward，如果不是shape的，那么只有在游戏结束时才有reward。目前还没试过二者的优劣，都是按照代码默认的来。</p>
+</li>
+<li><p>对串行协作的，二者一荣俱荣一辱俱辱的（比如speaker和listener），使用同一个reward。</p>
+</li>
+<li><p>对于多机并行协作的，reward应该体现所有agent的分布情况的好坏，譬如simple_push里adversary的reward就包括了对adversary整体分布情况的考量。</p>
+</li>
+<li><p>对于多机并行协作，如果不想让它们扎堆导致低效率，可以在reward里对单个agent和其他agent出现collide的情况进行惩罚。</p>
+</li>
+<li><p>对竞争的，reward需要体现出正相关于己方的目标、负相关于敌方的目标。</p>
+</li>
+<li><p>竞争双方的reward的形式可以是相反数（如simple_tag）。</p>
+</li>
+<li><p>如果只有一个距离作为reward，最好用平方，以增加reward在训练中的效果；如果有多个距离的加减，一定用一次方，否则会导致各项之间自带诡异的权重。</p>
+</li>
+<li><p>最后，设计reward有一个核心思想：<strong>设定reward就像培养孩子时给给孩子定的人生目标，孩子会一直向增大reward的方向努力。</strong></p>
+</li>
+</ul>
+<p>不过这次测试也暴露出该项目的一个问题，可能是未来的一个工作方向：这次研究各种Scenario，发现agent之间communicate更新的部分并不在Scenario，所以后期可能需要探究一下agent的通信频道<code>state.c</code>更新的过程到底是在哪里进行。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/ReinforceLearning/" rel="tag"># ReinforceLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/13/drl-03/" rel="prev" title="强化学习随笔[03]-MADDPG算法学习与实践">
+      <i class="fa fa-chevron-left"></i> 强化学习随笔[03]-MADDPG算法学习与实践
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/20/drl-05/" rel="next" title="强化学习随笔[05]-多智能体协作任务的场景构思和尝试">
+      强化学习随笔[05]-多智能体协作任务的场景构思和尝试 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-定义Scenario类"><span class="nav-text">1. 定义Scenario类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-make-world-self"><span class="nav-text">1.1 make_world(self)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-World类"><span class="nav-text">1.1.1 World类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-Agent类"><span class="nav-text">1.1.2 Agent类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-3-Landmark类"><span class="nav-text">1.1.3 Landmark类</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-reset-world-self-world"><span class="nav-text">1.2 reset_world(self, world)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-reward-self-agent-world"><span class="nav-text">1.3 reward(self, agent, world)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-关于reward的确定"><span class="nav-text">1.4 关于reward的确定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-Observation-self-agent-world"><span class="nav-text">1.5 Observation(self, agent, world)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-讨论：如何设计reward？"><span class="nav-text">2. 讨论：如何设计reward？</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要我们在deepSORT算法的基础上对跨相机的行人跟踪问题进行了实现，目标检测网络选用YOLO，行人相似度度量采用官方提供的cosine-metric-learning训练好的pb文件。目前该项目在用于嵌入式部署时遇到了推理速度不够的问题，经过排查发现提速的瓶颈是YOLO目标检测系统(Xavier上运行YOLOv3-608的帧率不到10hz)。 TensorRT是目前精度最高、速度最快的神">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多相机行人跟踪[01]-用TensorRT加速YOLO(1)">
+<meta property="og:url" content="http://yoursite.com/2019/11/01/dl-04/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要我们在deepSORT算法的基础上对跨相机的行人跟踪问题进行了实现，目标检测网络选用YOLO，行人相似度度量采用官方提供的cosine-metric-learning训练好的pb文件。目前该项目在用于嵌入式部署时遇到了推理速度不够的问题，经过排查发现提速的瓶颈是YOLO目标检测系统(Xavier上运行YOLOv3-608的帧率不到10hz)。 TensorRT是目前精度最高、速度最快的神">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/01/dl-04/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/01/dl-04/yolo.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/01/dl-04/trt.png">
+<meta property="article:published_time" content="2019-10-31T16:47:42.000Z">
+<meta property="article:modified_time" content="2020-02-06T09:18:11.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/01/dl-04/1.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/01/dl-04/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>多相机行人跟踪[01]-用TensorRT加速YOLO(1) | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/01/dl-04/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          多相机行人跟踪[01]-用TensorRT加速YOLO(1)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-01 00:47:42" itemprop="dateCreated datePublished" datetime="2019-11-01T00:47:42+08:00">2019-11-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-06 17:18:11" itemprop="dateModified" datetime="2020-02-06T17:18:11+08:00">2020-02-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A4%9A%E7%9B%B8%E6%9C%BA%E8%A1%8C%E4%BA%BA%E8%B7%9F%E8%B8%AA%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index">
+                    <span itemprop="name">多相机行人跟踪项目</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>我们在<code>deepSORT</code>算法的基础上对跨相机的行人跟踪问题进行了实现，目标检测网络选用<code>YOLO</code>，行人相似度度量采用官方提供的<code>cosine-metric-learning</code>训练好的<code>pb</code>文件。目前该项目在用于嵌入式部署时遇到了推理速度不够的问题，经过排查发现提速的瓶颈是<code>YOLO</code>目标检测系统(<code>Xavier</code>上运行<code>YOLOv3-608</code>的帧率不到<code>10hz</code>)。</p>
+<p><code>TensorRT</code>是目前精度最高、速度最快的神经网络推理框架，考虑利用<code>TensorRT</code>框架对项目中的<code>YOLOv3</code>进行加速。</p>
+<p>本文主要介绍了：</p>
+<ul>
+<li><code>TensorRT</code>的基本概念</li>
+<li><code>TensorRT</code>的执行流程</li>
+<li>用<code>TensorRT</code>加速<code>YOLO</code>网络</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-TensorRT介绍"><a href="#1-TensorRT介绍" class="headerlink" title="1. TensorRT介绍"></a>1. TensorRT介绍</h1><p><code>TensorRT</code>是英伟达公司出品的高性能的推断C++库（有python API），和传统的深度学习框架不同，TensorRT只提供推理功能。<code>TensorRT</code>使用了大量的技巧来加速神经网络的前向传播功能，目前，TensorRT是（在加速框架中）inference精度最高，速度最快的框架，而且有大量人员在不断地改进、维护。因此，TensorRT可能是所有需要部署神经网络到工程实践中的同志需要理解并精通的一项技能。</p>
+<h2 id="1-1-TensorRT的安装"><a href="#1-1-TensorRT的安装" class="headerlink" title="1.1 TensorRT的安装"></a>1.1 TensorRT的安装</h2><p>可以参考官网提供的《<a href="https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html" target="_blank" rel="noopener">TensorRT Installation Guide</a>》，强烈建议使用<a href="https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html#installing-tar" target="_blank" rel="noopener">tar file</a>的安装方法。</p>
+<h2 id="1-2-为什么TensorRT可以加速推理"><a href="#1-2-为什么TensorRT可以加速推理" class="headerlink" title="1.2 为什么TensorRT可以加速推理"></a>1.2 为什么TensorRT可以加速推理</h2><p>使用<code>TensorRT</code>可以大大提升神经网络推理（inference）的速度，这是因为：</p>
+<ul>
+<li><code>TensorRT</code>可以将我们训练好的模型分解再进行融合，融合后的模型具有高度的集合度；<ul>
+<li>例如卷积层和激活层进行融合后，计算速度可以就进行提升</li>
+</ul>
+</li>
+<li><code>TensorRT</code>可以在运行时删除没有用到的层或节点，删除相当于（和原来的<code>DarknetYOLO</code>类接口一致）没用的计算操作，把相似的运算操作聚合在一起；</li>
+<li>此外，<code>TensorRT</code>允许人为地降低网络参数的精确度，通过牺牲部分精度，达到提升性能的目的。</li>
+</ul>
+<p><img src="/2019/11/01/dl-04/1.png" alt="1"></p>
+<h2 id="1-3-TensorRT的使用场景"><a href="#1-3-TensorRT的使用场景" class="headerlink" title="1.3 TensorRT的使用场景"></a>1.3 TensorRT的使用场景</h2><p>由于<code>TensorRT</code>执行神经网络的推理可以大大提升运行效率，常见的做法是，通过Tensorflow、caffe、pytorch等框架完成模型的训练，然后用TensorRT执行布署。</p>
+<ul>
+<li>参考了<code>Nvidia</code>公司发表的几篇用<code>Jetson</code>嵌入式开发板的paper，都使用了<code>TensorRT</code>。</li>
+</ul>
+<p>目前<code>Tensorflow</code>、<code>caffe</code>、<code>onnx</code>框架的模型都能用官方提供的parser方便的迁移到<code>TensorRT</code>上。</p>
+<p>对基于其他框架的网络，或者自定义的层，也可以用<code>TensorRT</code>提供的Layer API来从头搭建网络。不过<code>TensorRT</code>不提供反向传播，所以训练的过程还是必须放在其他框架下进行。</p>
+<ul>
+<li>值得注意的是，<code>TensorRT</code>只能运行在<code>Nvidia</code>公司的显卡设备上。所以<code>TensorRT</code>不能用于在其他开发板上部署模型，比如华为海思芯片，</li>
+</ul>
+<h2 id="1-4-TensorRT里的基本概念和执行流程"><a href="#1-4-TensorRT里的基本概念和执行流程" class="headerlink" title="1.4 TensorRT里的基本概念和执行流程"></a>1.4 TensorRT里的基本概念和执行流程</h2><p>这一部分内容主要源自官方文献：《<a href="https://docs.nvidia.com/deeplearning/sdk/tensorrt-developer-guide/index.html" target="_blank" rel="noopener">TensorRT Deverloper Guide</a>》</p>
+<p><code>TensorRT</code>提供了Python和C++两种API，为了方便笔者用的是Python，如果追求极致性能，可能还是得用C++。</p>
+<p>要使用<code>TensorRT</code>运行网络，需要进行以下流程：</p>
+<ol>
+<li>定义网络（network definition）</li>
+<li>生成执行引擎（build phase）</li>
+<li>推理阶段（do inference）</li>
+</ol>
+<h3 id="1-4-1-定义网络"><a href="#1-4-1-定义网络" class="headerlink" title="1.4.1 定义网络"></a>1.4.1 定义网络</h3><p>最常见的定义网络的方法是直接调用官方提供的parser，将其他框架下的网络转换成TensorRT下的网络，目前官网提供了以下parser：</p>
+<ul>
+<li>Caffe Parser</li>
+<li>UFF Parser（for Tensorflow）</li>
+<li>ONNX （经实测，只适用于onnx==1.4.1版本！）</li>
+</ul>
+<p>除了使用parser，还可以用TensorRT提供的Layer API一层一层地构建网络，这个过程类似于Keras。</p>
+<h3 id="1-4-2-构建引擎"><a href="#1-4-2-构建引擎" class="headerlink" title="1.4.2 构建引擎"></a>1.4.2 构建引擎</h3><p>引擎是<code>TensorRT</code>执行推理（Inference）的容器。<code>TensorRT</code>针对前向传播，对神经网络以及执行策略做了很多优化，这些都储存在引擎（Engine）里面。</p>
+<p>针对不同的硬件、不同的环境来说，需要构建不同的引擎。所以每当要迁移平台时，都要重新构建一次引擎。</p>
+<p>每次构建引擎都要花费较长的时间（数分钟），所以构建好引擎的可以保存（Serialize）成<code>.trt</code>文件，下次执行时直接读取(Deserialize)。</p>
+<h3 id="1-4-3-推理阶段"><a href="#1-4-3-推理阶段" class="headerlink" title="1.4.3 推理阶段"></a>1.4.3 推理阶段</h3><p>构建好引擎后，就可以调用该引擎进行推理，一个推理进程被称为一个context。</p>
+<p>一个引擎可以同时运行多个context。</p>
+<p>每次推理大概要经过以下流程：</p>
+<p>1.建立一个运行环境（context）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> myEngine.create_execution_context() <span class="keyword">as</span> myContext:</span><br></pre></td></tr></table></figure>
+
+<p>2.根据引擎的参数，给context分配内存（inputs, outputs,…）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inputs, outputs, bindings, stream = common.allocate_buffers(myEngine)</span><br></pre></td></tr></table></figure>
+
+<p>3.将推理的输入数据传输到context的对应inputs的内存里：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inputs[<span class="number">0</span>].host = img_for_network_input</span><br></pre></td></tr></table></figure>
+
+<p>4.执行该context的推理（调用do_inference）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tensorrt_outputs = common.do_inference(myContext, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)</span><br></pre></td></tr></table></figure>
+
+<p>5.当然，推理得到的结果还需要转换成python可以处理的格式，这个暂且不表。</p>
+<h1 id="2-尝试用TensorRT加速YOLO目标检测系统"><a href="#2-尝试用TensorRT加速YOLO目标检测系统" class="headerlink" title="2. 尝试用TensorRT加速YOLO目标检测系统"></a>2. 尝试用TensorRT加速YOLO目标检测系统</h1><p>之所以接触<code>TensorRT</code>，主要是为了提升我们《跨相机行人跟踪》项目中，<code>YOLO</code>网络的推理速度。</p>
+<p>刚好<code>TensorRT</code>官方提供的sample里就有<code>onnx_yolo</code>，所以我根据这个sample做了个简单的二次开发，主要修改的是：</p>
+<ul>
+<li>把图像处理的实现库从<code>pillow</code>改成了性能更优秀的<code>opencv</code></li>
+<li>为保持和我们项目<code>API</code>的一致性，封装了一个<code>TensorrtYOLO</code>类。</li>
+</ul>
+<p>本章只是对<code>TensorRT</code>加速<code>YOLO</code>项目上可行性的一次尝试，后续项目的完善、优化参见此篇博客。</p>
+<h2 id="2-1-项目架构"><a href="#2-1-项目架构" class="headerlink" title="2.1 项目架构"></a>2.1 项目架构</h2><p>项目架构和使用方法请见<a href="https://github.com/nickmhnk/yolov3_onnx_tensorrt" target="_blank" rel="noopener">github项目</a>。</p>
+<h2 id="2-2-实际运行效果"><a href="#2-2-实际运行效果" class="headerlink" title="2.2 实际运行效果"></a>2.2 实际运行效果</h2><p>将<code>TensorRT</code>下和<code>Darknet</code>下的YOLO做过性能对比，只考虑<code>do_inference</code>的时间，<code>TensorRT</code>进行一次推理的用时大概比<code>Darknet</code>缩短了25%左右。</p>
+<p><code>Darknet_YOLO</code>处理<code>dog.jpg</code>，用时<code>0.084s</code>：</p>
+<p><img src="/2019/11/01/dl-04/yolo.png" alt="yolo"></p>
+<p><code>TensorRT_YOLO</code>处理<code>dog.jpg</code>，其<code>do_inference</code>的时间，用时<code>0.058s</code>：</p>
+<p><img src="/2019/11/01/dl-04/trt.png" alt="trt"></p>
+<p>但是，实际将我的<code>TensorrtYOLO</code>类运用在项目中时，发现处理一张照片的时间达到了约<code>0.6s</code>(几乎是<code>do_inference</code>用时的10倍)。</p>
+<p>我用<code>perf_counter</code>测量了<code>TensorrtYOLO</code>运行过程中各个阶段所消耗的时间，结果如下：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>耗时（s）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>将图像缩放成<code>YOLO</code>所需的尺寸</td>
+<td>0.0037</td>
+</tr>
+<tr>
+<td>调用<code>do_inference</code>，输出<code>trt_outputs</code></td>
+<td>0.0383</td>
+</tr>
+<tr>
+<td>将<code>trt_outputs</code>转换成可以处理的<code>boxes, classes, scores</code></td>
+<td>0.5123</td>
+</tr>
+<tr>
+<td>将<code>boxes, classes, scores</code>转换成<code>deepSORT</code>项目所需的<code>detection</code>（和原来的<code>DarknetYOLO</code>类接口一致）格式</td>
+<td>0.0000</td>
+</tr>
+<tr>
+<td>总计</td>
+<td>0.5544</td>
+</tr>
+</tbody></table>
+<p>可以看到，程序在<code>将trt_outputs转换成可以处理的boxes, classes, scores</code>这个阶段中花费了太多的时间，这个过程是由官方提供的<code>PostProcessor</code>类（in python）执行的，它的运行效率不是很好。</p>
+<h2 id="2-3-改进方向"><a href="#2-3-改进方向" class="headerlink" title="2.3 改进方向"></a>2.3 改进方向</h2><p>目前，本项目已经实现了：</p>
+<ul>
+<li>使用<code>TensorRT</code>实现<code>YOLO</code>网络的推理</li>
+<li>保证了<code>TensorrtYOLO</code>模块和原来<code>DarknetYOLO</code>模块在函数接口上的一致性</li>
+</ul>
+<p>未来改进方向：</p>
+<ul>
+<li>修改简化官方提供的<code>PostProcessor</code>类，尽量提升其运行性能。<ul>
+<li>本问题已经得到解决，见下篇博客的第一章<ul>
+<li>此外，下篇博客的第四章介绍了通过修改参数精度模式进一步提高模型的推理速度。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/31/dl-03/" rel="prev" title="Pandas使用方法备忘">
+      <i class="fa fa-chevron-left"></i> Pandas使用方法备忘
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/03/opencv-04/" rel="next" title="OpenCV学习笔记[04]-OpenCV拾遗">
+      OpenCV学习笔记[04]-OpenCV拾遗 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-TensorRT介绍"><span class="nav-text">1. TensorRT介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-TensorRT的安装"><span class="nav-text">1.1 TensorRT的安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-为什么TensorRT可以加速推理"><span class="nav-text">1.2 为什么TensorRT可以加速推理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-TensorRT的使用场景"><span class="nav-text">1.3 TensorRT的使用场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-TensorRT里的基本概念和执行流程"><span class="nav-text">1.4 TensorRT里的基本概念和执行流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-1-定义网络"><span class="nav-text">1.4.1 定义网络</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-2-构建引擎"><span class="nav-text">1.4.2 构建引擎</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-3-推理阶段"><span class="nav-text">1.4.3 推理阶段</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-尝试用TensorRT加速YOLO目标检测系统"><span class="nav-text">2. 尝试用TensorRT加速YOLO目标检测系统</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-项目架构"><span class="nav-text">2.1 项目架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-实际运行效果"><span class="nav-text">2.2 实际运行效果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-改进方向"><span class="nav-text">2.3 改进方向</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

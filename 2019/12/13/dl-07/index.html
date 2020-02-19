@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要在上一篇深度学习随笔中, 我们成功地在TensorRT框架下跑通了行人特征提取网络，但模型性能不佳，这一篇文章的主要工作是，优化网络结构和训练过程，尽可能地提升了模型的性能。 本文的主要内容在于复现＜cosine metric learning＞论文实现的行人特征提取网络，这部分的工作包括:  采用了轻量级的Resnet-block 自定义了针对余弦相似度优化的cosine-softmax">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中)">
+<meta property="og:url" content="http://yoursite.com/2019/12/13/dl-07/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要在上一篇深度学习随笔中, 我们成功地在TensorRT框架下跑通了行人特征提取网络，但模型性能不佳，这一篇文章的主要工作是，优化网络结构和训练过程，尽可能地提升了模型的性能。 本文的主要内容在于复现＜cosine metric learning＞论文实现的行人特征提取网络，这部分的工作包括:  采用了轻量级的Resnet-block 自定义了针对余弦相似度优化的cosine-softmax">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/network_structure.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/resblock.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/softmax.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/10softmax.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/acc-cosine-softmax.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/drop-to-trt.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/BN-to-trt.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/13/dl-07/test.png">
+<meta property="article:published_time" content="2019-12-12T17:18:42.000Z">
+<meta property="article:modified_time" content="2020-02-06T09:22:03.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="CV">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/12/13/dl-07/network_structure.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/13/dl-07/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中) | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/13/dl-07/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-13 01:18:42" itemprop="dateCreated datePublished" datetime="2019-12-13T01:18:42+08:00">2019-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-06 17:22:03" itemprop="dateModified" datetime="2020-02-06T17:22:03+08:00">2020-02-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A4%9A%E7%9B%B8%E6%9C%BA%E8%A1%8C%E4%BA%BA%E8%B7%9F%E8%B8%AA%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index">
+                    <span itemprop="name">多相机行人跟踪项目</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p>在<a href="https://yerfor.github.io/2019/11/27/dl-06/" target="_blank" rel="noopener">上一篇深度学习随笔</a>中, 我们成功地在<code>TensorRT</code>框架下跑通了行人特征提取网络，但模型性能不佳，这一篇文章的主要工作是，优化网络结构和训练过程，尽可能地提升了模型的性能。</p>
+<p>本文的主要内容在于复现<a href="https://elib.dlr.de/116408/" target="_blank" rel="noopener">＜cosine metric learning＞</a>论文实现的行人特征提取网络，这部分的工作包括:</p>
+<ul>
+<li>采用了轻量级的<code>Resnet-block</code></li>
+<li>自定义了针对余弦相似度优化的<code>cosine-softmax</code>作为分类器(<code>classifier</code>)的激活函数</li>
+<li>为获取理想的<code>feature</code>层向量，对<code>feature</code>层和分类器的权重做出约束</li>
+<li>使用生成器(<code>Generator</code>)来支持大批量数据集</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-网络结构"><a href="#1-网络结构" class="headerlink" title="1.网络结构"></a>1.网络结构</h1><p>由于时间有限，来不及在电脑上画好看的图了，先手写一个placeholder。</p>
+<p><img src="/2019/12/13/dl-07/network_structure.jpg" alt="network_structure"></p>
+<h2 id="1-1-轻量级的Resnet-block"><a href="#1-1-轻量级的Resnet-block" class="headerlink" title="1.1 轻量级的Resnet-block"></a>1.1 轻量级的Resnet-block</h2><p><code>Cosine-metric-learning</code>采用的<code>Resnet-block</code>相比起<code>Resnet</code>论文里的结构有所改进。</p>
+<p>先说共同点，都有Identity和Convolutional两种Block，并且输入和输出的关系也是一样的，即Identity的输入输出Shape一致，而Convolutional的输出比输入在尺寸上少了一半，通道数增加了一倍。</p>
+<p>再说不同点，cosine-metric-learning将Block内(1,1)的卷积层删去，转而采用两个（3,3）的卷积层，如下图所示：</p>
+<p><img src="/2019/12/13/dl-07/resblock.jpg" alt="resblock"></p>
+<h2 id="1-2-自定义的cosine-softmax激活函数"><a href="#1-2-自定义的cosine-softmax激活函数" class="headerlink" title="1.2 自定义的cosine-softmax激活函数"></a>1.2 自定义的cosine-softmax激活函数</h2><h3 id="1-2-1-传统Softmax函数在cosine-metric中面临的问题"><a href="#1-2-1-传统Softmax函数在cosine-metric中面临的问题" class="headerlink" title="1.2.1 传统Softmax函数在cosine-metric中面临的问题"></a>1.2.1 传统Softmax函数在cosine-metric中面临的问题</h3><p>假设一个二分类问题，输出的feature是一个shape=(2,)的向量（用下图所示的二维平面表示）。将该向量送入softmax中，会得到一个概率分布的向量，shape也是（2,），该向量中的每一位标量代表输入的图像是某一类的概率。我们把概率分布的第一个标量取出来，作为下图的画的等高线考察的值。<br>$$<br>softmax(x)=\frac{e^{x}}{\Sigma e^{x_i}}<br>$$<br><img src="/2019/12/13/dl-07/softmax.png" alt="softmax"><br>$$<br>softmax_{-}10(x)=\frac{e^{10x}}{\Sigma e^{10x_i}}<br>$$<br><img src="/2019/12/13/dl-07/10softmax.png" alt="10softmax"></p>
+<h3 id="1-2-2-针对余弦区分度优化的cosine-softmax函数"><a href="#1-2-2-针对余弦区分度优化的cosine-softmax函数" class="headerlink" title="1.2.2 针对余弦区分度优化的cosine-softmax函数"></a>1.2.2 针对余弦区分度优化的cosine-softmax函数</h3><p>传统的<code>softmax</code>可以用下式描述：<br>$$<br>classical_{-}softmax =\frac{exp(w\cdot r+b)}{\Sigma exp(w\cdot r+b) }<br>$$<br><code>cosine-softmax</code>的定义式如下：<br>$$<br>cosine_{-}softmax = \frac{exp(k\cdot w\cdot r)}{\Sigma exp(k\cdot w) }<br>$$<br>二者的对比：</p>
+<p><img src="/2019/12/13/dl-07/1.png" alt="1"></p>
+<p>参数k的作用：</p>
+<p><img src="/2019/12/13/dl-07/2.png" alt="2"></p>
+<p><code>cosine-softmax</code>的<code>Tensorflow2.0</code>实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TrainableCosineSoftmax</span><span class="params">(tf.keras.layers.Layer)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, W, **kwargs)</span>:</span></span><br><span class="line">        super(TrainableCosineSoftmax, self).__init_＿(**kwargs)</span><br><span class="line">        self.w = W</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">build</span><span class="params">(self, input_shape)</span>:</span></span><br><span class="line">        self.k = self.add_weight(name=<span class="string">'k'</span>, shape=(<span class="number">1</span>,),</span><br><span class="line">                                 initializer=tf.keras.initializers.Ones(), trainable=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">(self, x)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> tf.exp(self.k * x) / tf.reduce_sum(tf.exp(self.k * self.w))</span><br></pre></td></tr></table></figure>
+
+<p>实际使用方法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">feature_layer = Dense(classes, name=<span class="string">'feature'</span>, activation=<span class="string">'relu'</span>, kernel_regularizer=tf.keras.regularizers.l2(),kernel_constraint=tf.keras.constraints.UnitNorm(), use_bias=<span class="literal">False</span>)</span><br><span class="line">X = feature_layer(X)</span><br><span class="line"></span><br><span class="line">W = feature_layer.kernel</span><br><span class="line">X = l2_normalization(X)</span><br><span class="line"></span><br><span class="line">X = TrainableCosineSoftmax(W)(X)</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-3-两种激活函数的效果对比："><a href="#1-2-3-两种激活函数的效果对比：" class="headerlink" title="1.2.3 两种激活函数的效果对比："></a>1.2.3 两种激活函数的效果对比：</h3><p>待续</p>
+<h2 id="1-3-对feature层的参数约束"><a href="#1-3-对feature层的参数约束" class="headerlink" title="1.3 对feature层的参数约束"></a>1.3 对feature层的参数约束</h2><h3 id="1-3-1-feature层的参数约束"><a href="#1-3-1-feature层的参数约束" class="headerlink" title="1.3.1 feature层的参数约束"></a>1.3.1 feature层的参数约束</h3><ul>
+<li>对参数进行<code>l2</code>正则化，防止过拟合</li>
+<li>保证权重的参数二阶范数是1</li>
+<li>不使用<code>bias</code></li>
+</ul>
+<p>具体实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">feature_layer &#x3D; Dense(classes, name&#x3D;&#39;feature&#39;, activation&#x3D;&#39;relu&#39;, kernel_regularizer&#x3D;tf.keras.regularizers.l2(),kernel_constraint&#x3D;tf.keras.constraints.UnitNorm(), use_bias&#x3D;False)</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-4-对feature层输出进行归一化"><a href="#1-4-对feature层输出进行归一化" class="headerlink" title="1.4 对feature层输出进行归一化"></a>1.4 对feature层输出进行归一化</h2><p>feature的输出，即为下面<code>cosine-softmax</code>函数里的<code>r</code>，必须要保证归一化，即单位方向向量。<br>$$<br>cosine_{-}softmax = \frac{exp(k\cdot w\cdot r)}{\Sigma exp(k\cdot w) }<br>$$</p>
+<ul>
+<li>具体实现——使用<code>tensorflow1.0</code>的函数，自定义了一个层：</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">l2_normalization = tf.keras.layers.Lambda(<span class="keyword">lambda</span> x: tf.nn.l2_normalize(x, dim=<span class="number">1</span>), name=<span class="string">'l2_normalization'</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-5-一些已经解决的小问题"><a href="#1-5-一些已经解决的小问题" class="headerlink" title="1.5 一些已经解决的小问题"></a>1.5 一些已经解决的小问题</h2><p>引入<code>cosine-softmax</code>函数后,网络的<code>loss</code>在训练时总会在某一个新的<code>epoch</code>骤然变成<code>nan</code>:</p>
+<p><img src="/2019/12/13/dl-07/acc-cosine-softmax.png" alt="acc-cosine-softmax"></p>
+<p>经过排查,发现可能是因为我们的<code>cosine-softmax</code>过于严格,导致其输出时,<strong>正确的那一类对应的probability是0</strong>,由于我们用的损失函数是交叉熵，其计算公式为:<br>$$<br>cross_{-}entropy=\Sigma [y_{true}\cdot ln(y_{pred})]<br>$$<br>上式中，$y_{true}$是一个one-hot格式的向量，只在所表示的那类的位置取1，其他均为0；$y_{pred}$即为网络输出的预测向量，输出的是一个图像相对于所有分类的一个概率分布．</p>
+<p>言归正传，对上面的式子，整个$\Sigma$里面实际上只有正确的那一类对应的项不等于０，所以当网络输出的预测向量对正确那类的预测概率是0时，交叉熵的值就是$ln(0)\rightarrow -\infin$。导致loss变成<code>nan</code>。</p>
+<ul>
+<li>我的解决方法是在交叉熵计算信息量的公式里面加上一个很小的偏置，以确保$ln()$里面的数不会取到0，于是新的交叉熵公式变成：</li>
+</ul>
+<p>$$<br>cross_{-}entropy=\Sigma [y_{true}\cdot ln(y_{pred}+e^{-10})]<br>$$</p>
+<p>修改<code>loss</code>函数后，<code>nan</code>的现象确实消失了。</p>
+<h2 id="1-6-一些论文采用的新特性的失败尝试"><a href="#1-6-一些论文采用的新特性的失败尝试" class="headerlink" title="1.6 一些论文采用的新特性的失败尝试"></a>1.6 一些论文采用的新特性的失败尝试</h2><h3 id="1-6-1-Dropout-AlphaDropout"><a href="#1-6-1-Dropout-AlphaDropout" class="headerlink" title="1.6.1 Dropout/AlphaDropout"></a>1.6.1 Dropout/AlphaDropout</h3><p>Dropout层不能转换成TRT</p>
+<p><img src="/2019/12/13/dl-07/drop-to-trt.png" alt="drop-&gt;trt"></p>
+<h3 id="1-6-2-‘elu’-‘selu’"><a href="#1-6-2-‘elu’-‘selu’" class="headerlink" title="1.6.2 ‘elu’/‘selu’"></a>1.6.2 ‘elu’/‘selu’</h3><p>会导致梯度消失等问题。</p>
+<h3 id="1-6-3-BatchNormalization"><a href="#1-6-3-BatchNormalization" class="headerlink" title="1.6.3 BatchNormalization"></a>1.6.3 BatchNormalization</h3><p>不能转换成TRT</p>
+<p><img src="/2019/12/13/dl-07/BN-to-trt.png" alt="BN-&gt;trt"></p>
+<h3 id="1-6-4-triplet-loss-magnet-loss"><a href="#1-6-4-triplet-loss-magnet-loss" class="headerlink" title="1.6.4 triplet loss/magnet loss"></a>1.6.4 triplet loss/magnet loss</h3><p>还没搞明白这两个Loss，现在用的还是交叉熵，看看效果怎么样。</p>
+<h1 id="2-训练过程"><a href="#2-训练过程" class="headerlink" title="2.训练过程"></a>2.训练过程</h1><h2 id="2-1-数据准备"><a href="#2-1-数据准备" class="headerlink" title="2.1 数据准备"></a>2.1 数据准备</h2><h3 id="2-1-1-MARS数据集的使用"><a href="#2-1-1-MARS数据集的使用" class="headerlink" title="2.1.1 MARS数据集的使用"></a>2.1.1 MARS数据集的使用</h3><h3 id="2-1-2-保证各class采样的数量级一致"><a href="#2-1-2-保证各class采样的数量级一致" class="headerlink" title="2.1.2 保证各class采样的数量级一致"></a>2.1.2 保证各class采样的数量级一致</h3><h3 id="2-1-3-使用生成器函数来调用大批量数据集"><a href="#2-1-3-使用生成器函数来调用大批量数据集" class="headerlink" title="2.1.3 使用生成器函数来调用大批量数据集"></a>2.1.3 使用生成器函数来调用大批量数据集</h3><p>在使用大批量数据集的时候，一次性将所有数据都读取到内存中是不现实的，针对这种情况，tensorflow提供了<code>model.fit_generator</code>的API，允许我们自己编写“生成器”提供<code>batch</code>数据，进行训练。</p>
+<p>生成器是Python内置的函数类型，与一般函数采用<code>return</code>一次返回全部内容不同，它的函数体由一个while循环组成，在while循环内有一个<code>yield</code>，每次调用生成器函数，都会运行一次循环，然后通过<code>yield</code>返回本次循环生成的值。于是结合之前的数据集处理函数，编写了一个Generator。</p>
+<p>具体实现如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 应对大批量数据时，需要使用生成器产生数据</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">data_generator</span><span class="params">(filenames, ids, batch_size=<span class="number">128</span>, image_shape=<span class="params">(<span class="number">128</span>, <span class="number">64</span>)</span>, classes=<span class="number">625</span>)</span>:</span></span><br><span class="line">    reshape_fn = (</span><br><span class="line">        (<span class="keyword">lambda</span> x: (x / <span class="number">255</span><span class="number">-0.5</span>) * <span class="number">2</span>) <span class="keyword">if</span> image_shape == IMAGE_SHAPE[:<span class="number">2</span>]</span><br><span class="line">        <span class="keyword">else</span> (<span class="keyword">lambda</span> x: (cv2.resize(x, image_shape[::<span class="number">-1</span>]) / <span class="number">255</span><span class="number">-0.5</span>) * <span class="number">2</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        data = [(filename, _id) <span class="keyword">for</span> filename, _id <span class="keyword">in</span> zip(filenames, ids)]</span><br><span class="line">        np.random.shuffle(data) <span class="comment"># 将数据文件名随机洗牌</span></span><br><span class="line">        data = data[:batch_size]  <span class="comment"># 选取前batch_size组作为本次的输出</span></span><br><span class="line">        image_names = [filename <span class="keyword">for</span> filename, _id <span class="keyword">in</span> data]</span><br><span class="line">        bathch_ids = [_id <span class="keyword">for</span> filename, _id <span class="keyword">in</span> data]</span><br><span class="line"></span><br><span class="line">        images = np.zeros((len(image_names),) + image_shape + (<span class="number">3</span>,), np.float32)</span><br><span class="line">        <span class="keyword">for</span> i, filename <span class="keyword">in</span> enumerate(image_names):</span><br><span class="line">            image = cv2.imread(filename, cv2.IMREAD_COLOR)</span><br><span class="line">            images[i] = reshape_fn(image)</span><br><span class="line">        bathch_ids = np.asarray(bathch_ids, dtype=np.int64)</span><br><span class="line">        bathch_ids = convert_to_one_hot(bathch_ids, classes)</span><br><span class="line">        bathch_ids = bathch_ids.T</span><br><span class="line">        <span class="keyword">yield</span> (images, bathch_ids)</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-1-4-数据的预处理"><a href="#2-1-4-数据的预处理" class="headerlink" title="2.1.4 数据的预处理"></a>2.1.4 数据的预处理</h3><h4 id="2-1-4-1-归一化"><a href="#2-1-4-1-归一化" class="headerlink" title="2.1.4.1 归一化"></a>2.1.4.1 归一化</h4><p>对之前训练的网络做了测试，以下是测试样本：</p>
+<p><img src="/2019/12/13/dl-07/test.png" alt="test"></p>
+<p>测试了两种归一化方法，一般来说，最通用的归一化方法应该是：<br>$$<br>normalized_{-}data=\frac {data-\mu}{\sigma ^{2}}<br>$$<br>但是因为我们的数据集实在太大了(450,000张照片)，加载这么大量的数据需要巨大的内存（所以我们训练用的是生成器的方式获得batch而不是一开始全部读取到内存里），<code>scikit-learn</code>现有的函数无法处理这么大的数据，所以我试了两种方法来近似：</p>
+<ul>
+<li><p>$$<br>\frac {data-\mu}{255}<br>$$</p>
+</li>
+<li><p>该模型训练了80个epoch</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>样本名</th>
+<th>余弦相似度（=1-余弦距离）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>yellow1</td>
+<td>/</td>
+</tr>
+<tr>
+<td>yellow2</td>
+<td>0.7345311</td>
+</tr>
+<tr>
+<td>yellow3</td>
+<td>0.43169522</td>
+</tr>
+<tr>
+<td>red</td>
+<td>0.8405349</td>
+</tr>
+<tr>
+<td>liushishi</td>
+<td>0.55780655</td>
+</tr>
+<tr>
+<td>huge</td>
+<td>0.6379674</td>
+</tr>
+</tbody></table>
+<ul>
+<li><p>$$<br>\frac {data}{255}-0.5<br>$$</p>
+</li>
+<li><p>该模型训练了15个epoch</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>样本名</th>
+<th>余弦距离（=1-余弦距离）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>yellow1</td>
+<td>/</td>
+</tr>
+<tr>
+<td>yellow2</td>
+<td>0.78016734</td>
+</tr>
+<tr>
+<td>yellow3</td>
+<td>0.608993</td>
+</tr>
+<tr>
+<td>red</td>
+<td>0.7567972</td>
+</tr>
+<tr>
+<td>liushishi</td>
+<td>0.42149162</td>
+</tr>
+<tr>
+<td>huge</td>
+<td>0.47507387</td>
+</tr>
+</tbody></table>
+<h4 id="2-1-4-2-数据类型："><a href="#2-1-4-2-数据类型：" class="headerlink" title="2.1.4.2 数据类型："></a>2.1.4.2 数据类型：</h4><ul>
+<li>在上述归一化的过程中，要先cv2.resize成(128,64)后再除255，因为opencv采用uint8的数据类型，会把0.xxx近似成0 </li>
+<li>tensorrt不支持float64，而该类型是numpy的默认类型，所以输入前要转成float32</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/Python/" rel="tag"># Python</a>
+              <a href="/tags/CV/" rel="tag"># CV</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/27/dl-06/" rel="prev" title="多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上)">
+      <i class="fa fa-chevron-left"></i> 多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/23/dl-08/" rel="next" title="多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下)">
+      多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-网络结构"><span class="nav-text">1.网络结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-轻量级的Resnet-block"><span class="nav-text">1.1 轻量级的Resnet-block</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-自定义的cosine-softmax激活函数"><span class="nav-text">1.2 自定义的cosine-softmax激活函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-1-传统Softmax函数在cosine-metric中面临的问题"><span class="nav-text">1.2.1 传统Softmax函数在cosine-metric中面临的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-2-针对余弦区分度优化的cosine-softmax函数"><span class="nav-text">1.2.2 针对余弦区分度优化的cosine-softmax函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-3-两种激活函数的效果对比："><span class="nav-text">1.2.3 两种激活函数的效果对比：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-对feature层的参数约束"><span class="nav-text">1.3 对feature层的参数约束</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-feature层的参数约束"><span class="nav-text">1.3.1 feature层的参数约束</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-对feature层输出进行归一化"><span class="nav-text">1.4 对feature层输出进行归一化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-一些已经解决的小问题"><span class="nav-text">1.5 一些已经解决的小问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-6-一些论文采用的新特性的失败尝试"><span class="nav-text">1.6 一些论文采用的新特性的失败尝试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-1-Dropout-AlphaDropout"><span class="nav-text">1.6.1 Dropout&#x2F;AlphaDropout</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-2-‘elu’-‘selu’"><span class="nav-text">1.6.2 ‘elu’&#x2F;‘selu’</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-3-BatchNormalization"><span class="nav-text">1.6.3 BatchNormalization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-4-triplet-loss-magnet-loss"><span class="nav-text">1.6.4 triplet loss&#x2F;magnet loss</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-训练过程"><span class="nav-text">2.训练过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-数据准备"><span class="nav-text">2.1 数据准备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1-MARS数据集的使用"><span class="nav-text">2.1.1 MARS数据集的使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2-保证各class采样的数量级一致"><span class="nav-text">2.1.2 保证各class采样的数量级一致</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-3-使用生成器函数来调用大批量数据集"><span class="nav-text">2.1.3 使用生成器函数来调用大批量数据集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-4-数据的预处理"><span class="nav-text">2.1.4 数据的预处理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4-1-归一化"><span class="nav-text">2.1.4.1 归一化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4-2-数据类型："><span class="nav-text">2.1.4.2 数据类型：</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

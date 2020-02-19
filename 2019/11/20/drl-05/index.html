@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要本文主要介绍了：  针对多智能体执行区域搜索任务，基于maddpg算法设计了相应的场景(Scenario)文件的设计，这包括 环境设计 reward设计   展示了程序的训练结果，做了一些思考和展望">
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习随笔[05]-多智能体协作任务的场景构思和尝试">
+<meta property="og:url" content="http://yoursite.com/2019/11/20/drl-05/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要本文主要介绍了：  针对多智能体执行区域搜索任务，基于maddpg算法设计了相应的场景(Scenario)文件的设计，这包括 环境设计 reward设计   展示了程序的训练结果，做了一些思考和展望">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/zero-demo~1.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/simple_spread.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/sigmoid.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/sigmoid_plus.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/task-fulfilling-reward.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/demo.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/20/drl-05/reward.png">
+<meta property="article:published_time" content="2019-11-20T11:14:42.000Z">
+<meta property="article:modified_time" content="2019-12-30T16:11:04.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="ReinforceLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/20/drl-05/zero-demo~1.gif">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/20/drl-05/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>强化学习随笔[05]-多智能体协作任务的场景构思和尝试 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/20/drl-05/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          强化学习随笔[05]-多智能体协作任务的场景构思和尝试
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-20 19:14:42" itemprop="dateCreated datePublished" datetime="2019-11-20T19:14:42+08:00">2019-11-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-31 00:11:04" itemprop="dateModified" datetime="2019-12-31T00:11:04+08:00">2019-12-31</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">基于深度强化学习的多机协同算法研究</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>本文主要介绍了：</p>
+<ul>
+<li>针对多智能体执行区域搜索任务，基于maddpg算法设计了相应的场景(Scenario)文件的设计，这包括<ul>
+<li>环境设计</li>
+<li>reward设计</li>
+</ul>
+</li>
+<li>展示了程序的训练结果，做了一些思考和展望</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-问题建模"><a href="#1-问题建模" class="headerlink" title="1. 问题建模"></a>1. 问题建模</h1><p>如何训练智能体完成对某一区域的搜索任务？</p>
+<p>一个很直观的想法是将连续的区域离散成均匀分布的点阵（类似围棋棋盘），当智能体经过了该点阵的所有点后，即认为完成了搜索任务。在现实生活中，这种建模方法已经有所应用，比如小区保安的巡逻需要在各个目标点进行打卡。因此认为，只要合理设置点阵中点的相对位置，这个转化是合理的。</p>
+<p>我们假设智能体能够探测的区域是一个半径为<code>R</code>的圆，当该圆包含点阵中的位置点时，代表该点已经被探测过。多智能体的目标是通过协作在限定时间内尽可能探测较多的位置点。</p>
+<p>于是，问题被转化为，给定一个固定的点阵，训练一组智能体（圆），使其经过尽可能多地经过该点阵中的点。</p>
+<h1 id="2-程序设计"><a href="#2-程序设计" class="headerlink" title="2. 程序设计"></a>2. 程序设计</h1><p>经过测试MADDPG算法在几个sample上的效果还是不错的，我们的工作暂时主要集中在环境场景（Scenario）的设计上。这部分的工作主要分成：</p>
+<ul>
+<li>环境设计</li>
+<li>reward设计</li>
+</ul>
+<h2 id="2-1-环境设计"><a href="#2-1-环境设计" class="headerlink" title="2.1 环境设计"></a>2.1 环境设计</h2><p>首先要设计环境，如上文所述，我们希望将待探索区域离散成一个均匀的点阵，考虑到一个智能体的探测半径为<code>R</code>，各个位置点的距离设置成<code>2R</code>应该比较适宜。</p>
+<p>将一个正方形区域分成6x6的点阵，这里的”目标点“参考了maddpg项目里landmark的概念，不同之处在于maddpg项目中的landmark是从均匀分布中随机生成的，而我们设定的6x6的点阵是固定设置的。</p>
+<p>当某个目标点被智能体经过后，即被认为是“已探测的”（detected），如下图浅色的目标点所示：</p>
+<p><img src="/2019/11/20/drl-05/zero-demo~1.gif" alt="zero-demo~1"></p>
+<h2 id="2-2-reward设计"><a href="#2-2-reward设计" class="headerlink" title="2.2 reward设计"></a>2.2 reward设计</h2><p>在上一篇博文里我们介绍了maddpg项目里所有sample的reward设计，掌握了部分reward shaping的思想。reward对强化学习训练的影响，不啻于深度学习中的Loss function，它的设计也是强化学习一个让人觉得难以把握的地方。以下是我针对该问题设计的reward，欢迎探讨。</p>
+<h3 id="2-2-1-距离惩罚项"><a href="#2-2-1-距离惩罚项" class="headerlink" title="2.2.1 距离惩罚项"></a>2.2.1 距离惩罚项</h3><p>在maddpg项目的<code>simple_spread</code>示例中，达到了分配各智能体占领数量相同的目标点的效果：</p>
+<p><img src="/2019/11/20/drl-05/simple_spread.gif" alt="simple_spread"></p>
+<p>其reward如下：<br>$$<br>reward=-\Sigma_i dist(landmark_i,nearest_{-}agent)<br>$$<br>也即对每个Landmark，都有考察离他最近的agent的距离，然后求和取负数，作为惩罚。只有当所有Landmark都有离它很近的agent，reward才会相对比较大。</p>
+<p>我们的场景与其不同点在于：第一，我们不希望agent在到达目标点后停留在那里，而是继续探索其他目标点。第二，我们的目标点的数量远远多于agent。</p>
+<p>首先解决第一个问题，我们可以创建一个数组储存各个目标点是否被探索过，如果是探索过的目标点，其距离惩罚项不会计入reward的计算中，可以用如下公式表示：<br>$$<br>reward=-\Sigma_i dist(landmark_{-}not_{-}detected,nearest_{-}agent)<br>$$<br>接下来考虑第二个问题，即目标点的数量问题，基于上述公式，我们发现随着Landmarks不断被探索，计入reward的Landmark的数量是不断下降的，这会导致距离惩罚项的值域在一个Episode中不断改变（快速下降）。为了解决这个问题，对该项除以未被探测的Landmark数量，如下：<br>$$<br>reward=\frac {-\Sigma_i dist(landmark_{-}not_{-}detected,nearest_{-}agent)}{num_{-}of_{-}landmark_{-}not_{-}detected}<br>$$<br>我们会在最后考虑reward的各项的系数问题，所以这里先不关心上式的量级了。</p>
+<p>最后给出距离惩罚项的源代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">rew = <span class="number">0</span></span><br><span class="line">      dists_between_agent_and_landmarks = [np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos))) <span class="keyword">for</span> l <span class="keyword">in</span> world.landmarks]</span><br><span class="line">      <span class="keyword">for</span> idx_of_landmark, dist <span class="keyword">in</span> enumerate(dists_between_agent_and_landmarks):</span><br><span class="line">          <span class="keyword">if</span> dist &lt; agent.size:<span class="comment"># 如果目标点位于圆内，代表该点被探测了</span></span><br><span class="line">              self.detected_landmarks_list[idx_of_landmark] = <span class="literal">True</span></span><br><span class="line">      <span class="keyword">for</span> idx, l <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">          <span class="keyword">if</span> <span class="keyword">not</span> self.detected_landmarks_list[idx]:</span><br><span class="line">              dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) <span class="keyword">for</span> a <span class="keyword">in</span> world.agents]</span><br><span class="line">              rew -= np.min(dists) / (</span><br><span class="line">                          self.num_landmarks - self.detected_landmarks_list[self.detected_landmarks_list].size)</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-2-碰撞惩罚项"><a href="#2-2-2-碰撞惩罚项" class="headerlink" title="2.2.2 碰撞惩罚项"></a>2.2.2 碰撞惩罚项</h3><p>如果两个智能体的监测区域（圆）重合了，无疑是十分低效率的，而且存在安全问题，所以仿照<code>simple_spread</code>的思想，设定了碰撞惩罚项：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> agent.collide:</span><br><span class="line">    <span class="keyword">for</span> a <span class="keyword">in</span> world.agents:</span><br><span class="line">        <span class="keyword">if</span> self.is_collision(a, agent):</span><br><span class="line">    <span class="comment"># if np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) &lt; 0.5 * a.size:</span></span><br><span class="line">            rew -= <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>思想很简单，就是如果两个圆有重合，那么同时惩罚两个人。</p>
+<p>之前还想过更复杂的惩罚项，即根据重叠距离返回不同大小的惩罚，但发现这样修改后智能体重叠的现象反而变多了，所以还是直接用上面这种一刀切的方法。</p>
+<h3 id="2-2-3-任务完成进度奖励项"><a href="#2-2-3-任务完成进度奖励项" class="headerlink" title="2.2.3 任务完成进度奖励项"></a>2.2.3 任务完成进度奖励项</h3><p>如果只有上面的两项，训练出来的模型根据测试会在几个点停留下来，没有探索其他位置点的欲望，于是又设计了根据任务完成进度的奖励项。</p>
+<p>之前试过用探测过的目标点的数量作为奖励大小的依据，但是发现这样模型会在拿到一定数量的目标点后就满足了。所以后面考虑了将<strong>当前时刻新探测的目标点数量</strong>作为奖励的依据，因此引入了上一时刻已探测目标点这个参数。不妨先简单地设定任务完成进度奖励项为:<br>$$<br>reward=num_{landmark}_{detected}<em>{t+1}-num\</em>{landmark}_{detected}_{t}<br>$$<br>而且，在不同时刻探测相同数量的目标点的价值是不一样的，在一个新的Episode开始时，智能体随便移动一下都能探测一个目标点，但随着游戏的进行，未被探测的目标点越来越少，这时探测一个新的目标的价值就很高了。基于这一点，引入了“时间”这个维度，期望在上述公式前乘上一项由时间确定的修正参数，该参数需要在t=0时很小，随后逐渐变大。<br>考虑在深度学习中常用的sigmoid函数：<br>$$<br>sigmoid(x)=\frac {1}{1+e^{-x}}<br>$$<br>该函数的曲线为：</p>
+<p><img src="/2019/11/20/drl-05/sigmoid.png" alt="sigmoid"></p>
+<p>根据我们的训练条件（iteration=30）对其做平移和伸缩，如下：</p>
+<p><img src="/2019/11/20/drl-05/sigmoid_plus.png" alt="sigmoid_plus"></p>
+<p>将该项乘上之前的公式，即有：</p>
+<p><img src="/2019/11/20/drl-05/task-fulfilling-reward.png" alt="task-fulfilling-reward"></p>
+<p>代码为：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">self.num_detected = self.detected_landmarks_list[self.detected_landmarks_list].size</span><br><span class="line">delta_num_detected = self.num_detected - self.previous_num_detected</span><br><span class="line">rew += <span class="number">3</span> * sigmoid_plus(self.time) * delta_num_detected</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="3-训练结果"><a href="#3-训练结果" class="headerlink" title="3. 训练结果"></a>3. 训练结果</h1><p>将2.2节中设计的reward的三项在实验中进行量级测试后，进行加权求和作为reward。</p>
+<p>以下是上述模型的训练结果。</p>
+<ul>
+<li><p>视频demo</p>
+<ul>
+<li><img src="/2019/11/20/drl-05/demo.gif" alt="demo"></li>
+</ul>
+</li>
+<li><p>episode-reward变化图</p>
+<ul>
+<li><img src="/2019/11/20/drl-05/reward.png" alt="reward"></li>
+</ul>
+</li>
+<li><p>统计数据-任务完成情况</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center">episode</th>
+<th align="center">reward</th>
+<th align="center">steps_per_epi</th>
+<th align="center">mean(100%)</th>
+<th align="center">std(100%)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">60w</td>
+<td align="center">10.1397</td>
+<td align="center">30</td>
+<td align="center">0.6708</td>
+<td align="center">0.0916</td>
+</tr>
+<tr>
+<td align="center">60w</td>
+<td align="center">10.1397</td>
+<td align="center">60</td>
+<td align="center">0.8487</td>
+<td align="center">0.0631</td>
+</tr>
+<tr>
+<td align="center">60w</td>
+<td align="center">10.1397</td>
+<td align="center">90</td>
+<td align="center">0.8903</td>
+<td align="center">0.0633</td>
+</tr>
+<tr>
+<td align="center">60w</td>
+<td align="center">10.1397</td>
+<td align="center">120</td>
+<td align="center">0.9119</td>
+<td align="center">0.0632</td>
+</tr>
+<tr>
+<td align="center">100w</td>
+<td align="center">20.0138</td>
+<td align="center">30</td>
+<td align="center">0.7091</td>
+<td align="center">0.0677</td>
+</tr>
+<tr>
+<td align="center">100w</td>
+<td align="center">20.0138</td>
+<td align="center">60</td>
+<td align="center">0.9040</td>
+<td align="center">0.0525</td>
+</tr>
+<tr>
+<td align="center">100w</td>
+<td align="center">20.0138</td>
+<td align="center">90</td>
+<td align="center">0.9381</td>
+<td align="center">0.0461</td>
+</tr>
+<tr>
+<td align="center">100w</td>
+<td align="center">20.0138</td>
+<td align="center">120</td>
+<td align="center">0.9492</td>
+<td align="center">0.0391</td>
+</tr>
+</tbody></table>
+<p>​    </p>
+<h1 id="4-总结和思考"><a href="#4-总结和思考" class="headerlink" title="4. 总结和思考"></a>4. 总结和思考</h1><p>强化学习一直都不善于求取问题的最优解，路径规划问题其实使用传统的数学工具可以很容易地求取最优解，采用强化学习的优势我认为包括以下几点：</p>
+<ul>
+<li>强化学习的决策随机性更强，更难被预料？</li>
+<li>强化学习的框架搭建好后，拓展功能比较方便，如追寻打击移动目标等问题；</li>
+</ul>
+<p>但是强化学习解决该问题也存在以下弊端：</p>
+<ul>
+<li><p>黑盒子，想要训练出好的模型需要一定运气</p>
+</li>
+<li><p>移植性不佳，训练好的模型，随着智能体数量、地图的改变，往往效果会大大下降</p>
+</li>
+</ul>
+<p>下一步研究方向：</p>
+<ul>
+<li>在场景里增加敌人</li>
+<li>改进reward</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/ReinforceLearning/" rel="tag"># ReinforceLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/14/drl-04/" rel="prev" title="强化学习随笔[04]-maddpg项目:创建场景Scenario">
+      <i class="fa fa-chevron-left"></i> 强化学习随笔[04]-maddpg项目:创建场景Scenario
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/27/dl-06/" rel="next" title="多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上)">
+      多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-问题建模"><span class="nav-text">1. 问题建模</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-程序设计"><span class="nav-text">2. 程序设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-环境设计"><span class="nav-text">2.1 环境设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-reward设计"><span class="nav-text">2.2 reward设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-1-距离惩罚项"><span class="nav-text">2.2.1 距离惩罚项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-2-碰撞惩罚项"><span class="nav-text">2.2.2 碰撞惩罚项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-3-任务完成进度奖励项"><span class="nav-text">2.2.3 任务完成进度奖励项</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-训练结果"><span class="nav-text">3. 训练结果</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-总结和思考"><span class="nav-text">4. 总结和思考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

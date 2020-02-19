@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要本文简要介绍了：  PX4的系统架构，这包括  位置控制器（Position Controller） 固定翼姿态控制器（Fixed Wing Attitude Controller） 混控器（Mixer）  本文不涉及以上模块的具体源码分析，仅从其顶层原理、控制流程方面进行了介绍。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="px4学习笔记[03]-PX4系统架构概览">
+<meta property="og:url" content="http://yoursite.com/2019/10/17/px4-03/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要本文简要介绍了：  PX4的系统架构，这包括  位置控制器（Position Controller） 固定翼姿态控制器（Fixed Wing Attitude Controller） 混控器（Mixer）  本文不涉及以上模块的具体源码分析，仅从其顶层原理、控制流程方面进行了介绍。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/10/17/px4-03/1.svg">
+<meta property="og:image" content="http://yoursite.com/2019/10/17/px4-03/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/17/px4-03/3.svg">
+<meta property="og:image" content="http://yoursite.com/2019/10/17/px4-03/5.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/17/px4-03/4.png">
+<meta property="article:published_time" content="2019-10-17T05:15:59.000Z">
+<meta property="article:modified_time" content="2019-12-12T08:14:51.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="PX4">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/10/17/px4-03/1.svg">
+
+<link rel="canonical" href="http://yoursite.com/2019/10/17/px4-03/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>px4学习笔记[03]-PX4系统架构概览 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/17/px4-03/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          px4学习笔记[03]-PX4系统架构概览
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-17 13:15:59" itemprop="dateCreated datePublished" datetime="2019-10-17T13:15:59+08:00">2019-10-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:14:51" itemprop="dateModified" datetime="2019-12-12T16:14:51+08:00">2019-12-12</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>本文简要介绍了：</p>
+<ul>
+<li><p>PX4的系统架构，这包括</p>
+<ul>
+<li>位置控制器（Position Controller）</li>
+<li>固定翼姿态控制器（Fixed Wing Attitude Controller）</li>
+<li>混控器（Mixer）</li>
+</ul>
+<p>本文不涉及以上模块的具体源码分析，仅从其顶层原理、控制流程方面进行了介绍。</p>
+</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-顶层架构"><a href="#1-顶层架构" class="headerlink" title="1. 顶层架构"></a>1. 顶层架构</h1><p>下图展示了PX4各个模块及其之间的联系，上半部分是一些硬件驱动、通信框架、中间件等模块，我们主要研究的飞控模块在下半部分的Flight Control框里。</p>
+<ul>
+<li><p>PX4 系统通过一个名为 <a href="https://dev.px4.io/master/zh/middleware/uorb.html" target="_blank" rel="noopener">uORB</a> 的 发布-订阅 消息总线实现模块之间的相互通讯。</p>
+</li>
+<li><p>飞控控制的核心链路是Navigator-&gt; Position Controller -&gt; Attitude &amp; Rate Controller -&gt;Mixer -&gt; Actuator。</p>
+<ul>
+<li>Navigator根据当前飞行模式给出下一时刻的setpoint;</li>
+<li>controller根据estimator给出的当前状态和navigator给的setpoint，输出引导无人机前往setpoint的姿态、油门;</li>
+<li>Mixer根据机型不同而采用不同模板，它的作用是根据输入的期望姿态和油门，输出当前机型要达到该姿态和油门时各个电机输入的期望;</li>
+<li>Actuator控制具体执行机构的的输入。</li>
+</ul>
+</li>
+</ul>
+<p><img src="/2019/10/17/px4-03/1.svg" alt></p>
+<h1 id="2-位置控制器（Position-Controller）"><a href="#2-位置控制器（Position-Controller）" class="headerlink" title="2. 位置控制器（Position Controller）"></a>2. 位置控制器（Position Controller）</h1><h2 id="2-1-多悬翼位置控制器-mc-pos-control"><a href="#2-1-多悬翼位置控制器-mc-pos-control" class="headerlink" title="2.1 多悬翼位置控制器(mc_pos_control)"></a>2.1 多悬翼位置控制器(mc_pos_control)</h2><p>参考资料：<a href="https://blog.csdn.net/Miku_HU/article/details/90018411" target="_blank" rel="noopener">PX4多旋翼位置控制</a></p>
+<p>多悬翼的位置控制由内外环控制，外环P控制作用于位置差，产生期望速度，内环PID作用于速度差，产生期望油门，然后将油门解算成期望姿态。</p>
+<p>手动控制（Manual）下通过手动的输入直接产生期望速度，然后进入内环速度控制（不经过外环）;自动控制（Auto）通过内外环控制，通过期望位置计算出期望姿态</p>
+<p><img src="/2019/10/17/px4-03/2.png" alt="2"></p>
+<ul>
+<li><p>外环控制：计算Position setpoint和estimation之间的差值，将其导入一个P控制器中，输出Velocity Setpoint（from other module这儿不是很理解）。</p>
+</li>
+<li><p>内环控制： 已知Velocity setpoint，与当前estimation取差值，输入PID控制器中，得到推力Thrust setpoint，将其投影到Z轴，得到悬翼需要提供的垂直推力。推力setpoint和偏航角yaw setpoint一道，得到姿态的setpoint。姿态和推力的setpoint将被传输到Attitude&amp;Rate controller进行处理。</p>
+</li>
+</ul>
+<h2 id="2-2-固定翼位置控制器-fw-pos-control-l1"><a href="#2-2-固定翼位置控制器-fw-pos-control-l1" class="headerlink" title="2.2 固定翼位置控制器(fw_pos_control_l1)"></a>2.2 固定翼位置控制器(fw_pos_control_l1)</h2><p>参考资料：<a href="https://blog.csdn.net/qq_28773183/article/details/80056360" target="_blank" rel="noopener">PX4源码解读之fw_pos_control_l1</a>， <a href="https://dev.px4.io/master/zh/flight_stack/controller_diagrams.html" target="_blank" rel="noopener">PX4官网-控制器图解</a></p>
+<p>固定翼的位置控制不同于旋翼的控制，需要对速度和高度进行解耦控制，并且其不能像旋翼那样进行悬停，其转弯的时候有一个转弯半径。</p>
+<p>在固定翼位置控制中,主要涉及到两个控制算法:<strong>L1控制和TECS(total energy control system)</strong>,</p>
+<p><img src="/2019/10/17/px4-03/3.svg" alt="3"></p>
+<ul>
+<li>L1控制模块，主要是用于得到飞机需要偏转的滚转角(roll)和偏航(yaw)角，在PX4中直接作为库函数调用，保存在lib/ecl/l1中</li>
+<li>TECS模块，是为了飞机的速度和高度解耦（增加pitch angle会增大高度，减小速度;增加油门会增大高度和速度），在源码中主要是通过协调油门和俯仰角要求来控制飞机的高度和速度，得到了期望的油门和俯仰角。</li>
+</ul>
+<p>分别使用L1控制和TECS控制，得到了期望的油门和姿态。对该模块详细的分析有待日后展开。</p>
+<h1 id="3-固定翼姿态控制器（fw-att-control）"><a href="#3-固定翼姿态控制器（fw-att-control）" class="headerlink" title="3. 固定翼姿态控制器（fw_att_control）"></a>3. 固定翼姿态控制器（fw_att_control）</h1><p>参考资料：<a href="https://www.cnblogs.com/laokingshine/p/7236942.html" target="_blank" rel="noopener">px4固定翼无人机姿态控制理解</a></p>
+<p>姿态控制器的核心任务是，输入attitude setpoint，输出姿态角加速度。</p>
+<ul>
+<li><p>固定翼的姿态控制由内外环控制，外环P控制作用于姿态角误差，得到姿态角速度的setpoint;内环PI控制作用于姿态角速度误差，得到姿态角加速度的setpoint。</p>
+</li>
+<li><p>注意，风速对姿态控制器在外环和内环控制中都有重要影响，具体细节有待日后展开。</p>
+</li>
+</ul>
+<p><img src="/2019/10/17/px4-03/5.png" alt="5"></p>
+<h1 id="4-混控器（Mixer）"><a href="#4-混控器（Mixer）" class="headerlink" title="4. 混控器（Mixer）"></a>4. 混控器（Mixer）</h1><p>参考资料： <a href="https://blog.csdn.net/u013181595/article/details/84866978" target="_blank" rel="noopener">PX4中混控器Mixer的分析</a></p>
+<h2 id="4-1-混控器的作用"><a href="#4-1-混控器的作用" class="headerlink" title="4.1 混控器的作用"></a>4.1 混控器的作用</h2><p>Mixer的存在使PX4可以用于不同的机型。他的输入是归一化（normalized）后的飞行器的姿态角加速度、油门等参数的期望值，而后mixer输出独立的PWM到不同的执行器（actuator），例如电调、舵机等。由执行器实现对各个执行机构的控制，比如给某一电机输入pwm=1300。</p>
+<p>如下图所示，其中Attitude controller输出的是归一化的姿态角加速度，Actuator Control Group是一个控制组，可以理解是Mixer，Mixer输出了各个电机的归一化期望输入，由各个Actuator把信号转换回特性的值后，输入到电机里去。 </p>
+<p><img src="/2019/10/17/px4-03/4.png" alt="4"></p>
+<h2 id="4-2-控制组的概念"><a href="#4-2-控制组的概念" class="headerlink" title="4.2 控制组的概念"></a>4.2 控制组的概念</h2><p>先看控制组（Control Group）的概念。</p>
+<p>PX4 有输入组和输出组的概念，顾名思义：控制输入组，如attitude，就是用于核心的飞行姿态控制;如gimbal，就是用于挂载控制。一个输入组有八个位置存放要控制的参数。几个内置的控制组如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">Control Group #0 (Flight Control)</span><br><span class="line">•	0: roll (-1..1)</span><br><span class="line">•	1: pitch (-1..1)</span><br><span class="line">•	2: yaw (-1..1)</span><br><span class="line">•	3: throttle (0..1 normal range, -1..1 for variable pitch &#x2F; thrust reversers)</span><br><span class="line">•	4: flaps (-1..1)</span><br><span class="line">•	5: spoilers (-1..1)</span><br><span class="line">•	6: airbrakes (-1..1)</span><br><span class="line">•	7: landing gear (-1..1)</span><br><span class="line">Control Group #1 (Flight Control VTOL&#x2F;Alternate)</span><br><span class="line">•	0: roll ALT (-1..1)</span><br><span class="line">•	1: pitch ALT (-1..1)</span><br><span class="line">•	2: yaw ALT (-1..1)</span><br><span class="line">•	3: throttle ALT (0..1 normal range, -1..1 for variable pitch &#x2F; thrust reversers)</span><br><span class="line">•	4: reserved &#x2F; aux0</span><br><span class="line">•	5: reserved &#x2F; aux1</span><br><span class="line">•	6: reserved &#x2F; aux2</span><br><span class="line">•	7: reserved &#x2F; aux3</span><br><span class="line">Control Group #2 (Gimbal)</span><br><span class="line">•	0: gimbal roll</span><br><span class="line">•	1: gimbal pitch</span><br><span class="line">•	2: gimbal yaw</span><br><span class="line">•	3: gimbal shutter</span><br><span class="line">•	4: reserved</span><br><span class="line">•	5: reserved</span><br><span class="line">•	6: reserved</span><br><span class="line">•	7: reserved (parachute, -1..1)</span><br><span class="line">Control Group #3 (Manual Passthrough)</span><br><span class="line">•	0: RC roll</span><br><span class="line">•	1: RC pitch</span><br><span class="line">•	2: RC yaw</span><br><span class="line">•	3: RC throttle</span><br><span class="line">•	4: RC mode switch</span><br><span class="line">•	5: RC aux1</span><br><span class="line">•	6: RC aux2</span><br><span class="line">•	7: RC aux3</span><br><span class="line">Control Group #6 (First Payload)</span><br><span class="line">•	0: function 0 (default: parachute)</span><br><span class="line">•	1: function 1</span><br><span class="line">•	2: function 2</span><br><span class="line">•	3: function 3</span><br><span class="line">•	4: function 4</span><br><span class="line">•	5: function 5</span><br><span class="line">•	6: function 6</span><br><span class="line">•	7: function 7</span><br></pre></td></tr></table></figure>
+
+<p>而输出组，一个输出组就是一个物理总线。如前8个PWM组成的总线用于舵机控制，组内带8个归一化（-1..+1）值，一个混合就是用于输入和输出连接方式（如:对于四轴来说,输入组有俯仰，翻滚，偏航等，对于于向前打俯仰操作，就需要改变输出组中的4个电调的PWM输出值，前俩个降低转速，后两个增加转速，飞机就向前）。对于简单的固定翼来说，输入0（roll），就直接连接到输出的0（副翼）。对于多旋翼来说就不同了，输入0（roll）需要连接到所有的4个电机。</p>
+<h2 id="4-3-混控器（Mixer）文件的编写"><a href="#4-3-混控器（Mixer）文件的编写" class="headerlink" title="4.3 混控器（Mixer）文件的编写"></a>4.3 混控器（Mixer）文件的编写</h2><p>mixer用专有的文件格式定义，<a href="https://dev.px4.io/master/en/concept/mixing.html" target="_blank" rel="noopener">官方文档</a>和本章的<a href="https://blog.csdn.net/u013181595/article/details/84866978" target="_blank" rel="noopener">参考资料</a>对这块内容做了比较细致的介绍，这些内容有待日后研究。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/PX4/" rel="tag"># PX4</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/16/px4-02/" rel="prev" title="px4学习笔记[02]-Learn_uORB">
+      <i class="fa fa-chevron-left"></i> px4学习笔记[02]-Learn_uORB
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/10/19/px4-04/" rel="next" title="px4学习笔记[04]-飞行日志分析">
+      px4学习笔记[04]-飞行日志分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-顶层架构"><span class="nav-text">1. 顶层架构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-位置控制器（Position-Controller）"><span class="nav-text">2. 位置控制器（Position Controller）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-多悬翼位置控制器-mc-pos-control"><span class="nav-text">2.1 多悬翼位置控制器(mc_pos_control)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-固定翼位置控制器-fw-pos-control-l1"><span class="nav-text">2.2 固定翼位置控制器(fw_pos_control_l1)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-固定翼姿态控制器（fw-att-control）"><span class="nav-text">3. 固定翼姿态控制器（fw_att_control）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-混控器（Mixer）"><span class="nav-text">4. 混控器（Mixer）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-混控器的作用"><span class="nav-text">4.1 混控器的作用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-控制组的概念"><span class="nav-text">4.2 控制组的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-混控器（Mixer）文件的编写"><span class="nav-text">4.3 混控器（Mixer）文件的编写</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

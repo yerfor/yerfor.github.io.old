@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要生成对抗网络(Generative Adversarial Networks, GAN)是Ian J. Goodfellow在2014年提出的机器学习框架，广泛应用于生成任务中(目前有图像生成&#x2F;AI换脸&#x2F;风格迁移等应用)，是近年来计算机视觉领域最热门的研究方向之一。 GAN包含两个模块：生成模型（Generative Model）和判别模型（Discriminative Model），生成">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GAN[01]-生成对抗网络:从GAN到到WGAN">
+<meta property="og:url" content="http://yoursite.com/2020/02/06/gan-01/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要生成对抗网络(Generative Adversarial Networks, GAN)是Ian J. Goodfellow在2014年提出的机器学习框架，广泛应用于生成任务中(目前有图像生成&#x2F;AI换脸&#x2F;风格迁移等应用)，是近年来计算机视觉领域最热门的研究方向之一。 GAN包含两个模块：生成模型（Generative Model）和判别模型（Discriminative Model），生成">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/0.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/1.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/2.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/3.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/4.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/5.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/mode_collapse.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/mode_dropping.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/js.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/lsgan.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/wgan.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/gan-10000.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/10000.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/06/gan-01/WGAN-demo.gif">
+<meta property="article:published_time" content="2020-02-06T09:40:42.000Z">
+<meta property="article:modified_time" content="2020-02-06T09:37:19.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="CV">
+<meta property="article:tag" content="GAN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/02/06/gan-01/0.png">
+
+<link rel="canonical" href="http://yoursite.com/2020/02/06/gan-01/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>GAN[01]-生成对抗网络:从GAN到到WGAN | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/06/gan-01/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          GAN[01]-生成对抗网络:从GAN到到WGAN
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-02-06 17:40:42 / 修改时间：17:37:19" itemprop="dateCreated datePublished" datetime="2020-02-06T17:40:42+08:00">2020-02-06</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p>生成对抗网络(Generative Adversarial Networks, GAN)是<code>Ian J. Goodfellow</code>在2014年提出的机器学习框架，广泛应用于生成任务中(目前有图像生成/AI换脸/风格迁移等应用)，是近年来计算机视觉领域最热门的研究方向之一。</p>
+<p>GAN包含两个模块：生成模型（Generative Model）和判别模型（Discriminative Model），生成模型用于生成数据（可以是图像、点云等任意高维数据，前提是要有对应的database，GAN并不能无中生有），判别模型用于判断接收的数据是真实数据还是由生成模型伪造的。生成模型和判别模型在相互博弈的过程中逐渐变强，可以生成以假乱真的图像。</p>
+<p>本文主要内容有：</p>
+<ul>
+<li>介绍了生成对抗网络(GAN)的概念和具体算法</li>
+<li>指出了传统GAN用JS散度作为度量的缺陷</li>
+<li>介绍了WGAN的原理，将GAN与WGAN的效果进行了对比，</li>
+<li>提供了具体实现WGAN-GP的项目代，并，并码</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-生成对抗网络-GAN-介绍"><a href="#1-生成对抗网络-GAN-介绍" class="headerlink" title="1. 生成对抗网络(GAN)介绍"></a>1. 生成对抗网络(GAN)介绍</h1><h2 id="1-1-Generator和Discriminator"><a href="#1-1-Generator和Discriminator" class="headerlink" title="1.1 Generator和Discriminator"></a>1.1 Generator和Discriminator</h2><ul>
+<li>Generator和Discriminator都是神经网络。</li>
+<li>Generator网络的输入通常是一个来自于高斯分布的噪声向量，在网络中经过一系列上采样，输出一张图片或其他高维数据，下图是用于图像生成和文本生成时的Generator输入输出结构。</li>
+<li>可以把Generator生成图片的过程视作：<ul>
+<li>输入一个高斯分布，Generator将该分布扭曲变形成一个和Database差不多形状的分布，生成的图片都是这个分布的一个采样。</li>
+</ul>
+</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/0.png" alt="0"></p>
+<ul>
+<li>Discriminator网络的输入是和Generator输出同类型的数据，如下图所示，当完成图像生成任务时，Discriminator的输入是图片，它的任务是判断当前输入的图片是真实的图片还是Generator伪造的。Discriminator的输出是[0,1]的标量，输出越接近1代表iscriminator认为当前输入的图片Discriminator认为当前输入的图片越像真实的图像。</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/1.png" alt="1"></p>
+<ul>
+<li>在训练的每个迭代的步骤中，都会先把真实图像和Generator生成的图像都传给Discriminator，Discriminator要学会分辨真实图像和伪造的图像（相当于一个简单的二分类问题）；随后Generator会朝增大Discriminator给自己伪造的图片打的分数的方向更新。</li>
+<li>在训练过程中，Generator和Discriminator都会不断变强。Discriminator会发现越来越多真实图像具有的特征，具有越来越强的辨真伪的能力；而Generator要骗过Discriminator，伪造图像的能力也会不断增强，直到在人类眼里可以以假乱真。</li>
+</ul>
+<h2 id="1-2-算法流程"><a href="#1-2-算法流程" class="headerlink" title="1.2 算法流程"></a>1.2 算法流程</h2><ul>
+<li>随机初始化Generator和Discriminator的参数</li>
+<li>对每个迭代步骤：<ul>
+<li>从数据集中随机抽取m个样本{$x_1,…,x_m$}</li>
+<li>从高斯分布中随机抽取m个噪声{$z_1,…,z_m$}</li>
+<li>将噪声全部输入到Generator网络中，得到m个生成的图像{$x’_1,…,x’_m$},其中$x’_i=Generator(z_i)$</li>
+<li>将数据集中的m个样本和伪造的m个图像都输入到Discriminator中，用以下方式更新Discriminator：<ul>
+<li>定义目标函数：$V=\frac{1}{m}\Sigma^{m}<em>{i=1}logD(x_i)+\frac{1}{m}\Sigma^{m}</em>{i=1}log(1-D(x’_i))$<ul>
+<li>上式类似于分类问题中的交叉熵，最大化上式，意味着最大化对真实图像的评分$D(x_i)$，同时最小化对虚假图像的评分$D(x’_i)$。</li>
+</ul>
+</li>
+<li>采用梯度法最大化目标函数：$\theta_d \leftarrow \theta_d + \eta\cdot\nabla V(\theta_d)$</li>
+<li>至此完成了对Discriminator的更新</li>
+</ul>
+</li>
+<li>将之前生成的m张图像重新传入更新后的Discriminator网络中，得到m个评分：$D(G(z_i))$</li>
+<li>用以下方式更新Generator：<ul>
+<li>定义目标函数：$V = -\frac{1}{m}\Sigma_{i=1}^{m}logD(G(z_i))$<ul>
+<li>上式除了负号部分奖励了Generator伪造的图片“骗过了”Discriminator，得到高分的情况。加上负号后变成了惩罚，所以要最小化该式</li>
+</ul>
+</li>
+<li>利用梯度法最小化目标函数：$\theta_g \leftarrow \theta_g - \eta\cdot\nabla V(\theta_g)$</li>
+<li>至此完成了对Generator的更新</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/2.png" alt="2"></p>
+<h2 id="1-3-最小化目标函数使Discriminator判别分布间的的JS散度"><a href="#1-3-最小化目标函数使Discriminator判别分布间的的JS散度" class="headerlink" title="1.3 最小化目标函数使Discriminator判别分布间的的JS散度"></a>1.3 最小化目标函数使Discriminator判别分布间的的JS散度</h2><p>GAN的目标是生成和数据集相同风格，可以以假乱真的图像，从统计学的角度看，实际上就是要拟合出一个可以描述数据集图像的概率分布$P_{data}(x)$。注意$x$是Generator的输出，即图像。</p>
+<p><img src="/2020/02/06/gan-01/3.png" alt="3"></p>
+<p>如下图所示，Generator的输入$z$是一个高斯分布，经过Generator后<a href="https://github.com/yerfor/WGAN-TensorFlow2该分布被弯曲变形成下图所示的$P_G(x)$，在不断训练的过程中，$P_G(x)$会越来越趋同于$P_{data}(x)$。统计学中用散度($Div$)来描述两组概率分布的相似程度，所以我们期望训练出来的Generator可以表示为$G=argminDiv(P_G,P_{data})$。" target="_blank" rel="noopener">https://github.com/yerfor/WGAN-TensorFlow2该分布被弯曲变形成下图所示的$P_G(x)$，在不断训练的过程中，$P_G(x)$会越来越趋同于$P_{data}(x)$。统计学中用散度($Div$)来描述两组概率分布的相似程度，所以我们期望训练出来的Generator可以表示为$G=argminDiv(P_G,P_{data})$。</a></p>
+<p><img src="/2020/02/06/gan-01/4.png" alt="4"></p>
+<p>要计算$Div(P_G,P_{data})$,必须要能够判断一个图像属不属于$P_{data}$，根据1.1中GAN的算法，我们训练了Discriminator来拟合$P_{data}(x)$的形状，只有落在该区域内的图像才能获得高分。当Discriminator训练的足够好的时候，我们认为它已经可以描述$P_{data}(x)$，下面是条件：<br>$$<br>D = argmaxV , where<br>$$</p>
+<p>$$<br>V=\frac{1}{m}\Sigma^{m}<em>{i=1}logD(x_i)+\frac{1}{m}\Sigma^{m}</em>{i=1}log(1-D(x’_i))<br>$$</p>
+<ul>
+<li>当然，在GAN中我们不可能一步到位地训练Discriminator，因为我们没有足够的负样本，实作中这些负样本都要由Generator来提供。所以一般都是把二个网络一起迭代更新。</li>
+</ul>
+<p>我们认为被最优化后的$V$可以最好的分辨图片是否属于Data，可以数学证明（略）：<br>$$<br>maxV=-2log2+2JSD(P_G,P_{data})<br>$$<br>也就是说我们用交叉熵作为目标函数训练Discriminator，实际是教会了Discriminator计算输入图片和数据集分布之间的<code>JS散度</code>。</p>
+<p>如果让Generator的目标是最小化$maxV(G,D)$，那么训练Generator 的过程实际上就是减小Generator生成的数据分布和数据集分布之间的JS散度。</p>
+<ul>
+<li>本节讨论的意义在于：修改目标函数V，可以起到修改作为度量标准的散度的目的。如下表所示：</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/5.png" alt="5"></p>
+<h1 id="2-Wasertein-GAN-WGAN"><a href="#2-Wasertein-GAN-WGAN" class="headerlink" title="2. Wasertein GAN (WGAN)"></a>2. Wasertein GAN (WGAN)</h1><h2 id="2-1-传统GAN的问题"><a href="#2-1-传统GAN的问题" class="headerlink" title="2.1 传统GAN的问题"></a>2.1 传统GAN的问题</h2><p><code>Ian Fellow</code>提出的传统GAN模型，在实际训练时会出现很难收敛，以及存在Mode Collapse和Mode Dropping等问题。</p>
+<ul>
+<li>Mode Collapse：多个噪声输入经过Generator产生的都是同一个图像）</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/mode_collapse.png" alt="mode_dropping"></p>
+<ul>
+<li>Mode Dropping：每次迭代的Generator都只能产生某一种特征，比如下图所示，一次只产生白皮肤、黄皮肤。日哦批评</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/mode_dropping.png" alt="mode_dropping"></p>
+<p>这很可能是因为传统GAN采用的JS散度不能很好描述两个分布之间的距离。</p>
+<p>由数学推导知道，用传统交叉熵作为目标函数训练，Discriminator训练到极致的时候，它的函数<code>D(x)</code>其实就是评价输入的图像和我们现有的图像数据分布之间的JS散度。然而JS散度有一个巨大的问题，就是当两个数据没有overlap的时候，它的值始终是<code>log2</code>，这个值和数据分布之间的距离无关，仅在二者重叠时有一个突然的变化，这不利于我们模型的收敛。</p>
+<p><img src="/2020/02/06/gan-01/js.png" alt=" "></p>
+<p>从梯度下降的角度来分析交叉熵作为Discriminator的目标函数的缺点，可能更加直观。我们知道Discriminator训练到最好的情况下评价的是JS散度，而由于真实图片和生成的图片之间很可能没有overlap，这会导致D(x)变成一个方形波的形状，即对真实图片都是1，对虚假图片都是-1（因为传统GAN采用了sigmoid的激活函数激活函数），这会导致梯度消失，如下图左边子图所示。一个解决思路是简单地把Sigmoid函数去掉，如下图右边子图所示（这个就是LSGAN），这虽然能阻止梯度消失，但使用的Discriminator采用的仍然是趋近于JS散度的度量模式，效果也不是很好。</p>
+<p><img src="/2020/02/06/gan-01/lsgan.png" alt="lsgan"></p>
+<h2 id="2-2-WGAN"><a href="#2-2-WGAN" class="headerlink" title="2.2 WGAN"></a>2.2 WGAN</h2><p>WGAN度量的是Earth Moving距离，即将一个分布搬到另一个分布需要搬运的数据量最小值作为度量两个数据分布之间距离的标准。Earth Moving距离是一个需要求解min的数学式，但经过推导后发现，可以由下图的式子来表示：</p>
+<p><img src="/2020/02/06/gan-01/wgan.png" alt="wgan"></p>
+<p>发现该式子完全继承了上一小节的LSGAN的目标函数，只是多亏了一个$D(x)\in 1-Lipschitzd$的约束。这个约束的意思就是D(x)函数在任意一点的导数不能大于1。</p>
+<p>当时提出WGAN的人最初没有想到好方法满足该式，于是简单地对Discriminator做了一个weight clilpping，实验下来发现也能用。</p>
+<p>后来，WGAN的作者再次发文，指出D满足$1-Lipschitzd$等价于D(x)相对于x（x是discriminator的输入，即图像）的梯度小于等于1，所以在目标函数的后面剪去了一项Gradient Penalty，这样目标函数变为：<br>$$<br>V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{<em>}{x}\in P_{G}}(D(\overset{</em>}{x}))-E_{\overset{*}{x}\in P_{data}}(\nabla _x||D(x)||^2-1)]<br>$$</p>
+<p>这种改良后的WGAN因为增加了Gradient Penalty，也被称作WGAN-GP。它能够显著减少Mode Collapse和Mode Dropping。</p>
+<p>WGAN是对传统GAN的全方面优化，下面是两个结构performance的对比：</p>
+<ul>
+<li>GAN，iterations=10000</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/gan-10000.png" alt="gan-10000"></p>
+<ul>
+<li>WGAN-GP，iterations=10000</li>
+</ul>
+<p><img src="/2020/02/06/gan-01/10000.png" alt="10000"></p>
+<h2 id="2-3-Coding"><a href="#2-3-Coding" class="headerlink" title="2.3 Coding"></a>2.3 Coding</h2><p>使用Tensorflow 2.0复现了WGAN-GP的效果，项目已经上传到github上了，召唤<a href="https://github.com/yerfor/WGAN-TensorFlow2" target="_blank" rel="noopener">传送门</a>。</p>
+<p>训练了3万个iterations，训练过程如下图所示：</p>
+<p><img src="/2020/02/06/gan-01/WGAN-demo.gif" alt="WGAN-demo"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CV/" rel="tag"># CV</a>
+              <a href="/tags/GAN/" rel="tag"># GAN</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/23/dl-08/" rel="prev" title="多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下)">
+      <i class="fa fa-chevron-left"></i> 多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/02/10/ssd/" rel="next" title="目标检测[01]-SSD算法和预训练模型">
+      目标检测[01]-SSD算法和预训练模型 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-生成对抗网络-GAN-介绍"><span class="nav-text">1. 生成对抗网络(GAN)介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-Generator和Discriminator"><span class="nav-text">1.1 Generator和Discriminator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-算法流程"><span class="nav-text">1.2 算法流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-最小化目标函数使Discriminator判别分布间的的JS散度"><span class="nav-text">1.3 最小化目标函数使Discriminator判别分布间的的JS散度</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Wasertein-GAN-WGAN"><span class="nav-text">2. Wasertein GAN (WGAN)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-传统GAN的问题"><span class="nav-text">2.1 传统GAN的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-WGAN"><span class="nav-text">2.2 WGAN</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-Coding"><span class="nav-text">2.3 Coding</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要学习了OpenCV官网Tutorials的第二章Gui Features in OpenCV，主要包括以下内容：  图像的读取、显示和储存 视频的采集、读取和保存 基础函数绘图 鼠标事件绘图 滑槽事件绘图">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenCV学习笔记[01]-Gui Features in OpenCV">
+<meta property="og:url" content="http://yoursite.com/2019/07/21/opencv-01/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要学习了OpenCV官网Tutorials的第二章Gui Features in OpenCV，主要包括以下内容：  图像的读取、显示和储存 视频的采集、读取和保存 基础函数绘图 鼠标事件绘图 滑槽事件绘图">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/07/21/opencv-01/fourcc.png">
+<meta property="article:published_time" content="2019-07-21T09:40:42.000Z">
+<meta property="article:modified_time" content="2019-12-12T08:07:29.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="CV">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/07/21/opencv-01/fourcc.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/07/21/opencv-01/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>OpenCV学习笔记[01]-Gui Features in OpenCV | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/07/21/opencv-01/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenCV学习笔记[01]-Gui Features in OpenCV
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-21 17:40:42" itemprop="dateCreated datePublished" datetime="2019-07-21T17:40:42+08:00">2019-07-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:07:29" itemprop="dateModified" datetime="2019-12-12T16:07:29+08:00">2019-12-12</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>学习了OpenCV官网<a href="https://docs.opencv.org/3.3.0/d6/d00/tutorial_py_root.html" target="_blank" rel="noopener">Tutorials</a>的第二章<a href="https://docs.opencv.org/3.3.0/dc/d4d/tutorial_py_table_of_contents_gui.html" target="_blank" rel="noopener">Gui Features in OpenCV</a>，主要包括以下内容：</p>
+<ul>
+<li>图像的读取、显示和储存</li>
+<li>视频的采集、读取和保存</li>
+<li>基础函数绘图</li>
+<li>鼠标事件绘图</li>
+<li>滑槽事件绘图</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-图像的读取、显示和储存"><a href="#1-图像的读取、显示和储存" class="headerlink" title="1. 图像的读取、显示和储存"></a>1. 图像的读取、显示和储存</h1><h2 id="1-1-图像的读取——imread"><a href="#1-1-图像的读取——imread" class="headerlink" title="1.1 图像的读取——imread"></a>1.1 图像的读取——imread</h2><h3 id="用法及功能"><a href="#用法及功能" class="headerlink" title="用法及功能"></a><strong>用法及功能</strong></h3><ul>
+<li>img = cv2.imread(image path, flag)</li>
+<li>读取图像，将矩阵存在img中</li>
+</ul>
+<h3 id="几种flag及其意义"><a href="#几种flag及其意义" class="headerlink" title="几种flag及其意义"></a><strong>几种flag及其意义</strong></h3><ul>
+<li>cv2.IMREAD_COLOR (==1) ：缺省值，只采集BGR图像</li>
+<li>cv2.IMREAD_GRAYSCALE (==0)：采集灰度图</li>
+<li>cv2.IMREAD_UNCHANGED(== -1)：采集全部信息，包括透明度等参数</li>
+</ul>
+<h3 id="img句柄返回值"><a href="#img句柄返回值" class="headerlink" title="img句柄返回值"></a><strong>img句柄返回值</strong></h3><ul>
+<li>如果读取成功，img返回的值是图像矩阵，如果图像为空，则返回None</li>
+</ul>
+<h2 id="1-2-图像的显示"><a href="#1-2-图像的显示" class="headerlink" title="1.2 图像的显示"></a>1.2 图像的显示</h2><h3 id="cv2-imshow-window-img"><a href="#cv2-imshow-window-img" class="headerlink" title="cv2.imshow(window, img)"></a>cv2.imshow(window, img)</h3><ul>
+<li>输入窗口名称（可以是已存在的窗口，也可以是新的）和图像句柄，在窗口显示图像</li>
+</ul>
+<h3 id="cv2-waitkey-time-in-ms"><a href="#cv2-waitkey-time-in-ms" class="headerlink" title="cv2.waitkey(time in ms)"></a>cv2.waitkey(time in ms)</h3><ul>
+<li>这是一个delay函数，有两种方式解锁：<ul>
+<li>已经delay了规定的时间（以毫秒为单位）</li>
+<li>用户按下任意键</li>
+</ul>
+</li>
+<li>waitkey的返回值是所按下的键的ascii码，比如ord(‘q’)</li>
+</ul>
+<h3 id="cv2-namedWindow-window"><a href="#cv2-namedWindow-window" class="headerlink" title="cv2.namedWindow(window)"></a>cv2.namedWindow(window)</h3><ul>
+<li>创建一个有名字的空窗口</li>
+</ul>
+<h3 id="cv2-destroyWindow-window"><a href="#cv2-destroyWindow-window" class="headerlink" title="cv2.destroyWindow(window)"></a>cv2.destroyWindow(window)</h3><ul>
+<li>关闭某个名字的窗口</li>
+</ul>
+<h3 id="cv2-destoryAllWindows"><a href="#cv2-destoryAllWindows" class="headerlink" title="cv2.destoryAllWindows()"></a>cv2.destoryAllWindows()</h3><ul>
+<li>关闭所有窗口</li>
+</ul>
+<h2 id="1-3-图像的写入——imwrite"><a href="#1-3-图像的写入——imwrite" class="headerlink" title="1.3 图像的写入——imwrite"></a>1.3 图像的写入——imwrite</h2><h3 id="用法及功能-1"><a href="#用法及功能-1" class="headerlink" title="用法及功能"></a>用法及功能</h3><ul>
+<li>cv2.imwrite(path of storing image, handle of image)</li>
+<li>把img的图像内容储存到指定位置的文件中</li>
+</ul>
+<h3 id="图像读写例程——生成灰度图"><a href="#图像读写例程——生成灰度图" class="headerlink" title="图像读写例程——生成灰度图"></a>图像读写例程——生成灰度图</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">'lena.jpg'</span>, <span class="number">0</span>)</span><br><span class="line">cv2.imshow(<span class="string">'image'</span>, img)</span><br><span class="line">k = cv2.waitKey(<span class="number">0</span>)</span><br><span class="line"><span class="keyword">if</span> k == <span class="number">27</span>: <span class="comment"># wait for ESC key to exit</span></span><br><span class="line">	cv2.destroyAllWindows()</span><br><span class="line"><span class="keyword">elif</span> k == ord(<span class="string">'s'</span>): <span class="comment"># wait for 's' key to save and exit</span></span><br><span class="line">	cv2.imwrite(<span class="string">'lena.png'</span>, img)</span><br><span class="line">    cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+
+<h1 id="2-视频的采集、读取和保存"><a href="#2-视频的采集、读取和保存" class="headerlink" title="2. 视频的采集、读取和保存"></a>2. 视频的采集、读取和保存</h1><h2 id="2-1-视频采集——VideoCapture"><a href="#2-1-视频采集——VideoCapture" class="headerlink" title="2.1 视频采集——VideoCapture"></a>2.1 视频采集——VideoCapture</h2><h3 id="函数用法及功能"><a href="#函数用法及功能" class="headerlink" title="函数用法及功能"></a>函数用法及功能</h3><ul>
+<li>cap = cv2.VideoCapture(tag of camera)</li>
+<li>相机编号由于一般只有一个设备，所以设置为0或-1就好，如果想开其他的相机，可以设置为1或更多。</li>
+</ul>
+<h3 id="cap句柄的用法"><a href="#cap句柄的用法" class="headerlink" title="cap句柄的用法"></a>cap句柄的用法</h3><ul>
+<li><p>return, frame = cap.read()</p>
+<ul>
+<li>read方法返回两个值，第一个值return返回bool值，如果采集成功为True，否则为false，可以用cap.isOpened()判断是否打开，如果没打开，用cap.open()打开</li>
+<li>第二个返回值frame是图像矩阵的句柄，和之前的img同阶</li>
+</ul>
+</li>
+<li><p>cap.get()和cap.set()</p>
+<ul>
+<li><p>get方法用于获取cap的一些属性，如图像的宽和高</p>
+</li>
+<li><p>set方法用于设置cap的属性</p>
+</li>
+<li><pre><code class="python">cap.get(cv2.CAP_PROP_FRAME_WIDTH) <span class="comment"># 获得frame的宽</span>
+ret = cap.set(cv2.CAP_PROP_FRAME_HEIGHT,<span class="number">240</span>) <span class="comment"># 设置frame的高</span>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">### 视频采集例程——实时采集</span><br><span class="line"></span><br><span class="line">&#96;&#96;&#96;python</span><br><span class="line">import numpy as np</span><br><span class="line">import cv2</span><br><span class="line">cap &#x3D; cv2.VideoCapture(0)</span><br><span class="line">while(True):</span><br><span class="line">    # Capture frame-by-frame</span><br><span class="line">    ret, frame &#x3D; cap.read()</span><br><span class="line">    # Our operations on the frame come here</span><br><span class="line">    gray &#x3D; cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)</span><br><span class="line">    # Display the resulting frame</span><br><span class="line">    cv2.imshow(&#39;frame&#39;,gray)</span><br><span class="line">    if cv2.waitKey(1) &amp; 0xFF &#x3D;&#x3D; ord(&#39;q&#39;):</span><br><span class="line">        break</span><br><span class="line"># When everything done, release the capture</span><br><span class="line">cap.release()</span><br><span class="line">cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="2-2-视频读取"><a href="#2-2-视频读取" class="headerlink" title="2.2 视频读取"></a>2.2 视频读取</h2><ul>
+<li>视频的本地读取同样使用cv2.VideoCapture函数，只是输入参数由相机编号变成了视频的地址。</li>
+<li>cap = cv2.VideoCapture(path of video)</li>
+</ul>
+<h3 id="视频读取例程——播放视频"><a href="#视频读取例程——播放视频" class="headerlink" title="视频读取例程——播放视频"></a>视频读取例程——播放视频</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"></span><br><span class="line">cap = cv2.VideoCapture(<span class="string">'vtest.mp4'</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> cap.isOpened():</span><br><span class="line">    ret, frame = cap.read()<span class="comment"># read方法读完一帧后会自动指向下一帧</span></span><br><span class="line">    <span class="comment"># 把视频图像转换成灰度图</span></span><br><span class="line">    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)</span><br><span class="line">    cv2.imshow(<span class="string">'hhh'</span>, gray)</span><br><span class="line">    k = cv2.waitKey(<span class="number">1</span>) <span class="comment"># 控制每一帧之间的时间</span></span><br><span class="line">    <span class="keyword">if</span> k == ord(<span class="string">'q'</span>): <span class="comment"># 如果输入了‘q’，退出播放循环</span></span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">cap.release()</span><br><span class="line">cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+
+<h3 id="改变图像色彩模式——cv2-cvtColor"><a href="#改变图像色彩模式——cv2-cvtColor" class="headerlink" title="改变图像色彩模式——cv2.cvtColor"></a>改变图像色彩模式——cv2.cvtColor</h3><ul>
+<li>new img = cv2.cvtColor(img,  &lt;cv2.COLOR_xxx&gt;)</li>
+<li>多种色彩转换模式可以通过cv.COLOR_XXX得到</li>
+</ul>
+<h2 id="2-3-视频的写入"><a href="#2-3-视频的写入" class="headerlink" title="2.3 视频的写入"></a>2.3 视频的写入</h2><h3 id="VideoWriter-fourcc"><a href="#VideoWriter-fourcc" class="headerlink" title="VideoWriter_fourcc"></a>VideoWriter_fourcc</h3><ul>
+<li>fourcc = cv2.VideoWriter_fourcc(*’XVID’)</li>
+</ul>
+<p><img src="/2019/07/21/opencv-01/fourcc.png" alt="fourcc"></p>
+<h3 id="VideoWriter"><a href="#VideoWriter" class="headerlink" title="VideoWriter"></a>VideoWriter</h3><ul>
+<li>out = cv2.VideoWriter(‘output.avi’,fourcc, 20.0, (640,480)) </li>
+<li>out.release()</li>
+</ul>
+<h3 id="视频写入例程——实时采集实时保存"><a href="#视频写入例程——实时采集实时保存" class="headerlink" title="视频写入例程——实时采集实时保存"></a>视频写入例程——实时采集实时保存</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line">cap = cv2.VideoCapture(<span class="number">0</span>)</span><br><span class="line"><span class="comment"># Define the codec and create VideoWriter object</span></span><br><span class="line">fourcc = cv2.VideoWriter_fourcc(*<span class="string">'XVID'</span>)</span><br><span class="line">out = cv2.VideoWriter(<span class="string">'output.avi'</span>,fourcc, <span class="number">20.0</span>, (<span class="number">640</span>,<span class="number">480</span>))</span><br><span class="line"><span class="keyword">while</span>(cap.isOpened()):</span><br><span class="line">    ret, frame = cap.read()</span><br><span class="line">    <span class="keyword">if</span> ret==<span class="literal">True</span>:</span><br><span class="line">        frame = cv2.flip(frame,<span class="number">0</span>)</span><br><span class="line">        <span class="comment"># write the flipped frame</span></span><br><span class="line">        out.write(frame)</span><br><span class="line">        cv2.imshow(<span class="string">'frame'</span>,frame)</span><br><span class="line">        <span class="keyword">if</span> cv2.waitKey(<span class="number">1</span>) &amp; <span class="number">0xFF</span> == ord(<span class="string">'q'</span>):</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line"><span class="comment"># Release everything if job is finished</span></span><br><span class="line">cap.release()</span><br><span class="line">out.release()</span><br><span class="line">cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+
+<h3 id="图像翻转-flip函数"><a href="#图像翻转-flip函数" class="headerlink" title="图像翻转 flip函数"></a>图像翻转 flip函数</h3><ul>
+<li>frame = cv2.flip(frame,  flag)</li>
+<li>flag = 1：左右翻转</li>
+<li>flag = 0： 上下翻转</li>
+<li>flag  = -1 ：上下左右翻转</li>
+</ul>
+<h1 id="3-基础函数绘图"><a href="#3-基础函数绘图" class="headerlink" title="3. 基础函数绘图"></a>3. 基础函数绘图</h1><p>本节介绍几种opencv的基础绘图图形，包括 ：线、圆、矩形、椭圆、文本等。</p>
+<ul>
+<li>这几种绘图api的格式类似，均包括以下参数：<ul>
+<li>img：图形矩阵的句柄</li>
+<li>color： BGR颜色，元组形式</li>
+<li>thickness：粗细，默认为1</li>
+<li>lineType：线条类型</li>
+</ul>
+</li>
+</ul>
+<h2 id="直线"><a href="#直线" class="headerlink" title="直线"></a>直线</h2><ul>
+<li>cv2.line(img, startPoint, endPoint, BGR, thickness)</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np,</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="comment"># Create a black image</span></span><br><span class="line">img = np.zeros((<span class="number">512</span>,<span class="number">512</span>,<span class="number">3</span>), np.uint8)</span><br><span class="line"><span class="comment"># Draw a diagonal blue line with thickness of 5 px</span></span><br><span class="line">cv2.line(img,(<span class="number">0</span>,<span class="number">0</span>),(<span class="number">511</span>,<span class="number">511</span>),(<span class="number">255</span>,<span class="number">0</span>,<span class="number">0</span>),<span class="number">5</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="矩形"><a href="#矩形" class="headerlink" title="矩形"></a>矩形</h2><ul>
+<li>cv2.rectangle(img, leftTop, rightBottom, BGR, thickness)</li>
+</ul>
+<h2 id="圆形"><a href="#圆形" class="headerlink" title="圆形"></a>圆形</h2><ul>
+<li>cv2.circle(img, corePoint, radius, BGR, thickness)</li>
+<li>thickness为-1则为填充</li>
+</ul>
+<h2 id="椭圆"><a href="#椭圆" class="headerlink" title="椭圆"></a>椭圆</h2><ul>
+<li>To draw the ellipse, we need to pass several arguments. One argument is the center location (x,y). Next argument is axes lengths (major axis length, minor axis length). angle is the angle of rotation of ellipse in anti-clockwise direction. startAngle and endAngle denotes the starting and ending of ellipse arc measured in clockwise direction from major axis. i.e. giving values 0 and 360 gives the full ellipse. For more details, check the documentation of <strong>cv2.ellipse()</strong>. Below example draws a half ellipse at the center of the image.</li>
+<li>cv2.ellipse(img,(256,256),(100,50),0,0,180,255,-1)</li>
+</ul>
+<h2 id="多边形"><a href="#多边形" class="headerlink" title="多边形"></a>多边形</h2><ul>
+<li><p>To draw a polygon, first you need coordinates of vertices. Make those points into an array of shape ROWSx1x2 where ROWS are number of vertices and it should be of type int32. Here we draw a small polygon of with four vertices in yellow color.</p>
+</li>
+<li><pre><code class="python">pts = np.array([[<span class="number">10</span>,<span class="number">5</span>],[<span class="number">20</span>,<span class="number">30</span>],[<span class="number">70</span>,<span class="number">20</span>],[<span class="number">50</span>,<span class="number">10</span>]], np.int32)
+pts = pts.reshape((<span class="number">-1</span>,<span class="number">1</span>,<span class="number">2</span>))
+cv2.polylines(img,[pts],<span class="literal">True</span>,(<span class="number">0</span>,<span class="number">255</span>,<span class="number">255</span>))
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">## 文本</span><br><span class="line"></span><br><span class="line">- cv2.puyText(img, TEXT, locatePoint, font type, font scale, BGR, thickness, lineType)</span><br><span class="line"></span><br><span class="line">- &#96;&#96;&#96;python</span><br><span class="line">  font &#x3D; cv2.FONT_HERSHEY_SIMPLEX</span><br><span class="line">  cv2.putText(img,&#39;OpenCV&#39;,(10,500), font, 4,(255,255,255),2,cv2.LINE_AA)</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+<h1 id="4-鼠标事件绘图"><a href="#4-鼠标事件绘图" class="headerlink" title="4. 鼠标事件绘图"></a>4. 鼠标事件绘图</h1><h2 id="鼠标事件"><a href="#鼠标事件" class="headerlink" title="鼠标事件"></a>鼠标事件</h2><p>通过在终端运行以下代码，可以看到全部事件：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line">events = [i <span class="keyword">for</span> i <span class="keyword">in</span> dir(cv2) <span class="keyword">if</span> <span class="string">'EVENT'</span> <span class="keyword">in</span> i]</span><br><span class="line">print( events )</span><br></pre></td></tr></table></figure>
+
+<h2 id="简单例程——双击画圆"><a href="#简单例程——双击画圆" class="headerlink" title="简单例程——双击画圆"></a>简单例程——双击画圆</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">import cv2</span><br><span class="line">import numpy as np</span><br><span class="line"># mouse callback function</span><br><span class="line">def draw_circle(event,x,y,flags,param): # event,x,y是任何callback函数都有的输入</span><br><span class="line">    if event &#x3D;&#x3D; cv2.EVENT_LBUTTONDBLCLK:</span><br><span class="line">        cv2.circle(img,(x,y),100,(255,0,0),-1)</span><br><span class="line"># Create a black image, a window and bind the function to window</span><br><span class="line">img &#x3D; np.zeros((512,512,3), np.uint8)</span><br><span class="line">cv2.namedWindow(&#39;image&#39;)</span><br><span class="line">cv2.setMouseCallback(&#39;image&#39;,draw_circle) # callback的使用</span><br><span class="line">while True:</span><br><span class="line">    cv2.imshow(&#39;image&#39;,img)</span><br><span class="line">    if cv2.waitKey(20) &amp; 0xFF &#x3D;&#x3D; 27:</span><br><span class="line">        break</span><br><span class="line">cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+
+<h3 id="cv2-setMouseCallback"><a href="#cv2-setMouseCallback" class="headerlink" title="cv2.setMouseCallback"></a>cv2.setMouseCallback</h3><ul>
+<li>cv2.setMouseCallback(window, callbackFunction)</li>
+</ul>
+<p>用于启用callback函数</p>
+<h3 id="def-xxx-callback-event-x-y-flags-param"><a href="#def-xxx-callback-event-x-y-flags-param" class="headerlink" title="def xxx_callback(event, x, y, flags, param)"></a>def xxx_callback(event, x, y, flags, param)</h3><ul>
+<li><strong>【注意】：flags和param一般没用，但是必需。</strong></li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">draw_circle</span><span class="params">(event,x,y,flags,param)</span>:</span> <span class="comment"># event,x,y是任何callback函数都有的输入</span></span><br><span class="line">    <span class="keyword">if</span> event == cv2.EVENT_LBUTTONDBLCLK:</span><br><span class="line">        cv2.circle(img,(x,y),<span class="number">100</span>,(<span class="number">255</span>,<span class="number">0</span>,<span class="number">0</span>),<span class="number">-1</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="进阶例程——拖曳画矩形"><a href="#进阶例程——拖曳画矩形" class="headerlink" title="进阶例程——拖曳画矩形"></a>进阶例程——拖曳画矩形</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">drawing = <span class="literal">False</span> <span class="comment"># true if mouse is pressed</span></span><br><span class="line">mode = <span class="literal">True</span> <span class="comment"># if True, draw rectangle. Press 'm' to toggle to curve</span></span><br><span class="line">ix,iy = <span class="number">-1</span>,<span class="number">-1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># mouse callback function</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">draw_circle</span><span class="params">(event,x,y,flags,param)</span>:</span></span><br><span class="line">    <span class="keyword">global</span> ix,iy,drawing,mode</span><br><span class="line">    <span class="keyword">if</span> event == cv2.EVENT_LBUTTONDOWN:</span><br><span class="line">        drawing = <span class="literal">True</span></span><br><span class="line">        ix,iy = x,y</span><br><span class="line">    <span class="keyword">elif</span> event == cv2.EVENT_MOUSEMOVE:</span><br><span class="line">        <span class="keyword">if</span> drawing == <span class="literal">True</span>:</span><br><span class="line">            <span class="keyword">if</span> mode == <span class="literal">True</span>:</span><br><span class="line">                cv2.rectangle(img,(ix,iy),(x,y),(<span class="number">0</span>,<span class="number">255</span>,<span class="number">0</span>),<span class="number">-1</span>)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                cv2.circle(img,(x,y),<span class="number">5</span>,(<span class="number">0</span>,<span class="number">0</span>,<span class="number">255</span>),<span class="number">-1</span>)</span><br><span class="line">    <span class="keyword">elif</span> event == cv2.EVENT_LBUTTONUP:</span><br><span class="line">        drawing = <span class="literal">False</span></span><br><span class="line">        <span class="keyword">if</span> mode == <span class="literal">True</span>:</span><br><span class="line">            cv2.rectangle(img,(ix,iy),(x,y),(<span class="number">0</span>,<span class="number">255</span>,<span class="number">0</span>),<span class="number">-1</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            cv2.circle(img,(x,y),<span class="number">5</span>,(<span class="number">0</span>,<span class="number">0</span>,<span class="number">255</span>),<span class="number">-1</span>)</span><br><span class="line"></span><br><span class="line">img = np.zeros((<span class="number">512</span>,<span class="number">512</span>,<span class="number">3</span>), np.uint8)</span><br><span class="line">cv2.namedWindow(<span class="string">'image'</span>)</span><br><span class="line">cv2.setMouseCallback(<span class="string">'image'</span>,draw_circle)</span><br><span class="line"><span class="keyword">while</span>(<span class="number">1</span>):</span><br><span class="line">    cv2.imshow(<span class="string">'image'</span>,img)</span><br><span class="line">    k = cv2.waitKey(<span class="number">1</span>) &amp; <span class="number">0xFF</span></span><br><span class="line">    <span class="keyword">if</span> k == ord(<span class="string">'m'</span>):</span><br><span class="line">        mode = <span class="keyword">not</span> mode</span><br><span class="line">    <span class="keyword">elif</span> k == <span class="number">27</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+
+<h1 id="5-滑槽事件绘图"><a href="#5-滑槽事件绘图" class="headerlink" title="5. 滑槽事件绘图"></a>5. 滑槽事件绘图</h1><h2 id="createTrackbar"><a href="#createTrackbar" class="headerlink" title="createTrackbar"></a>createTrackbar</h2><ul>
+<li>cv2.createTrackbar(tag name,window,initValue,count, callbackOnChange)</li>
+</ul>
+<h2 id="getTrackbarPos"><a href="#getTrackbarPos" class="headerlink" title="getTrackbarPos"></a>getTrackbarPos</h2><ul>
+<li>tag = cv2.getTrackbarPos(tag name, window)</li>
+</ul>
+<h2 id="例程——调色板"><a href="#例程——调色板" class="headerlink" title="例程——调色板"></a>例程——调色板</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">nothing</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"><span class="comment"># Create a black image, a window</span></span><br><span class="line">img = np.zeros((<span class="number">300</span>,<span class="number">512</span>,<span class="number">3</span>), np.uint8)</span><br><span class="line">cv2.namedWindow(<span class="string">'image'</span>)</span><br><span class="line"><span class="comment"># create trackbars for color change</span></span><br><span class="line">cv2.createTrackbar(<span class="string">'R'</span>,<span class="string">'image'</span>,<span class="number">0</span>,<span class="number">255</span>,nothing)</span><br><span class="line">cv2.createTrackbar(<span class="string">'G'</span>,<span class="string">'image'</span>,<span class="number">0</span>,<span class="number">255</span>,nothing)</span><br><span class="line">cv2.createTrackbar(<span class="string">'B'</span>,<span class="string">'image'</span>,<span class="number">0</span>,<span class="number">255</span>,nothing)</span><br><span class="line"><span class="comment"># create switch for ON/OFF functionality</span></span><br><span class="line">switch = <span class="string">'0 : OFF \n1 : ON'</span></span><br><span class="line">cv2.createTrackbar(switch, <span class="string">'image'</span>,<span class="number">0</span>,<span class="number">1</span>,nothing)</span><br><span class="line"><span class="keyword">while</span>(<span class="number">1</span>):</span><br><span class="line">    cv2.imshow(<span class="string">'image'</span>,img)</span><br><span class="line">    k = cv2.waitKey(<span class="number">1</span>) &amp; <span class="number">0xFF</span></span><br><span class="line">    <span class="keyword">if</span> k == <span class="number">27</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    <span class="comment"># get current positions of four trackbars</span></span><br><span class="line">    r = cv2.getTrackbarPos(<span class="string">'R'</span>,<span class="string">'image'</span>)</span><br><span class="line">    g = cv2.getTrackbarPos(<span class="string">'G'</span>,<span class="string">'image'</span>)</span><br><span class="line">    b = cv2.getTrackbarPos(<span class="string">'B'</span>,<span class="string">'image'</span>)</span><br><span class="line">    s = cv2.getTrackbarPos(switch,<span class="string">'image'</span>)</span><br><span class="line">    <span class="keyword">if</span> s == <span class="number">0</span>:</span><br><span class="line">        img[:] = <span class="number">0</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        img[:] = [b,g,r]</span><br><span class="line">cv2.destroyAllWindows()</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CV/" rel="tag"># CV</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/07/12/uav-02/" rel="prev" title="基于视觉决策的无人机控制系统设计">
+      <i class="fa fa-chevron-left"></i> 基于视觉决策的无人机控制系统设计
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/07/22/opencv-02/" rel="next" title="OpenCV学习笔记[02]-Core Operations">
+      OpenCV学习笔记[02]-Core Operations <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-图像的读取、显示和储存"><span class="nav-text">1. 图像的读取、显示和储存</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-图像的读取——imread"><span class="nav-text">1.1 图像的读取——imread</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#用法及功能"><span class="nav-text">用法及功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#几种flag及其意义"><span class="nav-text">几种flag及其意义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#img句柄返回值"><span class="nav-text">img句柄返回值</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-图像的显示"><span class="nav-text">1.2 图像的显示</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cv2-imshow-window-img"><span class="nav-text">cv2.imshow(window, img)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cv2-waitkey-time-in-ms"><span class="nav-text">cv2.waitkey(time in ms)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cv2-namedWindow-window"><span class="nav-text">cv2.namedWindow(window)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cv2-destroyWindow-window"><span class="nav-text">cv2.destroyWindow(window)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cv2-destoryAllWindows"><span class="nav-text">cv2.destoryAllWindows()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-图像的写入——imwrite"><span class="nav-text">1.3 图像的写入——imwrite</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#用法及功能-1"><span class="nav-text">用法及功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#图像读写例程——生成灰度图"><span class="nav-text">图像读写例程——生成灰度图</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-视频的采集、读取和保存"><span class="nav-text">2. 视频的采集、读取和保存</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-视频采集——VideoCapture"><span class="nav-text">2.1 视频采集——VideoCapture</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#函数用法及功能"><span class="nav-text">函数用法及功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cap句柄的用法"><span class="nav-text">cap句柄的用法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-视频读取"><span class="nav-text">2.2 视频读取</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#视频读取例程——播放视频"><span class="nav-text">视频读取例程——播放视频</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#改变图像色彩模式——cv2-cvtColor"><span class="nav-text">改变图像色彩模式——cv2.cvtColor</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-视频的写入"><span class="nav-text">2.3 视频的写入</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#VideoWriter-fourcc"><span class="nav-text">VideoWriter_fourcc</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#VideoWriter"><span class="nav-text">VideoWriter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#视频写入例程——实时采集实时保存"><span class="nav-text">视频写入例程——实时采集实时保存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#图像翻转-flip函数"><span class="nav-text">图像翻转 flip函数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-基础函数绘图"><span class="nav-text">3. 基础函数绘图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#直线"><span class="nav-text">直线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#矩形"><span class="nav-text">矩形</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#圆形"><span class="nav-text">圆形</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#椭圆"><span class="nav-text">椭圆</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多边形"><span class="nav-text">多边形</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-鼠标事件绘图"><span class="nav-text">4. 鼠标事件绘图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#鼠标事件"><span class="nav-text">鼠标事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#简单例程——双击画圆"><span class="nav-text">简单例程——双击画圆</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cv2-setMouseCallback"><span class="nav-text">cv2.setMouseCallback</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#def-xxx-callback-event-x-y-flags-param"><span class="nav-text">def xxx_callback(event, x, y, flags, param)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#进阶例程——拖曳画矩形"><span class="nav-text">进阶例程——拖曳画矩形</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-滑槽事件绘图"><span class="nav-text">5. 滑槽事件绘图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#createTrackbar"><span class="nav-text">createTrackbar</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#getTrackbarPos"><span class="nav-text">getTrackbarPos</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#例程——调色板"><span class="nav-text">例程——调色板</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

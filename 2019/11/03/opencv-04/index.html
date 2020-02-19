@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要为了成体系地学习深度学习，花了两天全面地复习了一遍OpenCV Python API。 本文的内容包括：  图像的位操作补充 通道的切分合并 图像金字塔 形态学操作 图像平滑滤波 二值化 图像梯度 Canny边缘检测 视频读取时的一些属性">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenCV学习笔记[04]-OpenCV拾遗">
+<meta property="og:url" content="http://yoursite.com/2019/11/03/opencv-04/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要为了成体系地学习深度学习，花了两天全面地复习了一遍OpenCV Python API。 本文的内容包括：  图像的位操作补充 通道的切分合并 图像金字塔 形态学操作 图像平滑滤波 二值化 图像梯度 Canny边缘检测 视频读取时的一些属性">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/bitwise_and.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/l1.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/l2.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/1.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/0.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/bilateral.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/threshold.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/5threshold.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/adapt.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/g.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/gradient.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/Sobel.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/Scharr.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/Laplacian.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/grad.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/canny.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/Hysteresis.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/canny_demo.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/auto.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/propId.png">
+<meta property="article:published_time" content="2019-11-03T10:02:42.000Z">
+<meta property="article:modified_time" content="2019-12-12T08:13:16.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="CV">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/03/opencv-04/bitwise_and.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/03/opencv-04/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>OpenCV学习笔记[04]-OpenCV拾遗 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/03/opencv-04/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenCV学习笔记[04]-OpenCV拾遗
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-03 18:02:42" itemprop="dateCreated datePublished" datetime="2019-11-03T18:02:42+08:00">2019-11-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:13:16" itemprop="dateModified" datetime="2019-12-12T16:13:16+08:00">2019-12-12</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>为了成体系地学习深度学习，花了两天全面地复习了一遍OpenCV Python API。</p>
+<p>本文的内容包括：</p>
+<ul>
+<li>图像的位操作补充</li>
+<li>通道的切分合并</li>
+<li>图像金字塔</li>
+<li>形态学操作</li>
+<li>图像平滑滤波</li>
+<li>二值化</li>
+<li>图像梯度</li>
+<li>Canny边缘检测</li>
+<li>视频读取时的一些属性</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-图像的位操作："><a href="#1-图像的位操作：" class="headerlink" title="1. 图像的位操作："></a>1. 图像的位操作：</h1><ul>
+<li>bitwise_and<ul>
+<li>与操作，有黑就变黑</li>
+</ul>
+</li>
+<li>bitwise_or<ul>
+<li>或操作，有白就变白</li>
+</ul>
+</li>
+<li>bitwise_xor<ul>
+<li>异或操作，黑白变白，黑黑和白白变黑</li>
+</ul>
+</li>
+<li>bitwise_not<ul>
+<li>非操作，颜色取反</li>
+</ul>
+</li>
+</ul>
+<h2 id="1-1-位操作的实例：蒙板"><a href="#1-1-位操作的实例：蒙板" class="headerlink" title="1.1 位操作的实例：蒙板"></a>1.1 位操作的实例：蒙板</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mask = np.zeros(img.shape, dtype=<span class="string">'uint8'</span>) <span class="comment"># 创建蒙板的存储矩阵</span></span><br><span class="line">mask = cv2.rectangle(mask, (<span class="number">100</span>, <span class="number">100</span>), (img.shape[<span class="number">1</span>]<span class="number">-100</span>, img.shape[<span class="number">0</span>]<span class="number">-100</span>), (<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>),<span class="number">-1</span>) <span class="comment"># 设定蒙板</span></span><br><span class="line">img = cv2.bitwise_and(img, mask) <span class="comment">#与操作，蒙板中为黑色的部分均变为黑色</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2019/11/03/opencv-04/bitwise_and.jpg" alt="bitwise_and"></p>
+<h2 id="2-切分、合并通道"><a href="#2-切分、合并通道" class="headerlink" title="2. 切分、合并通道"></a>2. 切分、合并通道</h2><ul>
+<li><p><code>(B,G,R)=cv2.split()</code>将img拆分为B、G、R三个通道</p>
+</li>
+<li><p><code>img = cv2.merge([B,G,R])</code>将B、G、R三个通道合并成img</p>
+</li>
+</ul>
+<h1 id="2-图像金字塔"><a href="#2-图像金字塔" class="headerlink" title="2. 图像金字塔"></a>2. 图像金字塔</h1><p>图像金字塔简单来说就是同一图像的不同分辨率的子图集合，如果把最大的图放在最下面，最小的放在顶部，看起来就像一座金字塔。</p>
+<h2 id="2-1-高斯金字塔"><a href="#2-1-高斯金字塔" class="headerlink" title="2.1 高斯金字塔"></a>2.1 高斯金字塔</h2><p>高斯金字塔是通过将底部图像中连续的行和列去除得到的，顶部图像的每个像素值等于下一层图像中五个像素的高斯加权平均值。每次操作都会将MxN的图像压缩成M/2xN/2的图像。即每次操作会让图像变成原来的1/4。连续操作就可以得到一个个分辨率不断下降的图像金字塔。</p>
+<ul>
+<li>实际上和resize差不多</li>
+</ul>
+<p>函数实现：</p>
+<ul>
+<li><code>cv2.pyrDown()</code> # 将图像压缩成1/4</li>
+<li><code>cv2.pyrUp()</code> #将图像插值放大4倍</li>
+</ul>
+<h2 id="2-2-拉普拉斯金字塔"><a href="#2-2-拉普拉斯金字塔" class="headerlink" title="2.2 拉普拉斯金字塔"></a>2.2 拉普拉斯金字塔</h2><p>拉普拉斯金字塔可以由高斯金字塔计算而来，公式为</p>
+<ul>
+<li><code>Li=Di-pyrUp(Di+1)</code></li>
+</ul>
+<p>如何理解上面的公式？我们观察右边第二项，<code>pryUp(Di+1)</code>，其实是对图像进行一阶缩小后又放大一阶的图片，这样的图片经过了插值比较平滑。所以如果我们用原图减去它，就能得到梯度比较大的边缘！</p>
+<p>因此，拉普拉斯金字塔看起来就像边界特征提取图，如下示例：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">'lss.jpg'</span>)</span><br><span class="line"></span><br><span class="line">d1 = cv2.pyrDown(img)</span><br><span class="line">d2 = cv2.pyrDown(d1)</span><br><span class="line">d3 = cv2.pyrDown(d2)</span><br><span class="line">u1 = cv2.pyrUp(d2)</span><br><span class="line">u2 = cv2.pyrUp(d3)</span><br><span class="line">u1 = cv2.resize(u1,(d1.shape[<span class="number">1</span>],d1.shape[<span class="number">0</span>]))</span><br><span class="line">l1 = d1-u1</span><br><span class="line">l2 = d3-cv2.resize(u2,(d3.shape[<span class="number">1</span>],d3.shape[<span class="number">0</span>]))</span><br><span class="line">cv2.imshow(<span class="string">"l1"</span>,l1)</span><br><span class="line">cv2.imshow(<span class="string">"l2"</span>,cv2.resize(l2,(l1.shape[<span class="number">1</span>],l1.shape[<span class="number">0</span>])))</span><br><span class="line">cv2.waitykey(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码输出了一阶拉普拉斯和二阶拉普拉斯的图片。一阶拉普拉斯的结果为：</p>
+<p><img src="/2019/11/03/opencv-04/l1.jpg" alt="l1"></p>
+<p>二阶拉普拉斯结果为：</p>
+<p><img src="/2019/11/03/opencv-04/l2.jpg" alt="l2"></p>
+<h1 id="3-形态学"><a href="#3-形态学" class="headerlink" title="3. 形态学"></a>3. 形态学</h1><h2 id="3-1-卷积"><a href="#3-1-卷积" class="headerlink" title="3.1 卷积"></a>3.1 卷积</h2><p>卷积，有时也叫算子。用一个模板去和另一个图片对比，进行卷积运算。目的是使目标与目标之间的差距变得更大。卷积在数字图像处理中最常见的应用为锐化和边缘提取。 </p>
+<p>下面的博文已经很好地介绍了卷积的概念，所以这里只放几张用于唤醒记忆的原理图。</p>
+<p> 参考资料： <a href="https://blog.csdn.net/fate_fjh/article/details/52882134" target="_blank" rel="noopener">图像卷积与反卷积</a></p>
+<p>下图展示了1个Pixel的计算过程：</p>
+<p><img src="/2019/11/03/opencv-04/1.jpg" alt="1"></p>
+<p>下图展示了整个图片的计算过程：</p>
+<p><img src="/2019/11/03/opencv-04/0.gif" alt></p>
+<p>具体知识可以看日后卷积网络的内容。</p>
+<h2 id="3-2-腐蚀"><a href="#3-2-腐蚀" class="headerlink" title="3.2 腐蚀"></a>3.2 腐蚀</h2><h3 id="3-2-1-创建卷积核"><a href="#3-2-1-创建卷积核" class="headerlink" title="3.2.1 创建卷积核"></a>3.2.1 创建卷积核</h3><p>其原理是在原图的小区域（卷积核）取局部最小值。这个操作其实也是通过卷积实现的。卷积核可以是矩形、椭圆、十字形。</p>
+<ul>
+<li><p>我们用<code>cv2.getStrucrturingElement</code>来生成卷积核，有RECT（矩形）、ELLIPSE（椭圆）、CROSS（十字形）三种形状。</p>
+</li>
+<li><pre><code class="python">kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(<span class="number">5</span>,<span class="number">5</span>))
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">### 3.2.2 腐蚀操作</span><br><span class="line"></span><br><span class="line">我们用&#96;cv2.erode(img,kernel,iteration&#x3D;1)&#96;来进行腐蚀操作。</span><br><span class="line"></span><br><span class="line">下图是iteration&#x3D;1时的输出，可以增加iteration来进行多次腐蚀。</span><br><span class="line"></span><br><span class="line">可以看到腐蚀的主要作用是把颜色深的部分变大，白色部分变少。</span><br><span class="line"></span><br><span class="line">![erode](opencv-04&#x2F;erode.jpg)</span><br><span class="line"></span><br><span class="line">## 3.3 膨胀</span><br><span class="line"></span><br><span class="line">和腐蚀相反，取局部最大值。</span><br><span class="line"></span><br><span class="line">- 用&#96;cv2.dilate(img,kernel,iteration&#x3D;1)&#96;来进行膨胀操作。</span><br><span class="line"></span><br><span class="line">![dilate](opencv-04&#x2F;dilate.jpg)</span><br><span class="line"></span><br><span class="line">## 3.4 开运算</span><br><span class="line"></span><br><span class="line">所谓开运算，即为先腐蚀后膨胀，其作用是**消除小白点**。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.morphologyEX(img,cv2.MORPH_OPEN,kernel)&#96;执行开运算操作</span><br><span class="line"></span><br><span class="line">![open](opencv-04&#x2F;open.jpg)</span><br><span class="line"></span><br><span class="line">## 3.5 闭运算</span><br><span class="line"></span><br><span class="line">闭运算则相反，先膨胀后腐蚀，作用是消除小黑点。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.morphologyEX(img,cv2.MORPH_CLOSE,kernel)&#96;执行闭运算操作</span><br><span class="line"></span><br><span class="line">![close](opencv-04&#x2F;close.jpg)</span><br><span class="line"></span><br><span class="line">- 我们可以先执行开运算后执行闭运算，以消除噪点。</span><br><span class="line"></span><br><span class="line">## 3.6 形态学梯度</span><br><span class="line"></span><br><span class="line">- 形态学梯度的求法就是膨胀图减去腐蚀图，dilation - erosion</span><br><span class="line"></span><br><span class="line">得到的是类似于梯度的图片，在图像颜色变化大的地方可以看到其颜色变化的趋势。</span><br><span class="line"></span><br><span class="line">![gradient](opencv-04&#x2F;gradient.jpg)</span><br><span class="line"></span><br><span class="line">## 3.7 顶帽&#x2F;白帽</span><br><span class="line"></span><br><span class="line">- 原图减去开运算，src - open，这样理解，open得到的是去掉白点后的图，所以顶帽就是被去掉的白色轮廓和白点！</span><br><span class="line">- 我们用&#96;cv2.morphologyEX(img,cv2.MORPH_TOPHAT,kernel)&#96;进行顶帽操作。</span><br><span class="line"></span><br><span class="line">![tophat](opencv-04&#x2F;tophat.jpg)</span><br><span class="line"></span><br><span class="line">## 3.8 黑帽</span><br><span class="line"></span><br><span class="line">- 闭运算减去原图，close - src，和上面相反，黑帽就是黑色的轮廓和点。</span><br><span class="line">- ![blackhat](opencv-04&#x2F;blackhat.jpg)</span><br><span class="line"></span><br><span class="line"># 4. 图像平滑</span><br><span class="line"></span><br><span class="line">## 4.1 平均</span><br><span class="line"></span><br><span class="line"> 计算卷积框覆盖区域所有像素的平均值得到卷积的结果，卷积核为全部都是1，如5x5的卷积核则为：</span><br></pre></td></tr></table></figure>
+[[<span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>]
+[<span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>]
+[<span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>]
+[<span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>]
+[<span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>]] 
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">- 我们用&#96;cv2.blur(img,kernelsize)&#96;来进行平均平滑。</span><br><span class="line">- 下图是分别采用5x5、9x9、15x15卷积处理图像的结果。</span><br><span class="line"></span><br><span class="line">![](opencv-04&#x2F;111.png)</span><br><span class="line"></span><br><span class="line">## 4.2 高斯模糊</span><br><span class="line"></span><br><span class="line">高斯模糊，其卷积核内的值符合高斯分布（正态分布），以其卷积核中心为概率分布中心，中心的值最大，其余方框随距离中心的距离递减，原来的求平均数变成加权求平均数。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.GaussianBlur(img,kernelsize,sigmaX)&#96;，sigmaX是标准差</span><br><span class="line"></span><br><span class="line">![gaussian](opencv-04&#x2F;gaussian.png)</span><br><span class="line"></span><br><span class="line">## 4.3 中值模糊</span><br><span class="line"></span><br><span class="line">顾名思义就是用与卷积框对应的像素的中值来替代中心像素的值。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.median(img,kernelsize)&#96;来进行中值模糊</span><br><span class="line">- 注意这里的&#96;kernelsize&#96;是int![median](opencv-04&#x2F;median.png)</span><br><span class="line"></span><br><span class="line">## 4.4 双边滤波Bilateral</span><br><span class="line"></span><br><span class="line">**双边滤波能在保持边界清晰的情况下有效的去除噪音。**</span><br><span class="line"></span><br><span class="line">我们已经知道高斯滤波器是求中心点邻近区域像素的高斯加权平均值。这种高斯滤波器只考虑像素之间的空间关系，而不会考虑像素值之间的关系（像素的相似度）。所以这种方法不会考虑一个像素是否位于边界。因此边界也会别模糊掉，而这正不是我们想要。</span><br><span class="line"></span><br><span class="line">双边滤波在同时使用空间高斯权重和灰度值相似性高斯权重。空间高斯函数确保只有邻近区域的像素对中心点有影响，**灰度值相似性高斯函数确保只有与中心像素灰度值相近的才会被用来做模糊运算**。所以这种方法会确保边界不会被模糊掉，因为边界处的灰度值变化比较大。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.bilateralFilter(img, diameter,sigmaColor,sigmaSpace)&#96;执行双边滤波</span><br><span class="line"></span><br><span class="line">&#96;&#96;&#96;python</span><br><span class="line">params &#x3D; [(11,21,7),(11,41,21),(15,75,75)]# 邻域直径，灰度值相似性高斯函数标准差，空间高斯函数标准差</span><br><span class="line">for i,(diameter,sigmaColor,sigmaSpace) in enumerate(params):</span><br><span class="line">	img1 &#x3D; cv2.bilateralFilter(img, diameter,sigmaColor,sigmaSpace)</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/bilateral.png" alt="bilateral"></p>
+<h1 id="5-二值化"><a href="#5-二值化" class="headerlink" title="5. 二值化"></a>5. 二值化</h1><p> 在图像处理中，Thresholding中文翻译过来叫二值化或者阈值化。</p>
+<p>二值化就是把图片传换成只有white和black这两种颜色。通过Thresholding，可以让图片中感兴趣的颜色变成主角–white，其余的颜色全部隐藏–black。另外，二值化后的图片也便于计算机进行分析，因为边缘轮廓十分清晰，所以计算机可以轻松找到边界线。然而，在找边界这方面，Thresholding并不是特别好的算法，有些时候遇到某些特殊图片效果也不好。 </p>
+<ul>
+<li>下面介绍了提供的几种二值化方案</li>
+</ul>
+<p>• <code>cv2.THRESH_BINARY</code><br>• <code>cv2.THRESH_BINARY_INV</code><br>• <code>cv2.THRESH_TRUNC</code><br>• <code>cv2.THRESH_TOZERO</code><br>• <code>cv2.THRESH_TOZERO_INV</code> </p>
+<p><img src="/2019/11/03/opencv-04/threshold.png" alt="threshold"></p>
+<h2 id="5-1-二值化操作"><a href="#5-1-二值化操作" class="headerlink" title="5.1 二值化操作"></a>5.1 二值化操作</h2><p>使用<code>cv2.threshold(img,lower_threshold,upper_threshold,threshold_method)</code>来进行二值化。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ret1,thresh1 = cv2.threshold(gray,<span class="number">127</span>,<span class="number">255</span>,cv2.THRESH_BINARY)</span><br><span class="line">ret2,thresh2 = cv2.threshold(gray,<span class="number">127</span>,<span class="number">255</span>,cv2.THRESH_BINARY_INV)</span><br><span class="line">ret3,thresh3 = cv2.threshold(gray,<span class="number">127</span>,<span class="number">255</span>,cv2.THRESH_TRUNC)</span><br><span class="line">ret4,thresh4 = cv2.threshold(gray,<span class="number">127</span>,<span class="number">255</span>,cv2.THRESH_TOZERO)</span><br><span class="line">ret5,thresh5 = cv2.threshold(gray,<span class="number">127</span>,<span class="number">255</span>,cv2.THRESH_TOZERO_INV)</span><br></pre></td></tr></table></figure>
+
+<p>下面是不同阈值生成方法生成的图片。</p>
+<p><img src="/2019/11/03/opencv-04/5threshold.png" alt="5threshold"></p>
+<h2 id="5-2-自动选择阈值：Otsu方法"><a href="#5-2-自动选择阈值：Otsu方法" class="headerlink" title="5.2 自动选择阈值：Otsu方法"></a>5.2 自动选择阈值：Otsu方法</h2><ul>
+<li>我们用<code>cv2.THRESH_OTSU</code>方案自动选取阈值</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ret1,thresh1 &#x3D; cv2.threshold(gray,0,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)</span><br></pre></td></tr></table></figure>
+
+<p>这个方法可以自动帮我们寻找最合适的（全局）阈值</p>
+<h2 id="5-3-自适应阈值"><a href="#5-3-自适应阈值" class="headerlink" title="5.3 自适应阈值"></a>5.3 自适应阈值</h2><p>在前面的部分我们使用是全局阈值，整幅图像采用同一个数作为阈值。但是这种方法并不适应于所有情况，尤其是当同一幅图像上的不同部分的具有不同亮度时。这种情况下我们需要采用自适应阈值。此时的阈值是根据图像上的 每一个小区域计算与其对应的阈值。因此在同一幅图像上的不同区域采用的是 不同的阈值，从而使我们能在亮度不同的情况下得到更好的结果。</p>
+<ul>
+<li>我们用<code>cv2.adaptiveThreshold(img,maxvalue,adaptive_method,cv2.THRESH_BINARY,block_size,C)</code></li>
+</ul>
+<p>Adaptive Method- 指定计算阈值的方法。<br>–<code>cv2.ADPTIVE_THRESH_MEAN_C</code>：阈值取自相邻区域的平均值<br>– <code>cv2.ADPTIVE_THRESH_GAUSSIAN_C</code>：阈值取值相邻区域 的加权和，权重为一个高斯窗口。<br>• <code>Block Size</code> - 邻域大小（用来计算阈值的区域大小）。<br>• <code>C</code> - 这就是是一个常数，阈值就等于平均值或者加权平均值减去这个常数。</p>
+<p><img src="/2019/11/03/opencv-04/adapt.jpg" alt="adapt"></p>
+<h1 id="6-图像梯度"><a href="#6-图像梯度" class="headerlink" title="6. 图像梯度"></a>6. 图像梯度</h1><p>I是图像像素的值(如：RGB值)<br>一阶导数：(其实是一阶差分)<br>x的梯度：<code>Gx = I(x+1,y)-I(x,y)</code><br>y的梯度：<code>Gy = I(x,y+1)-I(x,y)</code><br>二阶导数：（二阶差分）<br>x的梯度：<code>I(x+1,y)+I(x-1,y)-2I(x,y)</code></p>
+<p>y的梯度：<code>I(x,y+1)+I(x,y-1)-2I(x,y)</code></p>
+<p><code>opencv-04</code> 提供了三种不同的梯度滤波器，或者说高通滤波器：<code>Sobel</code>，<code>Scharr</code> 和 <code>Laplacian</code>。</p>
+<p><code>Sobel</code>， <code>Scharr</code> 其实就是求一阶或二阶导数。 <code>Scharr</code> 是对 <code>Sobel</code>的优化。<code>Laplacian</code> 是求二阶导数。<br>梯度大小和方向的公式为：</p>
+<p><img src="/2019/11/03/opencv-04/g.png" alt="g"></p>
+<p>梯度的方向一般总是与边界垂直。梯度方向被归为四类：垂直，水平，和两个对角线。</p>
+<p><img src="/2019/11/03/opencv-04/gradient.png" alt="gradient"></p>
+<h2 id="6-1-Sobel算子-Scharr算子-Laplacian算子"><a href="#6-1-Sobel算子-Scharr算子-Laplacian算子" class="headerlink" title="6.1 Sobel算子/Scharr算子/Laplacian算子"></a>6.1 Sobel算子/Scharr算子/Laplacian算子</h2><p><code>Sobel</code>算子是高斯平滑与微分操作的结合体，所以它的抗噪声能力很好。你可以设定求导的方向（<code>xorder</code> 或 <code>yorder</code>）。还可以设定使用的卷积核的大小<code>ksize</code>。 </p>
+<p><code>Sobel</code>算子如下：</p>
+<p><img src="/2019/11/03/opencv-04/Sobel.png" alt="Sobel"></p>
+<p> 如果<code>ksize=-1</code>，会使用 <code>3x3</code> 的<code>Scharr</code>滤波器，它的的效果要比<code>3x3</code>的 <code>Sobel</code>滤波器好（而且速度相同，所以在使用<code>3x3</code>滤波器时应该尽量使用 <code>Scharr</code>滤波器）。 <code>3x3</code> 的 <code>Scharr</code> 滤波器卷积核如下： </p>
+<p><code>Scharr</code>算子如下：</p>
+<p><img src="/2019/11/03/opencv-04/Scharr.png" alt="Scharr"></p>
+<p><code>Laplacian</code>算子用于求二阶导数，如下：</p>
+<p><img src="/2019/11/03/opencv-04/Laplacian.png" alt="Laplacian"></p>
+<ul>
+<li>我们用<code>cv2.Laplacian(img,cv2.CV_64F)</code>执行拉普拉斯算子</li>
+<li>用<code>cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)</code>执行Sobel算子，式子中的1,0表示求导方向和阶数</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gradient</span><span class="params">(image)</span>:</span></span><br><span class="line">    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)</span><br><span class="line">    <span class="comment"># cv2.CV_64F输出图像的深度(数据类型)，64位float类型，因为梯度可能是正也可能是负</span></span><br><span class="line">    laplacian = cv2.Laplacian(image, cv2.CV_64F)</span><br><span class="line">    <span class="comment"># 1, 0表示在x方向求一阶导数，最大可以求2阶导数</span></span><br><span class="line">    sobelx = cv2.Sobel(image, cv2.CV_64F, <span class="number">1</span>, <span class="number">0</span>, ksize=<span class="number">3</span>)</span><br><span class="line">    <span class="comment"># 0, 1表示在y方向求一阶导数，最大可以求2阶导数</span></span><br><span class="line">    sobely = cv2.Sobel(image, cv2.CV_64F, <span class="number">0</span>, <span class="number">1</span>, ksize=<span class="number">3</span>)</span><br><span class="line">    titles = [<span class="string">'Original'</span>, <span class="string">'Laplacian'</span>, <span class="string">'SobelX'</span>, <span class="string">'SobelY'</span>]</span><br><span class="line">    images = [image,laplacian,sobelx,sobely]</span><br><span class="line">    plt.figure(figsize=(<span class="number">10</span>,<span class="number">5</span>))</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">4</span>):</span><br><span class="line">        plt.subplot(<span class="number">2</span>,<span class="number">2</span>,i+<span class="number">1</span>)</span><br><span class="line">        plt.imshow(images[i],<span class="string">'gray'</span>)</span><br><span class="line">        plt.title(titles[i])</span><br><span class="line">        plt.axis(<span class="string">'off'</span>)</span><br><span class="line">    plt.show()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2019/11/03/opencv-04/grad.png" alt="grad"></p>
+<h1 id="7-Canny边缘检测"><a href="#7-Canny边缘检测" class="headerlink" title="7. Canny边缘检测"></a>7. Canny边缘检测</h1><h2 id="7-1-理论过程"><a href="#7-1-理论过程" class="headerlink" title="7.1 理论过程"></a>7.1 理论过程</h2><p> Canny 边缘检测是一种非常流行的边缘检测算法，是 John F.Canny 在1986 年提出的。它是一个有很多步构成的算法，我们接下来会逐步介绍。<br><strong>1.噪声去除</strong><br>由于边缘检测很容易受到噪声影响，所以第一步是使用 <code>5x5</code>的高斯滤波器去除噪声，这个前面我们已经学过了。 </p>
+<p> <strong>2.计算图像梯度</strong><br>对平滑后的图像使用 <code>Sobel</code> 算子计算水平方向和竖直方向的一阶导数（图像梯度）（<code>Gx</code> 和 <code>Gy</code>）。根据得到的这两幅梯度图（<code>Gx</code> 和<code>Gy</code>）找到边界的梯度和方向，公式在上一章介绍过了。 梯度的方向一般总是与边界垂直。梯度方向被归为四类：垂直，水平，和两个对角线。 </p>
+<p><strong>3.非极大值抑制</strong><br>在获得梯度的方向和大小之后，应该对整幅图像做一个扫描，去除那些非边界上的点。对每一个像素进行检查，看这个点的梯度是不是周围具有相同梯度方向的点中最大的。如下所示： </p>
+<p><img src="/2019/11/03/opencv-04/canny.png" alt="canny"></p>
+<p> 上图中的数字代表了像素点的梯度强度，箭头方向代表了梯度方向。以第二排第三个像素点为例，由于梯度方向向上，则将这一点的强度（7）与其上下两个像素点的强度（5和4）比较，由于这一点强度最大，则保留。 </p>
+<p><strong>4.滞后阈值</strong><br>现在要确定那些边界才是真正的边界。这时我们需要设置两个阈值：<code>minVal</code>和<code>maxVal</code>。当图像的灰度梯度高于 <code>maxVal</code>时被认为是真的边界，那些低于 <code>minVal</code>的边界会被抛弃。如果介于两者之间的话，就要看这个点是否与某个被确定为真正的边界点相连，如果是就认为它也是边界点，如果不是就抛弃。如下图： </p>
+<p><img src="/2019/11/03/opencv-04/Hysteresis.png" alt="Hysteresis"></p>
+<p> A 高于阈值 <code>maxVal</code> 所以是真正的边界点， B 虽然低于<code>maxVal</code>但高于<code>minVal</code>并且与 A 相连，所以也被认为是真正的边界点。而 C 就会被抛弃，因为他不仅低于<code>maxVal</code> 而且不与真正的边界点相连。D也会被抛弃，因为低于<code>minVal</code>。所以选择合适的 <code>maxVal</code>和 <code>minVal</code>对于能否得到好的结果非常重要。在这一步一些小的噪声点也会被除去，因为我们假设边界都是一些长的线段。 </p>
+<h2 id="7-2-Canny的使用"><a href="#7-2-Canny的使用" class="headerlink" title="7.2 Canny的使用"></a>7.2 Canny的使用</h2><ul>
+<li>在 opencv-04 中只需要一个函数： <code>cv2.Canny(img,minVal,maxVal,kernel=3,L2gradient=False)</code></li>
+<li>函数返回的是检测到的边缘的img</li>
+<li>我们看如何使用这个函数：<ul>
+<li>第一个参数<code>img</code>是输入图像。</li>
+<li>第二和第三个分别是<code>minVal</code>和<code>maxVal</code>。</li>
+<li>第四个参数设置用来计算图像梯度的<code>Sobel</code>卷积核的大小，默认值为 3。</li>
+<li>最后一个参数是 <code>L2gradient</code>，它可以用来设定求梯度大小的方程。如果设为 <code>True</code>，梯度大小为平方和开根号，否则使用方程：𝐺=|𝐺2𝑥|+|𝐺2𝑦|代替，默认值为 <code>False</code>。 </li>
+</ul>
+</li>
+</ul>
+<p>下面是一个实例：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">'lss.jpg'</span>)</span><br><span class="line">edge = cv2.Canny(img,<span class="number">100</span>,<span class="number">200</span>)</span><br><span class="line">cv2.imshow(<span class="string">""</span>, edge)</span><br><span class="line">cv2.waitKey(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2019/11/03/opencv-04/canny_demo.jpg" alt="canny_demo"></p>
+<h2 id="7-3-自动确定阈值"><a href="#7-3-自动确定阈值" class="headerlink" title="7.3 自动确定阈值"></a>7.3 自动确定阈值</h2><p>事实上，<code>minVal</code>和<code>maxVal</code>参数对canny算法的效果有较大的影响，下面提供一种可以自动确定阈值的方法。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">auto_canny</span><span class="params">(image, sigma=<span class="number">0.33</span>)</span>:</span></span><br><span class="line">    v = np.median(image)</span><br><span class="line">    lower = int(max(<span class="number">0</span>, (<span class="number">1.0</span>-sigma) * v))</span><br><span class="line">    upper = int(min(<span class="number">255</span>, (<span class="number">1.0</span>+sigma) * v))</span><br><span class="line">    edged = cv2.Canny(image, lower, upper)</span><br><span class="line">    print(lower,upper)</span><br><span class="line">    <span class="keyword">return</span> edged</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2019/11/03/opencv-04/auto.jpg" alt="auto"></p>
+<p>该图片的自动参数选取为（136，255）。</p>
+<h1 id="8-视频读取补充"><a href="#8-视频读取补充" class="headerlink" title="8. 视频读取补充"></a>8. 视频读取补充</h1><p>  我们用<code>cap.get(propId)</code>获取视频的信息，<code>propID</code>有:</p>
+<p><img src="/2019/11/03/opencv-04/propId.png" alt="propId"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CV/" rel="tag"># CV</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/01/dl-04/" rel="prev" title="多相机行人跟踪[01]-用TensorRT加速YOLO(1)">
+      <i class="fa fa-chevron-left"></i> 多相机行人跟踪[01]-用TensorRT加速YOLO(1)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/05/drl-01/" rel="next" title="强化学习随笔[01]-PG/Q-Learning/A3C算法学习">
+      强化学习随笔[01]-PG/Q-Learning/A3C算法学习 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-图像的位操作："><span class="nav-text">1. 图像的位操作：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-位操作的实例：蒙板"><span class="nav-text">1.1 位操作的实例：蒙板</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-切分、合并通道"><span class="nav-text">2. 切分、合并通道</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-图像金字塔"><span class="nav-text">2. 图像金字塔</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-高斯金字塔"><span class="nav-text">2.1 高斯金字塔</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-拉普拉斯金字塔"><span class="nav-text">2.2 拉普拉斯金字塔</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-形态学"><span class="nav-text">3. 形态学</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-卷积"><span class="nav-text">3.1 卷积</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-腐蚀"><span class="nav-text">3.2 腐蚀</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-1-创建卷积核"><span class="nav-text">3.2.1 创建卷积核</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-二值化"><span class="nav-text">5. 二值化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-1-二值化操作"><span class="nav-text">5.1 二值化操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-2-自动选择阈值：Otsu方法"><span class="nav-text">5.2 自动选择阈值：Otsu方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-3-自适应阈值"><span class="nav-text">5.3 自适应阈值</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-图像梯度"><span class="nav-text">6. 图像梯度</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#6-1-Sobel算子-Scharr算子-Laplacian算子"><span class="nav-text">6.1 Sobel算子&#x2F;Scharr算子&#x2F;Laplacian算子</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-Canny边缘检测"><span class="nav-text">7. Canny边缘检测</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-理论过程"><span class="nav-text">7.1 理论过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-Canny的使用"><span class="nav-text">7.2 Canny的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-3-自动确定阈值"><span class="nav-text">7.3 自动确定阈值</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-视频读取补充"><span class="nav-text">8. 视频读取补充</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要在上一篇深度学习随笔里我们成功地实现了基于TensorRT加速的YOLOv3目标检测模块，在将该模块移植到deepSORT工程时发现，我们基于Tensorflow的行人特征提取网络和基于TensorRT加速的YOLO网络在单个线程中同时运行，会导致CUDA invalid source handle这样的底层内存读取错误。而deepSORT工程现有的程序框架转成多线程编程比较麻烦（项目通">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上)">
+<meta property="og:url" content="http://yoursite.com/2019/11/27/dl-06/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要在上一篇深度学习随笔里我们成功地实现了基于TensorRT加速的YOLOv3目标检测模块，在将该模块移植到deepSORT工程时发现，我们基于Tensorflow的行人特征提取网络和基于TensorRT加速的YOLO网络在单个线程中同时运行，会导致CUDA invalid source handle这样的底层内存读取错误。而deepSORT工程现有的程序框架转成多线程编程比较麻烦（项目通">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/trterror.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/vggnet.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/resnet.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/identity.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/conv.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/cosine.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/mars.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/loss.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/cosine.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/to_uff.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/27/dl-06/test_imgs.png">
+<meta property="article:published_time" content="2019-11-27T03:44:42.000Z">
+<meta property="article:modified_time" content="2020-02-06T09:22:09.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="CV">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/27/dl-06/trterror.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/27/dl-06/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上) | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/27/dl-06/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          多相机行人跟踪[03]-用于行人重识别的余弦相似度网络(上)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-27 11:44:42" itemprop="dateCreated datePublished" datetime="2019-11-27T11:44:42+08:00">2019-11-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-06 17:22:09" itemprop="dateModified" datetime="2020-02-06T17:22:09+08:00">2020-02-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A4%9A%E7%9B%B8%E6%9C%BA%E8%A1%8C%E4%BA%BA%E8%B7%9F%E8%B8%AA%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index">
+                    <span itemprop="name">多相机行人跟踪项目</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>在<a href="https://yerfor.github.io/2019/11/09/dl-05/" target="_blank" rel="noopener">上一篇深度学习随笔</a>里我们成功地实现了基于<code>TensorRT</code>加速的<code>YOLOv3</code>目标检测模块，在将该模块移植到<code>deepSORT</code>工程时发现，我们基于<code>Tensorflow</code>的行人特征提取网络和基于<code>TensorRT</code>加速的<code>YOLO</code>网络在单个线程中同时运行，会导致<code>CUDA invalid source handle</code>这样的底层内存读取错误。而<code>deepSORT</code>工程现有的程序框架转成多线程编程比较麻烦（项目通过回调函数来调用两个网络的<code>do_inference</code>）。</p>
+<p>在简单地实验证明多个<code>TensorRT</code>网络可以在同一线程下同时运行后，一个很直接的想法是我们自己训练实现一个基于<code>TensorRT</code>框架的行人特征提取网络，这也是本文的主要介绍的工作。</p>
+<p>本文的主要内容有：</p>
+<ul>
+<li><code>TensorRT</code>和其他网络框架的兼容性测试（在同一线程下）</li>
+<li>行人特征提取网络的结构设计（复现<code>deepSORT</code>作者的论文）</li>
+<li>用<code>tf.keras</code>实现网络的搭建和训练</li>
+<li>将<code>Tensorflow</code>的网络迁移到<code>TensorRT</code>框架</li>
+<li>网络在<code>deepSORT</code>工程里的效果测试</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-TensorRT加速下多神经网络的兼容性问题研究"><a href="#1-TensorRT加速下多神经网络的兼容性问题研究" class="headerlink" title="1. TensorRT加速下多神经网络的兼容性问题研究"></a>1. TensorRT加速下多神经网络的兼容性问题研究</h1><p><code>deepSORT</code>项目旨在实现多相机间行人的重识别问题，项目中有两个神经网络，分别是用于目标检测的<code>YOLOv3</code>网络和对检测到的行人<code>b-box</code>进行特征提取的残差网络。在尝试<code>TensorRT</code>加速以前，这两个网络分别基于<code>Darknet</code>框架(即调用c语言的动态链接库<code>.so</code>文件)和<code>Tensorflow</code>框架。</p>
+<p>在实现了<code>TensorRT</code>加速的<code>YOLOv3</code>检测模块后（以下简称<code>TensorRT-YOLO</code>），我在保证函数接口一致的情况下原<code>deepSORT</code>项目的<code>Darknet-YOLO</code>模块替换成了<code>TensorRT-YOLO</code>模块，本以为能够正常运行，谁知出现了以下错误：</p>
+<p><img src="/2019/11/27/dl-06/trterror.png" alt="vggnet"></p>
+<p>在进行层层排查后，发现是<code>Tensorflow</code>和<code>TensorRT</code>在同一线程中运行模型时发生冲突，这一结论基于我测试发现的现象：在禁用<code>Tensorflow</code>的特征提取网络后，<code>TensorRT-YOLO</code>可以正常运行。同时，我在<code>Nvidia TensorRT</code>官网的论坛上找到有几个人提出了和我们同样的问题，可是没有得到解答。</p>
+<p>想起之前项目里，<code>Tensorflow</code>和<code>Darkent</code>可以和谐共处，所以想试试<code>Darknet</code>是否可以和<code>TensorR</code>和谐共处呢？因为如果可以的话，我们可以把<code>YOLOv3</code>网络的倒数第二层作为特征矢量，当然<code>weights</code>权重需要我们根据行人数据集重新训练一下，但至少也是一个比较简单的解决方案。所以尝试在一个线程里同时运行<code>Darknet-YOLO</code>和<code>TensorRT-YOLO</code>，结果报了和<code>Tensorflow</code>一样的错：<code>invalid resource handle</code>。</p>
+<p>所以，千错万错都是<code>TensorRT</code>的错，虽然没有进一步验证，但从上述经验推而广之，<strong><code>TensorRT</code>恐怕无法和其他网络框架的网络在同一线程下运行了</strong>。</p>
+<p>此时，唯一可能的解决方案就是，能否在同一线程下运行多个<code>TensorRT</code>的网络？我先简单的在线程里创建了两个<code>TensorRT-YOLO</code>对象，然后让两个网络同时对一个视频流进行处理（为防止歧义，解释一下，每一帧的处理还是有先后之分的），最后结果是可行。</p>
+<p>担心上面实验的结果可行是因为运行的是同一个网络结构，所以又测试了：在一个线程里，运行一个<code>YOLOv3-608</code>的<code>Engine</code>和一个<code>YOLOv3-416</code>的<code>Engine</code>，发现同样可行。这一实验结果证明了<strong>我们可以在一个线程里跑多个不同结构的<code>TensorRT</code>网络</strong>。</p>
+<p>在上述发现的指引下，我正式开始考虑自己从头实现一个基于<code>TensorRT</code>的行人特征提取网络。</p>
+<h1 id="2-行人特征提取网络的结构设计"><a href="#2-行人特征提取网络的结构设计" class="headerlink" title="2. 行人特征提取网络的结构设计"></a>2. 行人特征提取网络的结构设计</h1><h2 id="2-1-两种流行的特征提取网络结构"><a href="#2-1-两种流行的特征提取网络结构" class="headerlink" title="2.1 两种流行的特征提取网络结构"></a>2.1 两种流行的特征提取网络结构</h2><h3 id="2-1-1-VGGNet"><a href="#2-1-1-VGGNet" class="headerlink" title="2.1.1 VGGNet"></a>2.1.1 VGGNet</h3><p>最初考虑了VGG16的网络结构（因为现成的网络结构有预训练模型）。</p>
+<p>说起图像的特征提取，在<code>Resnet</code>残差网络出现以前，业界主要用的是<code>VGGNet</code>，他有多个版本，网络结构如下：</p>
+<p><img src="/2019/11/27/dl-06/vggnet.jpg" alt="vggnet"></p>
+<p>可以看到，<code>VGGNet</code>的本质就是先用多个通道数逐渐增大的卷积层的线性拼接<code>(Sequential)</code>来进行特征提取，然后再用三个全连接层进行组合、输出。这个网络结构可以较好地实现图像特征的提取，但是存在两个问题：</p>
+<ul>
+<li>最大的问题是参数太多了，导致权重文件很大，不方便嵌入式布署。比如上图中的VGG16，权重文件达到600MB。</li>
+<li>第二个问题是网络不能做得更深，否则会存在梯度消失的现象。</li>
+</ul>
+<h3 id="2-1-2-ResNet"><a href="#2-1-2-ResNet" class="headerlink" title="2.1.2 ResNet"></a>2.1.2 ResNet</h3><p><code>ResNet（Residual Neural Network）</code>由微软研究院的何凯明等四名华人提出，通过使用<code>ResNet Unit</code>成功训练出了152层的神经网络，并在<code>ILSVRC2015</code>比赛中取得冠军，同时参数量比<code>VGGNet</code>低很多，效果非常突出。<code>ResNet</code>的结构可以极快的加速神经网络的训练，模型的准确率也有比较大的提升。同时<code>ResNet</code>的推广性非常好，<code>ResNet Unit</code>可以用在我们自己设计的网络结构中。</p>
+<p>下图是<code>Resnet</code>各个版本的网络结构：</p>
+<p><img src="/2019/11/27/dl-06/resnet.png" alt="resnet"></p>
+<p><code>Resnet</code>最大的创新在于跨越数层的<code>shortcut</code>，这使得更深层的网络结构成为可能。</p>
+<p><code>Resnet</code>的基本单元有：<code>Identity Block</code>和<code>Convolutional Block</code>，其结构如下：</p>
+<p><strong>Identity Block</strong></p>
+<ul>
+<li>Skip connection “skips over” 3 layers</li>
+</ul>
+<p><img src="/2019/11/27/dl-06/identity.png" alt="identity"></p>
+<p><strong>Convolutional Block.</strong></p>
+<p><img src="/2019/11/27/dl-06/conv.png" alt="conv"></p>
+<p>由上图，我们可以得到<code>Identity Block</code>和<code>Convolutional Block</code>的实现代码(使用<code>tf.keras</code>)：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">identity_block</span><span class="params">(X, f, filters, stage, block)</span>:</span></span><br><span class="line">    conv_name_base = <span class="string">'res'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line">    bn_name_base = <span class="string">'bn'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line"></span><br><span class="line">    F1, F2, F3 = filters</span><br><span class="line"></span><br><span class="line">    X_shortcut = X</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F1, kernel_size=(<span class="number">1</span>, <span class="number">1</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'valid'</span>, name=conv_name_base + <span class="string">'2a'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)</span></span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2b'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)</span></span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F3, kernel_size=(<span class="number">1</span>, <span class="number">1</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'valid'</span>, name=conv_name_base + <span class="string">'2c'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)</span></span><br><span class="line"></span><br><span class="line">    X = Add()([X, X_shortcut])</span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> X</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">convolutional_block</span><span class="params">(X, f, filters, stage, block, s=<span class="number">2</span>)</span>:</span></span><br><span class="line">    conv_name_base = <span class="string">'res'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line">    bn_name_base = <span class="string">'bn'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line">    F1, F2, F3 = filters</span><br><span class="line"></span><br><span class="line">    X_shortcut = X</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F1, kernel_size=(<span class="number">1</span>, <span class="number">1</span>), strides=(s, s), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2a'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)</span></span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F2, kernel_size=(f, f), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2b'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)</span></span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F3, kernel_size=(<span class="number">1</span>, <span class="number">1</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2c'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)</span></span><br><span class="line"></span><br><span class="line">    X_shortcut = Conv2D(F3, (<span class="number">1</span>, <span class="number">1</span>), strides=(s, s), name=conv_name_base + <span class="string">'1'</span>)(X_shortcut)</span><br><span class="line">    <span class="comment"># X_shortcut = BatchNormalization(axis=3, name=bn_name_base + '1')(X_shortcut)</span></span><br><span class="line"></span><br><span class="line">    X = Add()([X, X_shortcut])</span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> X</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>你可能注意到，上述代码中的<code>BatchNormalization</code>层被我注释了，这是因为在后面实现的过程中我发现BN层的存在会使我们的<code>Tensorflow</code>的<code>.pb</code>文件无法正常保存，也就无法进一步转换成<code>TensorRT</code>模型了。这里留一个坑，如何将带<code>BN层</code>的网络正确保存到<code>.pb</code>中还有待研究。</li>
+</ul>
+<h2 id="2-2-Cosine-Metric-Learning"><a href="#2-2-Cosine-Metric-Learning" class="headerlink" title="2.2 Cosine-Metric-Learning"></a>2.2 Cosine-Metric-Learning</h2><p>单目<code>deepSORT</code>论文的作者还写了<a href="https://elib.dlr.de/116408/" target="_blank" rel="noopener">一篇论文</a>介绍他的特征提取网络是如何训练的，我阅读了这篇论文后，参考了他的网络结构（如下图所示）和训练数据集（<code>MARS行人数据集</code>）。</p>
+<p><img src="/2019/11/27/dl-06/cosine.png" alt="cosine"></p>
+<p>可以看到他的CNN结构是先有两个卷积层和一个最大池化层，然后经历了总共６个残差网络模块(Residual)，然后输出到一个长度为128的全连接层，该层使用了L2范数的正则化。</p>
+<ul>
+<li>这个128个神经元的全连接层的输出就是我们想要的特征矢量。在训练的时候，该层后面还会接上一个N个神经元+<code>Softmax</code>的分类器，其中N是目标class的个数。</li>
+</ul>
+<p>值得注意的是论文作者的6个残差网络模块其实和<code>Resnet</code>略有区别<strong>（而这点在论文里没有显现）</strong>，<code>(3x3/1)</code>的残差模块其实是<code>2.2</code>节介绍的<code>Identity Block</code>的变形，<code>(3x3/2)</code>的残差模块是<code>Convolutional Block</code>的变形。因为不是本文的重点，这里的数学内容不作证明。</p>
+<p><code>Cosine-Metric-Learning</code>所用的残差模块的具体实现如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">identity_block</span><span class="params">(X, f, filters, stage, block)</span>:</span></span><br><span class="line">    conv_name_base = <span class="string">'res'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line">    bn_name_base = <span class="string">'bn'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line"></span><br><span class="line">    F1, F2 = filters</span><br><span class="line"></span><br><span class="line">    X_shortcut = X</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F1, kernel_size=(<span class="number">3</span>, <span class="number">3</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2a'</span>)(X)</span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F2, kernel_size=(<span class="number">3</span>, <span class="number">3</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2b'</span>)(X)</span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Add()([X, X_shortcut])</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> X</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">convolutional_block</span><span class="params">(X, f, filters, stage, block, s=<span class="number">2</span>)</span>:</span></span><br><span class="line">    conv_name_base = <span class="string">'res'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line">    bn_name_base = <span class="string">'bn'</span> + str(stage) + block + <span class="string">'_branch'</span></span><br><span class="line">    F1, F2 = filters</span><br><span class="line"></span><br><span class="line">    X_shortcut = X</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F1, kernel_size=(<span class="number">3</span>, <span class="number">3</span>), strides=(s, s), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2a'</span>)(X)</span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(filters=F2, kernel_size=(<span class="number">3</span>, <span class="number">3</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), padding=<span class="string">'same'</span>, name=conv_name_base + <span class="string">'2b'</span>)(X)</span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X_shortcut = Conv2D(F2, (<span class="number">1</span>, <span class="number">1</span>), strides=(s, s), name=conv_name_base + <span class="string">'1'</span>,padding=<span class="string">'same'</span>)(X_shortcut)</span><br><span class="line">    X_shortcut = Activation(<span class="string">'relu'</span>)(X_shortcut)</span><br><span class="line"></span><br><span class="line">    X = Add()([X, X_shortcut])</span><br><span class="line">    <span class="keyword">return</span> X</span><br></pre></td></tr></table></figure>
+
+<p>所谓的<code>cosine-metric-learning</code>的原理是，将一张照片送入特征提取网络，网络会输出照片中的人是训练时的128人的概率，结果是一个(128,)的向量，其一阶范数为1。</p>
+<p>我们对两张照片的特征向量求余弦值，余弦值越大，说明二者相似度越高，公式如下：<br>$$<br>cosine_{-}metirc = \frac {featureA\cdot featureB}{||featureA||<em>{2}\cdot ||featureB||</em>{2}}<br>$$</p>
+<p>根据上文，我们采用<code>tensorflow.keras</code>的<code>API</code>，将网络实现如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">SmallResNet</span><span class="params">(input_shape=<span class="params">(<span class="number">128</span>, <span class="number">64</span>, <span class="number">3</span>)</span>, classes=<span class="number">1500</span>)</span>:</span></span><br><span class="line">    X_input = Input(input_shape)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># X = ZeroPadding2D((3, 3))(X_input)jp</span></span><br><span class="line"></span><br><span class="line">    X = Conv2D(<span class="number">32</span>, (<span class="number">3</span>, <span class="number">3</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), name=<span class="string">'conv1'</span>, padding=<span class="string">'same'</span>)(X_input)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name='bn_conv1')(X)</span></span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = Conv2D(<span class="number">32</span>, (<span class="number">3</span>, <span class="number">3</span>), strides=(<span class="number">1</span>, <span class="number">1</span>), name=<span class="string">'conv2'</span>, padding=<span class="string">'same'</span>)(X)</span><br><span class="line">    <span class="comment"># X = BatchNormalization(axis=3, name='bn_conv2')(X)</span></span><br><span class="line">    X = Activation(<span class="string">'relu'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = MaxPooling2D((<span class="number">3</span>, <span class="number">3</span>), strides=(<span class="number">2</span>, <span class="number">2</span>), padding=<span class="string">'same'</span>)(X)</span><br><span class="line"></span><br><span class="line">    X = identity_block(X, <span class="number">3</span>, [<span class="number">32</span>, <span class="number">64</span>, <span class="number">32</span>], stage=<span class="number">4</span>, block=<span class="string">'a'</span>)</span><br><span class="line">    X = identity_block(X, <span class="number">3</span>, [<span class="number">32</span>, <span class="number">64</span>, <span class="number">32</span>], stage=<span class="number">5</span>, block=<span class="string">'a'</span>)</span><br><span class="line">    X = convolutional_block(X, <span class="number">3</span>, [<span class="number">64</span>, <span class="number">128</span>, <span class="number">64</span>], stage=<span class="number">6</span>, block=<span class="string">'a'</span>)</span><br><span class="line">    X = identity_block(X, <span class="number">3</span>, [<span class="number">64</span>, <span class="number">128</span>, <span class="number">64</span>], stage=<span class="number">7</span>, block=<span class="string">'a'</span>)</span><br><span class="line">    X = convolutional_block(X, <span class="number">3</span>, [<span class="number">128</span>, <span class="number">256</span>, <span class="number">128</span>], stage=<span class="number">8</span>, block=<span class="string">'a'</span>)</span><br><span class="line">    X = identity_block(X, <span class="number">3</span>, [<span class="number">128</span>, <span class="number">256</span>, <span class="number">128</span>], stage=<span class="number">9</span>, block=<span class="string">'a'</span>)</span><br><span class="line"></span><br><span class="line">    X = Flatten()(X)</span><br><span class="line">    <span class="comment"># 这一层选择relu作为激活函数十分关键，因为之前用的都是relu，所以输出会非常大(1e36)</span></span><br><span class="line">    <span class="comment"># 我试过改成sigmoid，结果直接导致梯度消失，训练不能收敛，accuracy停滞在0.1左右裹足不前guozubuqian</span></span><br><span class="line">    X = Dense(<span class="number">128</span>, activation=<span class="string">'relu'</span>)(X)</span><br><span class="line">    X = Dense(classes, name=<span class="string">'fc'</span> + str(classes), activation=<span class="string">'softmax'</span>)(X)</span><br><span class="line"></span><br><span class="line">    model = Model(inputs=X_input, outputs=X, name=<span class="string">'small_ResNet'</span>)</span><br><span class="line">    model.summary()</span><br><span class="line">    <span class="keyword">return</span> model</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>该网络共有 3,206,076个参数，权重文件大小约<code>30mb</code>，较为轻量级，适合在嵌入式上布署。</li>
+</ul>
+<h1 id="3-一次训练模型的尝试"><a href="#3-一次训练模型的尝试" class="headerlink" title="3. 一次训练模型的尝试"></a>3. 一次训练模型的尝试</h1><h2 id="3-1-可以使用的框架"><a href="#3-1-可以使用的框架" class="headerlink" title="3.1 可以使用的框架"></a>3.1 可以使用的框架</h2><p>确定网络结构后首先要选择用哪种框架进行模型的搭建，经过测试后发现<code>Keras</code>训练的模型不能转成<code>TensorRT</code>，尝试后发现了一个可行的做法是用<code>tensorflow.keras</code>来进行网络的训练。当然<code>tensorflow</code>本体也可以，但是<code>tensorflow.contrib.slim</code>这种国外十分流行的API不可以，<code>deepSORT</code>的作者用的就是这个库，这也是为什么我之前尝试直接将他的模型转换成<code>TensorRT</code>失败的原因。</p>
+<p>总结一下，目前尝试可以使用的框架有：</p>
+<ul>
+<li><code>Tensorflow</code></li>
+<li><code>Tensorflow.keras</code><br>亲测不能转成<code>TensorRT</code>的框架有：</li>
+<li><code>Keras</code>（即使<code>Using Tensorflow Backend</code>）</li>
+<li><code>Tensorflow.contrib.slim</code></li>
+</ul>
+<p>我使用的是比较方便的<code>tensorflow.keras</code>框架。</p>
+<h2 id="3-2-使用Mars行人图像数据集"><a href="#3-2-使用Mars行人图像数据集" class="headerlink" title="3.2 使用Mars行人图像数据集"></a>3.2 使用Mars行人图像数据集</h2><p>Mars数据集是目前基于视频的reid最大的数据集，全名为：Motion Analysis and Re-identification Set。</p>
+<p>他的官网不知为何现在没有在维护，已经失效了，这里给出我在网上找的<a href="https://blog.csdn.net/qq_34132310/article/details/83869605" target="_blank" rel="noopener">资源地址</a>。下面是Mars数据集中的部分数据示例。</p>
+<p><img src="/2019/11/27/dl-06/mars.png" alt="mars"></p>
+<p>因为cosine-metric-training的作者也是用的这个数据集，虽然他训练网络的框架选的是slim，我们不能采用。但他对数据集进行预处理的代码我们还是可以拿来用的：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_train_test_directory_to_str</span><span class="params">(directory)</span>:</span></span><br><span class="line">    <span class="string">"""Read bbox_train/bbox_test directory.</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">to_label</span><span class="params">(x)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> int(x) <span class="keyword">if</span> x.isdigit() <span class="keyword">else</span> <span class="number">-1</span></span><br><span class="line"></span><br><span class="line">    dirnames = os.listdir(directory)</span><br><span class="line">    image_filenames, ids, camera_indices, tracklet_indices = [], [], [], []</span><br><span class="line">    <span class="keyword">for</span> dirname <span class="keyword">in</span> dirnames:</span><br><span class="line">        filenames = os.listdir(os.path.join(directory, dirname))</span><br><span class="line">        filenames = [</span><br><span class="line">            f <span class="keyword">for</span> f <span class="keyword">in</span> filenames <span class="keyword">if</span> os.path.splitext(f)[<span class="number">1</span>] == <span class="string">".jpg"</span>]</span><br><span class="line">        image_filenames += [</span><br><span class="line">            os.path.join(directory, dirname, f) <span class="keyword">for</span> f <span class="keyword">in</span> filenames]</span><br><span class="line">        ids += [to_label(dirname) <span class="keyword">for</span> _ <span class="keyword">in</span> filenames]</span><br><span class="line">        camera_indices += [int(f[<span class="number">5</span>]) <span class="keyword">for</span> f <span class="keyword">in</span> filenames]</span><br><span class="line">        tracklet_indices += [inguozubuqiant(f[<span class="number">7</span>:<span class="number">11</span>]) <span class="keyword">for</span> f <span class="keyword">in</span> filenames]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> image_filenames, ids, camera_indices, tracklet_indices(List[str], List[int], List[int], List[int])</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_train_test_directory_to_image</span><span class="params">(directory, image_shape=<span class="params">(<span class="number">128</span>, <span class="number">64</span>)</span>)</span>:</span></span><br><span class="line">    <span class="string">"""Read images in bbox_train/bbox_test directory.</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    reshape_fn = (</span><br><span class="line">        (<span class="keyword">lambda</span> x: x) <span class="keyword">if</span> image_shape == IMAGE_SHAPE[:<span class="number">2</span>]</span><br><span class="line">        <span class="keyword">else</span> (<span class="keyword">lambda</span> x: cv2.resize(x, image_shape[::<span class="number">-1</span>])))</span><br><span class="line"></span><br><span class="line">    filenames, ids, camera_indices, tracklet_indices = (</span><br><span class="line">        read_train_test_directory_to_str(directory))</span><br><span class="line"></span><br><span class="line">    images = np.zeros((len(filenames),) + image_shape + (<span class="number">3</span>,), np.uint8)</span><br><span class="line">    <span class="keyword">for</span> i, filename <span class="keyword">in</span> enumerate(filenames):</span><br><span class="line">        <span class="keyword">if</span> i % <span class="number">5000</span> == <span class="number">0</span>:</span><br><span class="line">            print(<span class="string">"Reading %s, %d / %d"</span> % (directory, i, len(filenames)))</span><br><span class="line">        image = cv2.imread(filename, cv2.IMREAD_COLOR)</span><br><span class="line">        images[i] = reshape_fn(image)</span><br><span class="line">    ids = np.asarray(ids, dtype=np.int64)</span><br><span class="line">    camera_indices = np.asarray(camera_indices, dtype=np.int64)</span><br><span class="line">    tracklet_indices = np.asarray(tracklet_indices, dtype=np.int64)</span><br><span class="line">    <span class="keyword">return</span> images, ids, camera_indices, tracklet_indices</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_train_split_to_str</span><span class="params">(dataset_dir)</span>:</span></span><br><span class="line">    <span class="string">"""Read training data to list of filenames.</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    train_dir = os.path.join(dataset_dir, <span class="string">"bbox_train"</span>)</span><br><span class="line">    <span class="keyword">return</span> read_train_test_directory_to_str(train_dir)</span><br></pre></td></tr></table></figure>
+
+<p>通过上述函数，我们可以很方便的把训练集的图像处理成<code>keras</code>做<code>fit</code>时需要的<code>X_train</code>和<code>Y_train</code>，下面给出训练过程中的代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    classes = <span class="number">1500</span></span><br><span class="line">    dataset_dir = <span class="string">'/home/zhenhui/cosine_metric_learning/MARS-evaluation-master/train'</span></span><br><span class="line">    images, ids, camera_indices, tracklet_indices = resnet_utils.read_train_split_to_image(dataset_dir,                                                                                           image_shape=(<span class="number">128</span>, <span class="number">64</span>))</span><br><span class="line">    X_train = images</span><br><span class="line">    Y_train = resnet_utils.convert_to_one_hot(ids, classes)</span><br><span class="line">    Y_train = Y_train.T</span><br><span class="line">    model = SmallResNet(input_shape=(<span class="number">128</span>, <span class="number">64</span>, <span class="number">3</span>), classes=classes)</span><br><span class="line">    model.summary()</span><br><span class="line">    model.compile(optimizer=<span class="string">'adam'</span>, loss=<span class="string">'categorical_crossentropy'</span>, metrics=[<span class="string">'accuracy'</span>])</span><br><span class="line">    history = model.fit(X_train, Y_train, epochs=<span class="number">128</span>, batch_size=<span class="number">32</span>)</span><br><span class="line">    save(model, <span class="string">"small_net.pb"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>训练了225个<code>epoch</code>，最终$loss\approx 1.0$，$accurarcy\approx0.995$。下面是训练过程中loss和accuracy变化的曲线：</p>
+<p><img src="/2019/11/27/dl-06/loss.png" alt="loss"></p>
+<center>
+    Loss with epochs
+</center>
+![accu](dl-06/accu.png)
+<center>
+    Accurarcy over epoch
+</center>
+## 3.3 训练过程中的tips
+
+<p><img src="/2019/11/27/dl-06/cosine.png" alt="cosine"></p>
+<p>我们设计的网络基于上图。由于是第一次从头训练网络，在训练的过程踩了很多坑，有关于<code>DeepLearning</code>理论的，也有关于数据类型等工程实践的问题，记录一下，避免日后犯同样的错误：</p>
+<ul>
+<li>输入的图像一定要归一化(Normalized)<ul>
+<li>如果不归一化，在使用<code>Relu</code>、<code>ELU</code>等激活函数时，会发现后面的网络层的输出量级极大(以我们的网络为例。达到了<code>1e36</code>的程度，造成<code>python overflow</code>，而且使<code>softmax</code>层输出大量的0和<code>nan</code>)</li>
+<li>归一化输入后，发现收敛明显慢了，但每个<code>epoch</code>的<code>Loss</code>下降得更加稳定。</li>
+<li>图像的归一化的映射关系因该是[0,255]-&gt;[-1,1]，而不是-&gt;[0,1]。我之前使用了直接除以255的做法，导致网络训练accu收敛到0.45就升不上去了，而映射到[-1,1]后两个epoch就到达了0.95。这点在我们激活函数使用的是<code>relu</code>的情况下更加明显。</li>
+</ul>
+</li>
+<li>TensorRT输入层的数据类型不支持<code>float64</code>，而<code>numpy</code>里对int做除法默认得到的<code>img/255</code>时<code>float64</code>类型的，这会导致<code>CUDA</code>报错，所以在做归一化时要执行<code>astype(np.float32)</code>。<ul>
+<li>之前因为直接除255导致CUDA报错，因此误以为无法归一化，所以为了解决上述输出层量级爆炸问题，考虑将某几层的激活函数改成<code>Sigmoid</code>，结果发现<code>Sigmoid</code>在较深的网络(二三十层)时已经有明显的梯度消失现象，最后还是全部采用了<code>relu</code>。</li>
+</ul>
+</li>
+<li>因为MARS数据集有1500个人，所以我把输出层的神经元个数设置为1500，但实际上训练集只有300个左右，这就导致很多神经元都是“死亡”的，这会浪费权重大小、增加训练时间。后来随机挑选了128个行人，将输出层的神经元设置为论文一样的128个。</li>
+<li>Batch Normalization 层无法正常转换成<code>trt</code>，这个问题暂时还没有解决，所以没有加入BN层。</li>
+<li>各个目标的样本量一定要大致相同，如果某一样本特别多会导致网络倾向于做出该样本的决策。<ul>
+<li>在训练特征提取网络的时候，奇怪地发现在输出的向量总是有两个位置特别大。去看了一下数据集，发现这两个位置的样本量巨大！其他样本只有2/300,这两个样本有10000+。于是在代码里修改了一下，一个样本最多读取400张。</li>
+</ul>
+</li>
+</ul>
+<p>训练完成后，我们将网络结构和权重保存，得到一个<code>Tensorflow</code>的<code>frozen grah</code>文件：<code>small_net.pb</code>。</p>
+<h1 id="4-将模型用TensorRT加速"><a href="#4-将模型用TensorRT加速" class="headerlink" title="4. 将模型用TensorRT加速"></a>4. 将模型用TensorRT加速</h1><h2 id="4-1-保存pb的标准操作"><a href="#4-1-保存pb的标准操作" class="headerlink" title="4.1 保存pb的标准操作"></a>4.1 保存pb的标准操作</h2><p><code>TensorRT</code>官方文档提供了<code>tf.keras</code>保存<code>pb</code>文件的范式，为了稳定，最好还是一字不动地使用，我把它封装成了一个函数，如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">save</span><span class="params">(model, filename)</span>:</span></span><br><span class="line">    <span class="comment"># 指定倒数第二层为输出层</span></span><br><span class="line">    output_names = model.layers[<span class="number">-2</span>].output.op.name</span><br><span class="line">    print(output_names)</span><br><span class="line">    sess = tf.keras.backend.get_session()</span><br><span class="line">    frozen_graph = tf.graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), [output_names])</span><br><span class="line">    frozen_graph = tf.graph_util.remove_training_nodes(frozen_graph)</span><br><span class="line">    <span class="comment"># Save the model</span></span><br><span class="line">    <span class="keyword">with</span> open(filename, <span class="string">"wb"</span>) <span class="keyword">as</span> ofile:</span><br><span class="line">        ofile.write(frozen_graph.SerializeToString())</span><br><span class="line">    print(<span class="string">"模型保存成功！"</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-2-pb-gt-uff"><a href="#4-2-pb-gt-uff" class="headerlink" title="4.2 pb-&gt;uff"></a>4.2 pb-&gt;uff</h2><p><code>TensorRT</code>官方提供了一个将<code>pb</code>转成<code>uff</code>格式的脚本，<code>convert_to_uff.py</code>，这个应该在安装<code>TensorRT</code>的过程中有看到了，这里给出用法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 convert_to_uff.py small_net.pb</span><br></pre></td></tr></table></figure>
+
+<p>如果你训练的网络模型用到的<code>API</code>和我类似，换言之，你用的函数都被<code>uff</code>所支持，那么你将看到如下结果：</p>
+<p><img src="/2019/11/27/dl-06/to_uff.png" alt="to_uff"></p>
+<h2 id="4-3-uff-gt-trt"><a href="#4-3-uff-gt-trt" class="headerlink" title="4.3 uff-&gt;trt"></a>4.3 uff-&gt;trt</h2><p><code>TensorRT</code>使用<code>UffParser</code>类来进行对<code>uff</code>文件的读取，注意这个<code>UffParser</code>的<code>API</code>和之前转<code>YOLO</code>过程中的<code>OnnxParser</code>的<code>API</code>非常不一样，所以一开始我走了很多弯路。</p>
+<p>下面给出一个读取<code>uff</code>并将其转换成<code>trt</code>引擎的范式，建立好<code>trt</code>文件后，以后我们每次要跑网络，直接读取<code>trt</code>文件就好啦：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_engine</span><span class="params">(self, uff_file_path, engine_file_path=<span class="string">""</span>)</span>:</span></span><br><span class="line">    <span class="string">"""Attempts to load a serialized engine if available, otherwise builds a new TensorRT engine and saves it."""</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">build_engine</span><span class="params">()</span>:</span></span><br><span class="line">        <span class="string">"""Takes an ONNX file and creates a TensorRT engine to run inference with"""</span></span><br><span class="line">        <span class="keyword">with</span> trt.Builder(TRT_LOGGER) <span class="keyword">as</span> builder, builder.create_network() <span class="keyword">as</span> network, trt.UffParser() <span class="keyword">as</span> parser:</span><br><span class="line">            builder.max_workspace_size = common.GiB(<span class="number">1</span>)</span><br><span class="line">            <span class="comment"># Parse the Uff Network</span></span><br><span class="line"></span><br><span class="line">            <span class="comment"># Parse model file</span></span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(uff_file_path):</span><br><span class="line">                print(</span><br><span class="line">                    <span class="string">'uff file &#123;&#125; not found, please run yolov3_to_onnx.py first to generate it.'</span>.format(</span><br><span class="line">                        uff_file_path))</span><br><span class="line">                exit(<span class="number">0</span>)</span><br><span class="line">            print(<span class="string">'Loading uff file from path &#123;&#125;...'</span>.format(uff_file_path))</span><br><span class="line">            <span class="comment"># with open(uff_file_path, 'rb') as model:</span></span><br><span class="line">            <span class="comment">#     print('Beginning UFF file parsing')</span></span><br><span class="line">            <span class="comment">#     parser.parse(model.read())</span></span><br><span class="line">            parser.register_input(<span class="string">"input_1"</span>, (<span class="number">3</span>, <span class="number">128</span>, <span class="number">64</span>))</span><br><span class="line">            parser.register_output(<span class="string">"fc4096/Relu"</span>)</span><br><span class="line">            parser.parse(uff_file_path, network)</span><br><span class="line">            print(<span class="string">'Completed parsing of uff file'</span>)</span><br><span class="line">            print(<span class="string">'Building an engine from file &#123;&#125;; this may take a while...'</span>.format(uff_file_path))</span><br><span class="line">            engine = builder.build_cuda_engine(network)</span><br><span class="line"></span><br><span class="line">            print(<span class="string">"Completed creating Engine"</span>)</span><br><span class="line">            <span class="keyword">with</span> open(engine_file_path, <span class="string">"wb"</span>) <span class="keyword">as</span> f:</span><br><span class="line">                f.write(engine.serialize())</span><br><span class="line">            <span class="keyword">return</span> engine</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> os.path.exists(engine_file_path):</span><br><span class="line">        <span class="comment"># If a serialized engine exists, use it instead of building an engine.</span></span><br><span class="line">        print(<span class="string">"Reading engine from file &#123;&#125;"</span>.format(engine_file_path))</span><br><span class="line">        <span class="keyword">with</span> open(engine_file_path, <span class="string">"rb"</span>) <span class="keyword">as</span> f, trt.Runtime(TRT_LOGGER) <span class="keyword">as</span> runtime:</span><br><span class="line">            print(<span class="string">"Engine read successfully!"</span>)</span><br><span class="line">            <span class="keyword">return</span> runtime.deserialize_cuda_engine(f.read())</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> build_engine()</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-4-运行trt网络并测试其特征提取效果"><a href="#4-4-运行trt网络并测试其特征提取效果" class="headerlink" title="4.4 运行trt网络并测试其特征提取效果"></a>4.4 运行trt网络并测试其特征提取效果</h2><ul>
+<li>首先成功地完成了trt格式的网络的运行。</li>
+</ul>
+<p>随后我们对行人特征提取模块的功能进行测试。</p>
+<p>为测试模块性能，选取了两个行人(A、B)的照片各两张（1、2），记为（A1、A2、B1、B2），如下：</p>
+<p><img src="/2019/11/27/dl-06/test_imgs.png" alt="test_imgs"></p>
+<p>用初步训练好的网络分别计算他们之间的余弦相似度，结果如下：</p>
+<table>
+<thead>
+<tr>
+<th>比较的两张照片</th>
+<th>余弦相似度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>A1~A2</code></td>
+<td>0.79785156</td>
+</tr>
+<tr>
+<td><code>B1~B2</code></td>
+<td>0.970472</td>
+</tr>
+<tr>
+<td><code>A1~B1</code></td>
+<td>0.6632854</td>
+</tr>
+<tr>
+<td><code>A1~B2</code></td>
+<td>0.69196963</td>
+</tr>
+<tr>
+<td><code>A2~B1</code></td>
+<td>0.7740793</td>
+</tr>
+<tr>
+<td><code>A2~B2</code></td>
+<td>0.787404</td>
+</tr>
+</tbody></table>
+<p>可以看到效果不是很好，不同的人之间的余弦距离不够大，如上表中(A1,A2)的虚线距离为0.21，而(A2,B2)的余弦距离为0.22。提取出来的特征向量不能很好地区分不同的人。</p>
+<h1 id="5-小结和下一步工作"><a href="#5-小结和下一步工作" class="headerlink" title="5. 小结和下一步工作"></a>5. 小结和下一步工作</h1><p>本篇文章主要记录了针对<code>TensorRTYOLO</code>项目运行出现<code>“CUDA ERROR: Invalid Source Handle”</code>错误的解决过程。</p>
+<ul>
+<li>首先通过对照实验，锁定问题的根源出在基于<code>Tensorflow</code>的行人特征提取网络和基于<code>TensorRT</code>的<code>YOLO</code>网络不兼容。</li>
+<li>随后通过猜想+实验，发现多个不同的<code>TensorRT</code>框架的网络可以在一个线程里运行，于是确定问题的解决方向，即实现一个基于<code>TensorRT</code>的行人特征提取网络。</li>
+<li>虽然我们有原来的行人特征提取网络的<code>frozen graph</code>，但是该模型是由论文作者用<code>tf.contrib.slim</code>实现的，这个框架在迁移到<code>TensorRT</code>的过程中出现了兼容性的问题，所以我们不得不自己从头训练一个模型。</li>
+<li>经过尝试，发现用<code>Tensorflow.keras</code>框架可以转换成<code>TensorRT</code>，于是确定使用该框架。</li>
+<li>接着进行行人特征提取网络的结构设计，参考了<code>VGGNet</code>、<code>ResNet</code>、<code>Cosine-Metric-Learning</code>的结构后，确定了网络结构。</li>
+<li>对模型的训练进行了初步的尝试，成功将训练好的模型转移到了<code>TensorRT</code>框架下。</li>
+<li>在<code>TensorRT</code>下运行模型，进行性能测试，成功地跑通了模型，但模型性能不佳，关于模型的训练还有待进一步深入。</li>
+</ul>
+<p>因此，下一步的工作是，优化网络结构和训练过程，尽可能提升模型的性能。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/Python/" rel="tag"># Python</a>
+              <a href="/tags/CV/" rel="tag"># CV</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/20/drl-05/" rel="prev" title="强化学习随笔[05]-多智能体协作任务的场景构思和尝试">
+      <i class="fa fa-chevron-left"></i> 强化学习随笔[05]-多智能体协作任务的场景构思和尝试
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/13/dl-07/" rel="next" title="多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中)">
+      多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-TensorRT加速下多神经网络的兼容性问题研究"><span class="nav-text">1. TensorRT加速下多神经网络的兼容性问题研究</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-行人特征提取网络的结构设计"><span class="nav-text">2. 行人特征提取网络的结构设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-两种流行的特征提取网络结构"><span class="nav-text">2.1 两种流行的特征提取网络结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1-VGGNet"><span class="nav-text">2.1.1 VGGNet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2-ResNet"><span class="nav-text">2.1.2 ResNet</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-Cosine-Metric-Learning"><span class="nav-text">2.2 Cosine-Metric-Learning</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-一次训练模型的尝试"><span class="nav-text">3. 一次训练模型的尝试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-可以使用的框架"><span class="nav-text">3.1 可以使用的框架</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-使用Mars行人图像数据集"><span class="nav-text">3.2 使用Mars行人图像数据集</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-将模型用TensorRT加速"><span class="nav-text">4. 将模型用TensorRT加速</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-保存pb的标准操作"><span class="nav-text">4.1 保存pb的标准操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-pb-gt-uff"><span class="nav-text">4.2 pb-&gt;uff</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-uff-gt-trt"><span class="nav-text">4.3 uff-&gt;trt</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-4-运行trt网络并测试其特征提取效果"><span class="nav-text">4.4 运行trt网络并测试其特征提取效果</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-小结和下一步工作"><span class="nav-text">5. 小结和下一步工作</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

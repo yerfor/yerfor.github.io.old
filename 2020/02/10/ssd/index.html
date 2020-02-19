@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要SSD是2015年基于YOLOv1的改进的目标检测算法，目前同YOLOv3一样广泛应用于工业界中。一般而言，希望较高精度会选取SSD，期望获得高fps会选取YOLOv3。 本文介绍了：  SSD的算法原理 CV领域十分流行的&quot;Pretrain+fine tune&quot;方法">
+<meta property="og:type" content="article">
+<meta property="og:title" content="目标检测[01]-SSD算法和预训练模型">
+<meta property="og:url" content="http://yoursite.com/2020/02/10/ssd/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要SSD是2015年基于YOLOv1的改进的目标检测算法，目前同YOLOv3一样广泛应用于工业界中。一般而言，希望较高精度会选取SSD，期望获得高fps会选取YOLOv3。 本文介绍了：  SSD的算法原理 CV领域十分流行的&quot;Pretrain+fine tune&quot;方法">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2020/02/10/ssd/network.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/10/ssd/anchor.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/10/ssd/anchor-vector.png">
+<meta property="article:published_time" content="2020-02-10T09:40:42.000Z">
+<meta property="article:modified_time" content="2020-02-19T03:43:17.647Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="CV">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/02/10/ssd/network.png">
+
+<link rel="canonical" href="http://yoursite.com/2020/02/10/ssd/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>目标检测[01]-SSD算法和预训练模型 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/10/ssd/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          目标检测[01]-SSD算法和预训练模型
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-02-10 17:40:42" itemprop="dateCreated datePublished" datetime="2020-02-10T17:40:42+08:00">2020-02-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-19 11:43:17" itemprop="dateModified" datetime="2020-02-19T11:43:17+08:00">2020-02-19</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p><code>SSD</code>是2015年基于<code>YOLOv1</code>的改进的目标检测算法，目前同<code>YOLOv3</code>一样广泛应用于工业界中。一般而言，希望较高精度会选取<code>SSD</code>，期望获得高fps会选取<code>YOLOv3</code>。</p>
+<p>本文介绍了：</p>
+<ul>
+<li><code>SSD</code>的算法原理</li>
+<li>CV领域十分流行的<code>&quot;Pretrain+fine tune&quot;</code>方法</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-SSD-Single-Shot-Detection-算法原理"><a href="#1-SSD-Single-Shot-Detection-算法原理" class="headerlink" title="1. SSD(Single Shot Detection)算法原理"></a>1. SSD(Single Shot Detection)算法原理</h1><h2 id="1-1-网络结构"><a href="#1-1-网络结构" class="headerlink" title="1.1 网络结构"></a>1.1 网络结构</h2><p><img src="/2020/02/10/ssd/network.png" alt="network"></p>
+<p><a href="https://arxiv.org/abs/1512.02325" target="_blank" rel="noopener">传统SSD</a>的网络结构如上图所示。作者使用<code>VGG16</code>的Conv5_3以前的全卷积结构来进行特征提取，然后加上<code>kernel</code>为<code>(3,3)x1024</code>和<code>(1,1)x1024</code>的两个卷积层替代<code>VGG16</code>原来的两个全连接层，接着又添加了若干个卷积层用于生成不同尺寸的特征图。</p>
+<p>SSD选取了多个尺寸的特征图用于生成检测结果。从上图看到，选取了<code>38x38</code>,<code>19x19</code>,<code>10x10</code>,<code>5x5</code>,<code>3x3</code>,<code>1x1</code>的特征图，在每个特征图后又分别加了一个特殊的卷积层用于产生检测结果，关于这个卷积层如何产生检测结果，具体在下一小节介绍。</p>
+<ul>
+<li>作者在论文中提到，程序在<code>VGG16</code>结构中做前向传播的时间占到运行时间的80%，如果用其他结构(如<code>ResNet</code>或<code>MobileNet</code>)替代臃肿的<code>VGG16</code>进行特征提取，可以进一步提高运行速度。</li>
+</ul>
+<h2 id="1-2-使用卷积作方法为检测结果"><a href="#1-2-使用卷积作方法为检测结果" class="headerlink" title="1.2 使用卷积作方法为检测结果"></a>1.2 使用卷积作方法为检测结果</h2><p><img src="/2020/02/10/ssd/anchor.png" alt="anchor"></p>
+<p>本节介绍SSD如何用卷积层输出检测结果。由1.1中的图，可以看到这个卷积层特殊在它的通道数是<code>(4x(classes+4))</code>，我们把该层输出结果的一个像素<code>(1,1,num_of_channel)</code>看作一个向量，这个向量描述了在该像素位置的4个(或6个)<code>bounding box</code>的类别(class)和与对应的<code>anchor box</code>的相对位置和相对大小。下图是对该卷积层每一层意义的形象解释。</p>
+<p><img src="/2020/02/10/ssd/anchor-vector.png" alt="anchor-vector"></p>
+<h2 id="1-3-anchor-box和bounding-box"><a href="#1-3-anchor-box和bounding-box" class="headerlink" title="1.3 anchor box和bounding box"></a>1.3 anchor box和bounding box</h2><h3 id="1-3-1-anchor-box的作用"><a href="#1-3-1-anchor-box的作用" class="headerlink" title="1.3.1 anchor box的作用"></a>1.3.1 anchor box的作用</h3><p>为什么要引入<code>anchor box</code>这个概念？为什么不直接回归一个<code>bounding box</code>出来？以我目前的理解来看，<code>anchor box</code>是一组预先定义了位置和宽高的矩形，它存在的意义是给<code>bounding box</code>提供一个参照基准，因为要直接回归出一组绝对值难度很大，而如果已知一个<code>anchor box</code>的位置和宽高信息，搭配使用在上一节所述的一组长度为<code>(4+class)</code>的向量，就可以用归一化的数值定义一个<code>bounding box</code>，归一化的数值使模型更加容易收敛。</p>
+<p>由1.1小节提供的网络结构图可知，<code>SSD</code>给<code>38x38</code>,<code>3x3</code>,<code>1x1</code>的特征图的卷积层设定了4个<code>anchor box</code>，即对该卷积层的每个像素，都会生成4个<code>bounding box</code>；而对<code>19x19</code>,<code>10x10</code>,<code>5x5</code>的特征图而言这个数字是6个。用下式可以计算出这样一个结果：即对一张图像进行检测，<code>SSD</code>会生成8732个<code>bounding box</code>：<br>$$<br>num_{-}bonding_{-}box=38^2\times4+19^2\times6+10^2\times6+5^2\times6+3^2\times4+1^2\times4 = 8732<br>$$<br>并且，每个<code>bounding box</code>都是一个长度为<code>4+class</code>的向量。</p>
+<p>现在来深究该向量的每一位代表的意义是什么，其中的<code>class</code>位自然是类似$[0,…0,1,0,…,0]$形式的<code>one-hot</code>编码，而其余的4位则较为复杂，它是该<code>bounding box</code>对于本<code>a方法nchor box</code> 的相对位置关系和相对大小,形式为$[\Delta c_x,\Delta c_y,\Delta w,\Delta h]$，该向量中的这些参数的计算公式都经过了精密的设计，所以我们先来看作为基准的<code>anchor box</code>是怎么定义的。</p>
+<h3 id="1-3-2-anchor-box-的确定"><a href="#1-3-2-anchor-box-的确定" class="headerlink" title="1.3.2 anchor box 的确定"></a>1.3.2 anchor box 的确定</h3><ul>
+<li>首先定义SSD中用于检测的特征图数量为$m$，在传统的<code>VGG16-SSD</code>中，有$m=6$。再定义特征层编号为$k$，即有$k\in [1,m]$，所属的特征图越靠前，也即特征图的尺寸越大，$k$越小。</li>
+<li>在上述基础上定义第$k$层特征图中的<code>anchor box</code>的特征长度$S_k$，定义式如下：</li>
+</ul>
+<p>$$<br>S_k = S_{min} + \frac {k-1}{m-1}\cdot (S_{max}-S_{min})<br>$$</p>
+<p>​        其中，$k\in[1,m]$，$S_{max}=0.9$，$S_{min}=0.2$。</p>
+<ul>
+<li>此外还预定义了<code>anchor box</code>的宽高比为$\alpha _r$，我们有：$\alpha_r \in {1,2,3,\frac{1}{2},\frac{1}{3}}$。</li>
+<li>上述的$S_{max}$、$S_{min}$、$\alpha _{r}$可以根据自己的数据集调整。</li>
+</ul>
+<h4 id="1-3-2-1-anchor-box-的宽和高"><a href="#1-3-2-1-anchor-box-的宽和高" class="headerlink" title="1.3.2.1 anchor box 的宽和高"></a>1.3.2.1 anchor box 的宽和高</h4><p>在已知了上述的特征长度$S_k$和宽高比$\alpha <em>r$后，可以通过下式计算第$k$个特征图的<code>anchor box</code>的宽和高：<br>$$<br>w^{a}</em>{k} = S_k\cdot\sqrt{\alpha_r},h^{a}<em>{r}=S</em>{k}/\sqrt{\alpha_r}<br>$$<br>对于$\alpha_r=1$的情况，我们除了宽高均为$S_k$的<code>anchor box</code>外，还添加了一个宽高为$\sqrt{S_k\cdot S_{k+1}}$的<code>anchor box</code>。</p>
+<h4 id="1-3-2-2-anchor-box-的位置"><a href="#1-3-2-2-anchor-box-的位置" class="headerlink" title="1.3.2.2 anchor box 的位置"></a>1.3.2.2 anchor box 的位置</h4><p><code>anchor box</code>的位置其实就是所属的特征图像素的中心位置，所以一个特征图像素的所有<code>anchor box</code>拥有相同的位置。我们定义$|f_k|$为第$k$个特征图的横向像素数，如$k=1$时第一个特征图尺寸为<code>38x38</code>，那么就有$|f_k|=38$。</p>
+<p>此外定义$i$、$j$为当前像素在特征图的笛卡尔坐标系下行坐标和列坐标。</p>
+<p>在上述基础上，可以定义<code>center of each defalut box</code>为：<br>$$<br>(c_x,c_y)=(\frac{i+0.5}{|f_k|},\frac{j+0.5}{|f_k|})<br>$$<br>上式看似复杂，其实只说明了：<code>anchor box</code>的位置是所属的特征图像素中心的位置。</p>
+<h3 id="1-3-3-bounding-box-的确定"><a href="#1-3-3-bounding-box-的确定" class="headerlink" title="1.3.3 bounding box 的确定"></a>1.3.3 bounding box 的确定</h3><p>本小节讨论如何在已知<code>anchor box</code>的位置和宽高时用归一化的数值描述一个<code>bounding box</code>。</p>
+<p>我们在1.3.1小节说明了<code>SSD</code>使用4位数字描述一个<code>bounding box</code>相对于本<code>anchor box</code> 的位置关系和相对大小,形式为$[l_x,l_y,l_w,l_h]$。</p>
+<p>我们定义<code>anchor box</code>的中心位置为$(x,y)$，宽和高为$w$和$h$；同理定义模型要预测的<code>bounding box</code>的中心位置为$x’,y’$，宽和高为$w’$和$h’$。下面给出这四位参数的计算公式：</p>
+<ul>
+<li><p>$l_{x}=(x’-x)/w$</p>
+</li>
+<li><p>$l_{y} = (y’-y)/h$</p>
+</li>
+<li><p>$l_{w} = ln(w’/w)$</p>
+</li>
+<li><p>$l_{h}=ln(h’/h)$</p>
+<p>至此已经介绍完了<code>SSD</code>输出结果的数学意义，在训练的时候我们要把<code>ground truth</code>根据这个意义进行”编码”成为<code>ground truth box</code>，然后期望$[l_x,l_y,l_w,l_h]$和<code>ground truth</code>转化成的向量差别越小越好；而做<code>inference</code>的时候要根据这个意义把<code>bounding box</code>“解码”成我们可以理解的绝对位置和绝对宽高。</p>
+</li>
+</ul>
+<h3 id="1-3-4-anchor-box-和-ground-truth-box-的匹配"><a href="#1-3-4-anchor-box-和-ground-truth-box-的匹配" class="headerlink" title="1.3.4 anchor box 和 ground truth box 的匹配"></a>1.3.4 anchor box 和 ground truth box 的匹配</h3><p><code>anchor box</code>和<code>ground truth box</code>的匹配发生在训练的阶段，大致分两步走：</p>
+<ol>
+<li>对所有的<code>anchor box</code>，选择任何与它<code>IOU</code>大于0.5的<code>ground truth box</code>进行匹配；<ul>
+<li>方法如果一个<code>anchor box</code>和两个及以上<code>ground truth box</code>的<code>IOU</code>都大于0.5，选更大的那个。</li>
+</ul>
+</li>
+<li>对所有的<code>ground truth box</code>，选择与它<code>IOU</code>最大的<code>anchor box</code>进行匹配，即使没达到0.5（默认不启用）。</li>
+</ol>
+<ul>
+<li>关于匹配问题，源码中定义了一个<code>similarity matrix</code>，横轴是<code>anchor</code>，纵轴是<code>ground truth</code>，算法首先是沿着<code>axis=0</code>方向取了<code>argmax</code>，然后剔除小于<code>threshold</code>的匹配，<strong>这样就可能会产生多个<code>anchor box</code>对应一个<code>ground truth box</code>的情况</strong>。至此对应上述的第一步，可以看到，仅凭借第一步，<code>ground truth box</code>不一定有与之对应的<code>anchor box</code>和它的交并比大于<code>threshold</code>。第二步就是对这种情况的一个补充，确保一定有一个<code>anchor box</code>和该<code>ground truth box</code>匹配，但这个匹配的IOU一定小于阈值，换言原理原理之这个匹配的含金量很低，因此在源码里第二步默认是不使用的。</li>
+<li>满足匹配关系的<code>anchor box</code>会被认为是正样本，没有与<code>ground truth box</code>匹配的<code>anchor box</code>被认为是<strong>负样本</strong>。</li>
+</ul>
+<h2 id="1-4-损失函数"><a href="#1-4-损失函数" class="headerlink" title="1.4 损失函数"></a>1.4 损失函数</h2><p>首先定义匹配指示符$x_{ij}^{p}$，其中$i$是<code>anchor box</code>的序号，$j$是<code>ground truth box</code> 的序号，$p$是当前目标所属的类别的序号。在1.3.4小节提到，存在多个<code>anchor box</code>对应一个<code>ground truth box</code>的情况，即$N=\Sigma_{i}x_{ij}^p&gt;1$。这种情况下，损失函数是多个<code>anchor box</code>和该<code>ground truth box</code>的损失的平均数。即：<br>$$<br>Loss=\frac{1}{N}\cdot\Sigma_i Loss_{ij}<br>$$<br>接下来介绍一个<code>anchor box</code>和<code>ground truth box</code>之间的损失函数$Loss_{ij}$是怎么定义的，损失函数分成两部分：分类误差$L_{conf}(x,c)$和定位误差$L_{loc}(x,l,g)$，两项之间有系数$\alpha$调节权重(论文中说经过交叉验证，$\alpha$取1效果最好)。<br>$$<br>L_(x,c,l,g)=L_{conf}(x,c)+\alpha \cdot L_{loc}(x,l,g)<br>$$<br>其中，</p>
+<ul>
+<li>$x$是匹配指示符，$x\in {0,1}$，如果$x=0$，则$L_{ij}=0$；</li>
+<li>$c$代表的是<code>confidence</code>，即用于分类的<code>one-hot</code>向量；</li>
+<li>$l$代表的是<code>location</code>,即预测的<code>bounding box</code>的位置和宽高；</li>
+<li>$g$代表的是<code>ground truth</code>，即<code>ground truth box</code>的位置和宽高。</li>
+</ul>
+<p>下面来具体介绍分类误差项$L_{conf}(x,c)$和定位误差项$L_{loc}(x,l,g)$的计算公式。</p>
+<h3 id="1-4-1-分类误差"><a href="#1-4-1-分类误差" class="headerlink" title="1.4.1 分类误差"></a>1.4.1 分类误差</h3><p><code>SSD</code>采用传统分类问题中的$softmax+cross_{-}entropy$的方式来衡量分类误差：<br>$$<br>L_{conf}(x,c)=- \Sigma_{i\in Pos}x^{p}<em>{ij}\cdot ln(c</em>{i}^{p})-\Sigma_{i\in Neg}ln(c_{i}^{0})<br>$$<br>其中，$c^{p}<em>{i}$是<code>one-hot</code>形式的<code>confidence</code>经过<code>softmax</code>函数后正样本对应的类的位置的元素，$c</em>{i}^0$是该前述向量中中对应“NULL”类的元素。</p>
+<p>注意上述两项不存在<code>i</code>相等的情况，我们在前面定义<code>i</code>是各个<code>anchor box</code>的序号。第一项中$i\in Pos$意味着只会从正样本里选择，即1.3.4小节中提到的和<code>ground truth box</code>成功匹配的那些<code>anchor box</code>；第二项则只会从负样本中选择。</p>
+<ul>
+<li>值得注意的是，根据1.3.4小节中的定义，负样本的数量会远远大于正样本的数量，这对于模型的收敛和性能是不利的。所以<code>SSD</code>提出了<code>Hard negative mining</code>的方法，即将负样本按照confidence在”NULL”类位置的大小升序排列，因为这些样本是最容易混淆的。排好序后，取前面若干个用于训练，保证正样本和负样本的比例不小于$3:1$。</li>
+</ul>
+<h3 id="1-4-2-定位误差"><a href="#1-4-2-定位误差" class="headerlink" title="1.4.2 定位误差"></a>1.4.2 定位误差</h3><p><code>SSD</code>使用<code>Smooth L1 Loss</code>来衡量<code>bounding box与anchor box的相对值</code>和<code>ground truth box与anchor box的相对值</code>之间的误差。</p>
+<p>所谓的<code>Smooth L1 Loss</code>的定义式如下：<br>$$<br>Smooth_{-}L1(x)=\begin{cases}<br>0.5x^2 &amp; if |x|&lt;1 \<br>|x|-0.5 &amp; otherwise \<br>\end{cases}<br>$$<br>可以看到<code>Smooth L1 Loss</code>实质上是一个一次函数、二次函数混合的分段函数。它兼取了二者的优点，在函数值靠近的0的时候，梯度迅速减小，减少震荡；而在函数值较大的时候，梯度是恒定的1。</p>
+<p>知道了<code>Smooth L1 Loss</code>的计算公式，那么，如何描述<code>bounding box与anchor box的相对值</code>和<code>ground truth box与anchor box的相对值</code>之间的误差呢？先看如何描述和<code>ground truth box与anchor box的相对值</code>。</p>
+<p>在1.3.3小节中我们介绍了<code>SSD</code>表示<code>bounding box</code>的方法：$[l_x,l_y,l_w,l_h]$。</p>
+<p>其中，$l_x=(x’-x)/w$，$l_y = (y’-y)/h$，$l_w = ln(w’/w)$，$l_h=ln(h’/h)$，斜上方一撇代表是<code>bounding box</code>的参数，斜上方没有撇代表是<code>anchor box</code>的参数。</p>
+<p>将<code>ground truth</code>也用上面的方式进行编码，则有$[g_{x},g_{y},g_{w},g_{h}]$：</p>
+<p>其中，$g_{x}=(x’’-x)/w$，$g_{y} = (y’’-y)/h$，$g_{w} = ln(w’’/w)$，$g_{h}=ln(h’’/h)$，斜上方两撇代表是<code>ground truth box</code>的参数。</p>
+<p>在上述基础上，可以用下面的公式描述定位误差：<br>$$<br>L_{loc}(x,l,g)=\Sigma_{i\in Pos}\Sigma_{m\in {c_x,c_y,w,h}}x_{ij}^{p}\cdot SmoothL1(l^{i}<em>{m}-g</em>{i}^{m})<br>$$</p>
+<h1 id="2-使用预训练模型"><a href="#2-使用预训练模型" class="headerlink" title="2. 使用预训练模型"></a>2. 使用预训练模型</h1><p>在<code>tensorflow.keras.applications</code>模块内，保存有十余个较为流行的网络结构在<code>ImageNet</code>数据集上训练的预训练模型，包括<code>vggnet</code>、<code>ResNet</code>、<code>MobileNet</code>、<code>InceptionNet</code>等，调用十分方便。</p>
+<h2 id="2-1-下载预训练模型"><a href="#2-1-下载预训练模型" class="headerlink" title="2.1 下载预训练模型"></a>2.1 下载预训练模型</h2><p>以<code>Vgg16</code>为例，要调用Vgg16的预训练模型，只需要：<code>model=tf.keras.applications.VGG16()</code>，即可返回    <code>keras</code>的<code>model</code>。第一次调用时会自动从亚马逊的云端下载模型的权重，由于墙的原因，经常会超时(挂<code>vpn</code>也没用)。一个解决方法是自己到终端显示的那个链接去下载相应的<code>.h5</code>文件(开着<code>vpn</code>速度大约<code>100kb/s~1mb/s</code>)，然后将<code>.h5</code>放在<code>~/.keras/models</code>文件夹中。</p>
+<h2 id="2-2-预训练模型的灵活使用"><a href="#2-2-预训练模型的灵活使用" class="headerlink" title="2.2 预训练模型的灵活使用"></a>2.2 预训练模型的灵活使用</h2><p>使用<code>tf.keras.applications.VGG16()</code>，得到了<code>VGG16</code>的<code>keras model</code>，这个对象包含了<code>网络结构</code>和<code>权重</code>两个信息。本小节介绍如何在该模型中只获取我们想要的部分。</p>
+<p>比如我们要拿VGG16前面的卷积层用于SSD算法的特征提取，我们需要做的事情有：</p>
+<ol>
+<li><p>读取预训练模型。</p>
+<ul>
+<li><code>model = tf.keras.applications.VGG16()</code></li>
+</ul>
+</li>
+<li><p><strong>对VGG16模型进行修改，只保留前面的卷积层，删除后面的全连接层。</strong></p>
+<ul>
+<li><p>预训练模型的一个常见用法是作为自定义网络结构的前面几层，用于特征提取。在这种场景中我们需要把网络的后面几层全连接层去掉，可以使用<code>tf.keras.models.Model(input,output)</code>的方法，生成一个新的模型。具体API如下所示：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sub_model = tf.keras.models.Model(inputs=model.input,</span><br><span class="line">									outputs=model.layers[<span class="number">-2</span>].output)</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>将修改好的模型作为可训练的一部分，添加到SSD网络中。</p>
+<ul>
+<li><pre><code class="python"><span class="class"><span class="keyword">class</span> <span class="title">SSD</span><span class="params">(tf.keras.models.Model)</span>:</span>
+    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span>
+        super(SSD, self).__init__()
+        <span class="comment"># 调用预训练模型并只保留前面的卷积层</span>
+        model = tf.keras.applications.VGG16() 
+        sub_model = tf.keras.models.Model(inputs=model.input,
+                                    outputs=model.layers[<span class="number">-2</span>].output)
+        <span class="comment"># 将其定义为模型里的一个层（因为keras的Model和Layer在调用时没什么区别）</span>
+        self.backbone = sub_model
+        ......
+    <span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">(self, inputs, training=None)</span>:</span>
+        <span class="comment"># 类似函数式调用backbone即可</span>
+        x = self.backbone(inputs, training=training)
+        ......</code></pre>
+</li>
+</ul>
+</li>
+<li><p>如果是继续之前训练过程，只要在定义好<code>SSD</code>对象之后再调用<code>SSD.load_weights(&quot;ssd.h5&quot;)</code>就可以了，读取的权重会覆盖我们在<code>__init__</code>函数里给<code>VGG16</code>设定的权重。</p>
+</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/CV/" rel="tag"># CV</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/02/06/gan-01/" rel="prev" title="GAN[01]-生成对抗网络:从GAN到到WGAN">
+      <i class="fa fa-chevron-left"></i> GAN[01]-生成对抗网络:从GAN到到WGAN
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-SSD-Single-Shot-Detection-算法原理"><span class="nav-text">1. SSD(Single Shot Detection)算法原理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-网络结构"><span class="nav-text">1.1 网络结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-使用卷积作方法为检测结果"><span class="nav-text">1.2 使用卷积作方法为检测结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-anchor-box和bounding-box"><span class="nav-text">1.3 anchor box和bounding box</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-anchor-box的作用"><span class="nav-text">1.3.1 anchor box的作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-anchor-box-的确定"><span class="nav-text">1.3.2 anchor box 的确定</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-1-anchor-box-的宽和高"><span class="nav-text">1.3.2.1 anchor box 的宽和高</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-2-anchor-box-的位置"><span class="nav-text">1.3.2.2 anchor box 的位置</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-3-bounding-box-的确定"><span class="nav-text">1.3.3 bounding box 的确定</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-4-anchor-box-和-ground-truth-box-的匹配"><span class="nav-text">1.3.4 anchor box 和 ground truth box 的匹配</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-损失函数"><span class="nav-text">1.4 损失函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-1-分类误差"><span class="nav-text">1.4.1 分类误差</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-2-定位误差"><span class="nav-text">1.4.2 定位误差</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-使用预训练模型"><span class="nav-text">2. 使用预训练模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-下载预训练模型"><span class="nav-text">2.1 下载预训练模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-预训练模型的灵活使用"><span class="nav-text">2.2 预训练模型的灵活使用</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

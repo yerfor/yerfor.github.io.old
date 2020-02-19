@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0. 摘要终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是： $$PG&#x3D;&#x3D;&gt;Q-Learning&#x3D;&#x3D;&gt;DQN&#x3D;&#x3D;&gt;AC&#x3D;&#x3D;&gt;DPG&#x3D;&#x3D;&gt;DDPG$$ 这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenA">
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习随笔[03]-MADDPG算法学习与实践">
+<meta property="og:url" content="http://yoursite.com/2019/11/13/drl-03/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0. 摘要终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是： $$PG&#x3D;&#x3D;&gt;Q-Learning&#x3D;&#x3D;&gt;DQN&#x3D;&#x3D;&gt;AC&#x3D;&#x3D;&gt;DPG&#x3D;&#x3D;&gt;DDPG$$ 这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenA">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/maddpg-00.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/maddpg.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/actor-ddpg.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/actor-maddpg.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/infer.png">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=%5Cmu_i">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/sub.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/help.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/demo.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/structure.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/simplepushdemo.gif">
+<meta property="article:published_time" content="2019-11-13T12:01:42.000Z">
+<meta property="article:modified_time" content="2019-12-30T16:11:31.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="ReinforceLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/13/drl-03/maddpg-00.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/13/drl-03/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>强化学习随笔[03]-MADDPG算法学习与实践 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/13/drl-03/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          强化学习随笔[03]-MADDPG算法学习与实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-13 20:01:42" itemprop="dateCreated datePublished" datetime="2019-11-13T20:01:42+08:00">2019-11-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-31 00:11:31" itemprop="dateModified" datetime="2019-12-31T00:11:31+08:00">2019-12-31</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">基于深度强化学习的多机协同算法研究</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是：</p>
+<p>$$PG==&gt;Q-Learning==&gt;DQN==&gt;AC==&gt;DPG==&gt;DDPG$$</p>
+<p>这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenAI于2017年发表的多智能体强化学习算法，在处理多agent协同、竞争、或是二者混合的场景时都有不错的表现。</p>
+<p>本文主要介绍了：</p>
+<ul>
+<li>MADDPG算法的原理；</li>
+<li>对OpenAI提供的maddpg开源项目做了初步了解</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-MADDPG算法"><a href="#1-MADDPG算法" class="headerlink" title="1. MADDPG算法"></a>1. MADDPG算法</h1><p>参考资料：</p>
+<p><a href="https://arxiv.org/abs/1706.02275" target="_blank" rel="noopener">《Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments》</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/53811876" target="_blank" rel="noopener">多智能体强化学习入门（四）——MADDPG算法</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/32333293?edition=yidianzixun&utm_source=yidianzixun&yidian_docid=0Hz5AfFa" target="_blank" rel="noopener">MADDPG算法思路解读</a></p>
+<p><code>MADDPG</code>算法是<code>OpenAI</code>于2017发表、在<code>DDPG</code>基础上针对多智能体协同与竞争设计的算法。</p>
+<p>传统强化学习算法解决多智能体问题的最大问题是：</p>
+<ul>
+<li>所有Agent（基于不同的Actor网络）一起来对环境做影响，单个Critic神经网络返回的reward值并不能让各个Agent知道自己的操作对环境来说是好的还是坏的。比如，1号智能体其实做了很对的决策，但是由于2号、3号智能体都做了很糟糕的决策，导致环境变得很糟糕，返回的Reward也很差，那么1号智能体会认为自己刚才做的决策不对，反而朝着差的方向学习了。这对训练来说是十分致命的，可能导致无法收敛。</li>
+</ul>
+<p>为了解决这个问题，<code>MADDPG</code>为每个<code>Actor</code>都单独配备了一个<code>Critic</code>，<code>Critic</code>可以接收全局信息。这就引出了<code>MADDPG</code>的第一个feature——集中式训练，分布式执行。</p>
+<h2 id="1-1-设计结构：多个Actor-Critic的方案"><a href="#1-1-设计结构：多个Actor-Critic的方案" class="headerlink" title="1.1 设计结构：多个Actor-Critic的方案"></a>1.1 设计结构：多个Actor-Critic的方案</h2><p><img src="/2019/11/13/drl-03/maddpg-00.png" alt="maddpg-00"></p>
+<p>如上图所示，我们有N个Agent，每个Agent都有一个决策网络和评价网络，决策网络用$\pi_{i}$表示，评价网络用$Q_{i}$描述。评价网络（只在训练阶段运行）可以获得全局信息（即所有agent对环境的观察和action），所以在训练阶段时他可以在上帝视角对他负责的actor进行指导。而在执行阶段时，Actor只接收自己能观察到的环境<code>o</code>，相互之间没有通信，独立地作出决策。</p>
+<h2 id="1-2-集中式训练过程"><a href="#1-2-集中式训练过程" class="headerlink" title="1.2 集中式训练过程"></a>1.2 集中式训练过程</h2><p>集中式训练，分布式执行(Centralized Training with Decentralized Execution)是<code>MADDPG</code>算法最大的创新。现在我们来介绍一个完整的训练过程，这包括数据采集过程和参数训练过程。</p>
+<p>先给出<code>MADDPG</code>算法的伪代码：</p>
+<p><img src="/2019/11/13/drl-03/maddpg.png" alt="maddpg"></p>
+<h3 id="1-2-1-数据采集阶段"><a href="#1-2-1-数据采集阶段" class="headerlink" title="1.2.1 数据采集阶段"></a>1.2.1 数据采集阶段</h3><p>首先是数据采集过程，每个Agent观察环境得到<code>o</code>（每个agent观察到的<code>o</code>保存成数组就是环境状态<code>s</code>），然后送入决策网络中输出对应的操作<code>a</code>，得到reward<code>r</code>。执行完上述操作后，每一个iteration_step我们都会将数据以如下形式储存：<br>$$<br>(s,s’,a_{1},…,a_{N},r_{1},…,r_{n})<br>$$<br>上述向量中，<code>s</code>和<code>s&#39;</code>是所有智能体在做操作<code>a</code>前后的环境观测<code>o</code>和<code>o&#39;</code>的集合<code>(o1,...,on)</code>,<code>(o&#39;1,...,o&#39;n)</code>。</p>
+<p>我们会进行大量的episode以获取足够多的经验向量，将其全部存在经验池(experience replay buffer)中。</p>
+<p>这一阶段不涉及Critic评价网络，只包括Actor决策网络和环境的互动。</p>
+<p>一种很直接的思路是在参数训练前进行大量的episode以获取足够大的经验池。但这种方案有一个问题：</p>
+<ul>
+<li>用于获取数据的Actor采用的是同一个Policy，走的轨迹会不够diverse，这样训练出来的效果会不够好。</li>
+</ul>
+<p>所以一种更常见的做法是，边采集边训练网络，然后用更新的Actor网络去采集数据，这样采集到的数据会比较diverse。</p>
+<h3 id="1-2-2-参数训练"><a href="#1-2-2-参数训练" class="headerlink" title="1.2.2 参数训练"></a>1.2.2 参数训练</h3><p><code>MADDPG</code>的参数更新过程和之前介绍的<code>DDPG</code>算法十分类似，我们来比较一下二者迭代公式的区别。</p>
+<h4 id="1-2-3-Critic网络的训练"><a href="#1-2-3-Critic网络的训练" class="headerlink" title="1.2.3 Critic网络的训练"></a>1.2.3 Critic网络的训练</h4><p>首先看Critic网络的迭代公式，下面是<code>DDPG</code>算法的Critic网络更新方案，它会以缩小下面的Loss为目标执行梯度下降法：<br>$$<br>Loss_{i}=\frac{1}{S}\Sigma_{j}[y_{i}^j-Q_{i}(s^{j},a^{j})]^2<br>$$<br>其中y是由Target网络生成的目标值，其定义如下：<br>$$<br>y_{i}^{j} = r_{i}^{j}+\gamma Q’<em>{i}(s’^{j},a’^{j})<br>$$<br>下图是<code>MADDPG</code>算法的Q网络迭代公式：<br>$$<br>Loss</em>{i}=\frac{1}{S}\Sigma_{j}[y_{i}^j-Q_{i}(x^{j},a_{1}^{j},…,a_{N}^{j})]^2<br>$$<br>上式中，i下标代表第i个Agent，j上标代表第j个sample (因为我们每次会从经验池里取S个sample)，$y_i^j$是由Target网络生成的目标值，其定义如下：<br>$$<br>y_{i}^{j} = r_{i}^{j}+\gamma Q’<em>{i}(x’^{j},a</em>{1}’^{j},…,a_{N}’^{j})<br>$$<br>怎么理解这个式子呢？我们在学Q-Learning的时候知道，$Q^{\pi}(s,a)$函数的定义是<code>State-Action Value Function</code>，也就是始终使用$\pi$作为policy，在状态$s$做完$a$及以后的期望累计reward(可能英文会更好理解一些: <code>when using actor pi, the cumulated reward expects to be obtained after taking a at state s</code>)。这个也是我们现在主网络可以输出的值。</p>
+<p>而对于$y_{i}^{j}$，它的数学意义是(s,a)操作的reward加上下一状态<code>s&#39;</code>时最大的Q值，我们总是能有$y_i^j&gt;Q^{\pi}(s,a)$，因此$y_i^j$是我们的主网络想要变成的值（y是目标网络的输出），$\gamma$则是一个时间衰减因子。</p>
+<p>可以看到<code>MADDPG</code>在Critic方面的创新大致有两点：</p>
+<ul>
+<li>针对多智能体场景采用了新的经验矢量形式$(x,x’,a,…,a_n,r,…,r_n)$</li>
+<li>设计了输入是所有Agent的操作<code>a</code>和观察<code>o</code>的评价函数$Q(x,a,…,a_n)$</li>
+</ul>
+<h4 id="1-2-4-Actor网络的训练"><a href="#1-2-4-Actor网络的训练" class="headerlink" title="1.2.4 Actor网络的训练"></a>1.2.4 Actor网络的训练</h4><p>再来看Actor网络的迭代公式，依然是枯燥的Deterministic Policy Gradient公式，下面是<code>DDPG</code>的Actor梯度公式：</p>
+<p><img src="/2019/11/13/drl-03/actor-ddpg.png" alt="actor-ddpg"></p>
+<p>下面是<code>DDPG</code>的Actor梯度公式，其实基本一样，只是Q函数变了而已：</p>
+<p><img src="/2019/11/13/drl-03/actor-maddpg.png" alt="actor-maddpg"></p>
+<h2 id="1-3-一些tricks"><a href="#1-3-一些tricks" class="headerlink" title="1.3 一些tricks"></a>1.3 一些tricks</h2><h3 id="1-3-1-每个Agent在本地估计其他Agent的Actor网络以减少通信代价"><a href="#1-3-1-每个Agent在本地估计其他Agent的Actor网络以减少通信代价" class="headerlink" title="1.3.1 每个Agent在本地估计其他Agent的Actor网络以减少通信代价(?)"></a>1.3.1 每个Agent在本地估计其他Agent的Actor网络以减少通信代价(?)</h3><p>每个Agent的Critic在计算Q值时，都要用到别的Agent的Actor函数，为了减小通信成本，可以除了训练自己的Actor网络外，在本地训练其他n-1个Actor的近似。然后用近似的网络去计算Q值。（不知道这个trick的效果会不会好一点，总感觉反而更占用计算资源了哈哈哈）</p>
+<p><img src="/2019/11/13/drl-03/infer.png" alt="infer"></p>
+<h3 id="1-3-2-策略集合优化（policies-ensemble）"><a href="#1-3-2-策略集合优化（policies-ensemble）" class="headerlink" title="1.3.2 策略集合优化（policies ensemble）"></a>1.3.2 策略集合优化（policies ensemble）</h3><p>这个trick是本文的一个亮点。多智能体强化学习一个顽固的问题是由于每个智能体的策略都在更新迭代导致环境针对一个特定的智能体是动态不稳定的。这种情况在竞争任务下尤其严重，经常会出现一个智能体针对其竞争对手过拟合出一个强策略。但是这个强策略是非常脆弱的，也是我们希望得到的，因为随着竞争对手策略的更新改变，这个强策略很难去适应新的对手策略。</p>
+<p>为了能更好的应对上述情况，<code>MADDPG</code>提出了一种策略集合的思想，第i个智能体的策略 <img src="https://www.zhihu.com/equation?tex=%5Cmu_i" alt="[公式]"> 由一个具有K个子策略的集合构成，在每一个训练episode中只使用一个子策略，对每一个智能体，我们最大化其策略集合的整体奖励。</p>
+<p>注意，每个子策略之间的经验池是不共用的（？）。    </p>
+<p><img src="/2019/11/13/drl-03/sub.png" alt="sub"></p>
+<h1 id="2-MADDPG算法实战"><a href="#2-MADDPG算法实战" class="headerlink" title="2. MADDPG算法实战"></a>2. MADDPG算法实战</h1><p>OpenAI公开了MADDPG算法的源码，既有<a href="https://github.com/openai/maddpg" target="_blank" rel="noopener">算法实现模块</a>也有<a href="https://github.com/openai/multiagent-particle-envs" target="_blank" rel="noopener">实现Environment的模块</a>。我想基于这个项目进行二次开发也是极好的（初期根据多无人机协同的需求写一个自己的Environment，后期在算法方面有灵感的话可以修改算法实现模块）。</p>
+<h2 id="2-1-开发环境配置和demo"><a href="#2-1-开发环境配置和demo" class="headerlink" title="2.1 开发环境配置和demo"></a>2.1 开发环境配置和demo</h2><p>依赖：<code>Python (3.5.4)</code>, <code>OpenAI gym (0.10.5)</code>, <code>tensorflow (1.8.0)</code>, <code>numpy (1.14.5)</code></p>
+<p>自己写了一个脚本，用下面的脚本可以快速建立开发环境，你需要先安装Anaconda.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">conda create -n maddpg python=3.5.4</span><br><span class="line">conda activate maddpg</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/openai/maddpg.git</span><br><span class="line"><span class="built_in">cd</span> maddpg</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/openai/multiagent-particle-envs.git</span><br><span class="line"><span class="built_in">echo</span> <span class="string">"export PYTHONPATH=~/maddpg/multiagent-particle-envs:\$PYTHONPATH"</span> &gt;&gt; ~/.bashrc</span><br><span class="line">pip install numpy==1.14.5 gym==0.10.5</span><br><span class="line">conda install tensorflow-gpu=1.8.0 <span class="comment"># 一定要用conda安装tensorflow，否则cuda要自己装</span></span><br></pre></td></tr></table></figure>
+
+<p>现在开发环境已经建立好了，<code>maddpg</code>项目用来训练模型的脚本是<code>experiments</code>子文件夹下的<code>train.py</code>文件，执行<code>python train.py -h</code>以查看帮助。</p>
+<p><img src="/2019/11/13/drl-03/help.png" alt="help"></p>
+<ul>
+<li>目前主要用到的有<code>scenario</code>，即跑的环境environment，是储存在<code>maddpg/multiagent-particle-envs/multiagent/scenarios</code>里的python脚本。</li>
+</ul>
+<ul>
+<li><p>还有<code>display</code>，输入<code>--display</code>会加载已训练的模型中，启用可视化训练（当然因为要可视化训练会很慢，实际训练是要关掉）</p>
+</li>
+<li><p>以及<code>restore</code>，如果要在之前的基础上继续训练，输入<code>--restore</code>，会加载上次保存的模型，继续训</p>
+</li>
+</ul>
+<p>作为demo，输入：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">conda activate maddpg</span><br><span class="line"><span class="built_in">cd</span> ~/maddpg/experiments</span><br><span class="line">python train.py --scenario=simple_world_comm --display</span><br></pre></td></tr></table></figure>
+
+<p>就可以看到训练的过程，当然这个模型还没训练过，可视化出来的结果肯定也很差，就当是个<code>helloworld</code>吧，见下图：</p>
+<p><img src="/2019/11/13/drl-03/demo.png" alt="demo"></p>
+<h2 id="2-2-maddpg代码框架"><a href="#2-2-maddpg代码框架" class="headerlink" title="2.2 maddpg代码框架"></a>2.2 maddpg代码框架</h2><p>maddpg项目的框架如下。说实话，maddpg算法部分代码量不大，不过250行左右，但经过测试性能已经足够优秀。我们未来的工作可能主要集中在应用情景<code>scenario</code>文件的设计。以及，如果有可能，对算法做一定的改进吧。想发paper！</p>
+<p><img src="/2019/11/13/drl-03/structure.png" alt="structure"></p>
+<p>除了上图所示的内容外，本项目还用到了gym的模块，这个模块的使用还有待日后研究。</p>
+<h2 id="2-3-算法demo-simple-push"><a href="#2-3-算法demo-simple-push" class="headerlink" title="2.3 算法demo: simple_push"></a>2.3 算法demo: simple_push</h2><p>略微修改了官方提供的<code>simple_push.py</code>场景，将其中的agent的数量增加到了5个，考察其协作、竞争情况，发现算法的效果还是不错的，如下图所示：</p>
+<p><img src="/2019/11/13/drl-03/simplepushdemo.gif" alt="simplepushdemo"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/ReinforceLearning/" rel="tag"># ReinforceLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/11/12/drl-02/" rel="prev" title="强化学习随笔[02]-DQN/AC/DDPG算法学习">
+      <i class="fa fa-chevron-left"></i> 强化学习随笔[02]-DQN/AC/DDPG算法学习
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/11/14/drl-04/" rel="next" title="强化学习随笔[04]-maddpg项目:创建场景Scenario">
+      强化学习随笔[04]-maddpg项目:创建场景Scenario <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-MADDPG算法"><span class="nav-text">1. MADDPG算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-设计结构：多个Actor-Critic的方案"><span class="nav-text">1.1 设计结构：多个Actor-Critic的方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-集中式训练过程"><span class="nav-text">1.2 集中式训练过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-1-数据采集阶段"><span class="nav-text">1.2.1 数据采集阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-2-参数训练"><span class="nav-text">1.2.2 参数训练</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3-Critic网络的训练"><span class="nav-text">1.2.3 Critic网络的训练</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-4-Actor网络的训练"><span class="nav-text">1.2.4 Actor网络的训练</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-一些tricks"><span class="nav-text">1.3 一些tricks</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-每个Agent在本地估计其他Agent的Actor网络以减少通信代价"><span class="nav-text">1.3.1 每个Agent在本地估计其他Agent的Actor网络以减少通信代价(?)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-策略集合优化（policies-ensemble）"><span class="nav-text">1.3.2 策略集合优化（policies ensemble）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-MADDPG算法实战"><span class="nav-text">2. MADDPG算法实战</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-开发环境配置和demo"><span class="nav-text">2.1 开发环境配置和demo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-maddpg代码框架"><span class="nav-text">2.2 maddpg代码框架</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-算法demo-simple-push"><span class="nav-text">2.3 算法demo: simple_push</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>

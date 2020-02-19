@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要上一篇深度学习随笔详细介绍了基于余弦尺度的行人特征提取网络的原理和具体实现，但最后发现测试结果还是不佳。本文在上篇文章工作的基础上，经过思考，对以下方面进行了改进，最终收获了不错的效果：  对数据生成器的改进，确保每个class被选中的几率是相同的； 找到了feature层输出过于稀疏的原因，加入了BatchNormalization层（这是网络性能改善的主要原因）； 关于余弦尺度为什么w">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下)">
+<meta property="og:url" content="http://yoursite.com/2019/12/23/dl-08/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要上一篇深度学习随笔详细介绍了基于余弦尺度的行人特征提取网络的原理和具体实现，但最后发现测试结果还是不佳。本文在上篇文章工作的基础上，经过思考，对以下方面进行了改进，最终收获了不错的效果：  对数据生成器的改进，确保每个class被选中的几率是相同的； 找到了feature层输出过于稀疏的原因，加入了BatchNormalization层（这是网络性能改善的主要原因）； 关于余弦尺度为什么w">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/with_out_bn.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/elu.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/pb.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/after_bn.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/test.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/softmax.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/cosine-softmax.png">
+<meta property="og:image" content="http://yoursite.com/2019/12/23/dl-08/cosine-k.png">
+<meta property="article:published_time" content="2019-12-22T17:18:42.000Z">
+<meta property="article:modified_time" content="2020-02-06T09:21:58.000Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="CV">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/12/23/dl-08/with_out_bn.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/23/dl-08/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下) | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/23/dl-08/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          多相机行人跟踪[05]-用于行人重识别的余弦相似度网络(下)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-23 01:18:42" itemprop="dateCreated datePublished" datetime="2019-12-23T01:18:42+08:00">2019-12-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-06 17:21:58" itemprop="dateModified" datetime="2020-02-06T17:21:58+08:00">2020-02-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A4%9A%E7%9B%B8%E6%9C%BA%E8%A1%8C%E4%BA%BA%E8%B7%9F%E8%B8%AA%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index">
+                    <span itemprop="name">多相机行人跟踪项目</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p><a href="https://yerfor.github.io/2019/12/13/dl-07/" target="_blank" rel="noopener">上一篇深度学习随笔</a>详细介绍了基于余弦尺度的行人特征提取网络的原理和具体实现，但最后发现测试结果还是不佳。本文在上篇文章工作的基础上，经过思考，对以下方面进行了改进，最终收获了不错的效果：</p>
+<ul>
+<li>对数据生成器的改进，确保每个class被选中的几率是相同的；</li>
+<li>找到了feature层输出过于稀疏的原因，加入了BatchNormalization层（这是网络性能改善的主要原因）；</li>
+<li>关于余弦尺度为什么work，提供了一个直观的解释。</li>
+</ul>
+<a id="more"></a>
+
+<h1 id="1-数据处理"><a href="#1-数据处理" class="headerlink" title="1. 数据处理"></a>1. 数据处理</h1><h2 id="1-1-生成器的改进"><a href="#1-1-生成器的改进" class="headerlink" title="1.1 生成器的改进"></a>1.1 生成器的改进</h2><p>之前的生成器，是每次调用时都对原来的数据进行shuffle洗牌，然后取其前batch_size个数据进行训练，这种取法会导致样本量较大的class被训练的次数比较多，而对样本量小的class，网络基本没有怎么针对其做出训练。而在验证的过程中，因为采取的也是随机均匀采样的方法，所以会导致验证集的数据中大部分都是样本量较大的class，前面提到我们的模型针对样本量大的class训练次数比较多，所以模型在这样的一个验证集上表现肯定会很好，但实际上模型对数据集中样本量小的class的表现是不尽如人意的，我们得到的val_accuracy实际是虚高的。</p>
+<p>基于上面论述的问题，我们对生成器做出了改进。这体现在，对于一个固定大小的batch_size，如128，我们会将其划分成大小相等的若干份，每份只储存一个class的样本。例如把128的batch分成8份，如此每个batch会随机从625个class中选取8个class，然后会分别选取这8个cladx] = reshape_fn(image)<br>        yield batch_images, batch_yss的16个样本存到batch中。</p>
+<p>下面给出源代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">data_generator</span><span class="params">(filenames, ids, batch_size=<span class="number">128</span>, num_samples_per_id=<span class="number">4</span>, image_shape=<span class="params">(<span class="number">128</span>, <span class="number">64</span>)</span>, classes=<span class="number">625</span>)</span>:</span></span><br><span class="line">	<span class="comment"># 对图像进行归一化、resize的预处理函数</span></span><br><span class="line">    reshape_fn = (</span><br><span class="line">        (<span class="keyword">lambda</span> x: x / <span class="number">255.</span>) <span class="keyword">if</span> image_shape == IMAGE_SHAPE[:<span class="number">2</span>]</span><br><span class="line">        <span class="keyword">else</span> (<span class="keyword">lambda</span> x: (cv2.resize(x, image_shape[::<span class="number">-1</span>]) / <span class="number">255.</span>)))</span><br><span class="line">    <span class="comment"># 把filenames和对应的ids转换成np.array</span></span><br><span class="line">    filenames = np.asarray(filenames)</span><br><span class="line">    ids = np.asarray(ids)</span><br><span class="line">    <span class="comment"># 统计每个id对应的样本所在的位置，将其保存成字典，格式如下：</span></span><br><span class="line">    <span class="comment"># &#123;1:['001.jpg','002.jpg',...],2:['007.jpg','008.jpg',...],...&#125;</span></span><br><span class="line">    num_ids_per_batch = batch_size // num_samples_per_id</span><br><span class="line">    unique_ids = np.unique(ids)</span><br><span class="line">    ids_to_idx = &#123;_id: np.where(ids == _id)[<span class="number">0</span>] <span class="keyword">for</span> _id <span class="keyword">in</span> unique_ids&#125;</span><br><span class="line">    <span class="comment"># 以上代码只在第一次调用生成器时执行</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        <span class="comment"># 随机选择本batch要包含的num_ids_per_batch个class</span></span><br><span class="line">        indices = np.random.choice(</span><br><span class="line">            len(unique_ids), num_ids_per_batch, replace=<span class="literal">False</span>)</span><br><span class="line">        batch_unique_y = unique_ids[indices]</span><br><span class="line">		</span><br><span class="line">        <span class="comment"># 预先占用内存</span></span><br><span class="line">        batch_x = np.zeros((batch_size,) + filenames.shape[<span class="number">1</span>:], filenames.dtype)</span><br><span class="line">        batch_y = np.zeros((batch_size,), ids.dtype)</span><br><span class="line">        e = <span class="number">0</span></span><br><span class="line">        <span class="comment"># 对每个id，随机选取相同数目的样本</span></span><br><span class="line">        <span class="keyword">for</span> i, y <span class="keyword">in</span> enumerate(batch_unique_y):</span><br><span class="line">            num_samples = min(num_samples_per_id, len(ids_to_idx[y]))</span><br><span class="line">            indices = np.random.choice(ids_to_idx[y], num_samples, replace=<span class="literal">False</span>)</span><br><span class="line">            s, e = e, e + num_samples</span><br><span class="line">            batch_x[s:e] = filenames[indices]</span><br><span class="line">            batch_y[s:e] = y</span><br><span class="line">		</span><br><span class="line">        <span class="comment"># 如果有的id没有足够多的样本，申明异常，缺失的样本不做修补，因此batch_size会小于设定值。</span></span><br><span class="line">        <span class="keyword">if</span> e &lt; batch_size:</span><br><span class="line">            print(<span class="string">"ERROR: Failed to sample a full batch. Adding corrupt data."</span>)</span><br><span class="line"></span><br><span class="line">        batch_images = np.zeros((e,) + image_shape + (<span class="number">3</span>,), np.float32)</span><br><span class="line">        <span class="comment"># 进行图像读取、预处理</span></span><br><span class="line">        <span class="keyword">for</span> idx, filename <span class="keyword">in</span> enumerate(batch_x):</span><br><span class="line">            image = cv2.imread(filename, cv2.IMREAD_COLOR)</span><br><span class="line">            batch_images[idx] = reshape_fn(image)</span><br><span class="line">        <span class="keyword">yield</span> batch_images, batch_y</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-2-归一化的官方做法：img-255"><a href="#1-2-归一化的官方做法：img-255" class="headerlink" title="1.2 归一化的官方做法：img/255"></a>1.2 归一化的官方做法：<code>img</code>/255</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">preprocess</span><span class="params">(image, is_training=False, input_is_bgr=False)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> input_is_bgr:</span><br><span class="line">        image = image[:, :, ::<span class="number">-1</span>]  <span class="comment"># BGR to RGB</span></span><br><span class="line">    image = tf.divide(tf.cast(image, tf.float32), <span class="number">255.0</span>)</span><br><span class="line">    <span class="keyword">if</span> is_training:</span><br><span class="line">        image = tf.image.random_flip_left_right(image)</span><br><span class="line">    <span class="keyword">return</span> image</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-3-cv2-resize和np-reshape的差异"><a href="#1-3-cv2-resize和np-reshape的差异" class="headerlink" title="1.3 cv2.resize和np.reshape的差异"></a>1.3 cv2.resize和np.reshape的差异</h2><p>$cv2.resize(img,(64,128))\rightarrow np.reshape(1,128,64,3)$</p>
+<p>$cv2.resize(img,(128,64))\rightarrow np.reshape(1,64,128,3)$</p>
+<h1 id="2-批标准化（BatchNormalization）"><a href="#2-批标准化（BatchNormalization）" class="headerlink" title="2. 批标准化（BatchNormalization）"></a>2. 批标准化（BatchNormalization）</h1><h2 id="2-1-问题简述"><a href="#2-1-问题简述" class="headerlink" title="2.1 问题简述"></a>2.1 问题简述</h2><p>之前因为BN层不能用于TRT，所以把它抛弃了，但是，发现输出的feature层输出的特征都是这个样子的：</p>
+<p><img src="/2019/12/23/dl-08/with_out_bn.jpg" alt="with_out_bn"></p>
+<p>可以看到，很多层的输出都是-1，这是因为我们用的激活函数是elu，其函数定义和图像为：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">elu</span><span class="params">(x)</span>:</span>dx] = reshape_fn(image)</span><br><span class="line">        <span class="keyword">yield</span> batch_images, batch_y</span><br><span class="line">    <span class="keyword">return</span> x <span class="keyword">if</span> x &gt; <span class="number">0</span> <span class="keyword">else</span> a * np.exp(x) - <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2019/12/23/dl-08/elu.png" alt="elu"></p>
+<p>而正是因为elu函数在$x&lt;0$时定义如下，所以存在<strong>x较小时输出恒为-1，梯度消失</strong>的性质：<br>$$<br>elu(x) = a\cdot exp(x)-1<br>$$<br>而我们的feature层输出除了两三个元素，其他都是-1，可见在我们模型的feature层中，其大多数输入集中在y轴左侧较远处，使elu函数饱和。</p>
+<p>而论文训练出的模型，特征输出为：</p>
+<p><img src="/2019/12/23/dl-08/pb.jpg" alt="pb"></p>
+<p>其elu函数没有饱和。</p>
+<p>究其原因，是因为作者使用了BatchNormalization，将elu函数的输入值的量级拉回了坐标轴原点附近。</p>
+<p>下面讲讲批量正则化是什么，以及为什么可以解决我们的问题。</p>
+<h2 id="2-2-Batch-Normalization"><a href="#2-2-Batch-Normalization" class="headerlink" title="2.2 Batch Normalization"></a>2.2 Batch Normalization</h2><p>参考资料：网上有一篇博客写的很好：<a href="https://www.cnblogs.com/guoyaohua/p/8724433.html" target="_blank" rel="noopener">深入理解Batch Normalization批标准化</a></p>
+<h3 id="2-1-1-Batch-Normalization的作用"><a href="#2-1-1-Batch-Normalization的作用" class="headerlink" title="2.1.1 Batch Normalization的作用"></a>2.1.1 Batch Normalization的作用</h3><p><code>BatchNormalization</code>对前一层的输出进行处理，使其归一化，且标准差为1。因此可以解决我们“大多数输入集中在y轴左侧较远处，使<code>elu</code>函数饱和”的问题。除了上述有点外，BN层还可以：</p>
+<ul>
+<li>加速网络收敛，因为它的归一化使激活函数的输入回到了一个靠近零点的区间类。</li>
+<li>起到正则化的作用，防止过拟合。</li>
+<li>取代dropout和l2正则化。</li>
+</ul>
+<h3 id="2-1-2-Batch-Normalization的原理与实现"><a href="#2-1-2-Batch-Normalization的原理与实现" class="headerlink" title="2.1.2 Batch Normalization的原理与实现"></a>2.1.2 Batch Normalization的原理与实现</h3><p>其理论步骤分成两步，首先，对上一层的输入进行标准化：<br>$$<br>x_{-}normed = \frac {x-mean(x)} {std(x)}<br>$$<br>接着，对该标准化的输入进行重构变换，该变换的参数$\gamma$和$\beta$都是可以训练的：<br>$$<br>output = \gamma * x_{-}norm + \beta<br>$$<br>加入重构变换的原因是：</p>
+<ul>
+<li>如果是仅仅使用上面的归一化公式，对网络某一层A的输出数据做归一化，然后送入网络下一层B，这样是会影响到本层网络A所学习到的特征的。打个比方，比如我网络中间某一层学习到特征数据本身就分布在S型激活函数的两侧，你强制把它给我归一化处理、标准差也限制在了1，把数据变换成分布于s函数的中间部分，这样就相当于我这一层网络所学习到的特征分布被你搞坏了，这可怎么办？于是引入了变换重构，引入了可学习参数γ、β。每一个神经元都会有一对这样的参数$\gamma$ 、$\beta$ 。这样其实当$\gamma=\sqrt{var(x)}$且$\beta=E(x)$时，是可以恢复出原始的某一层所学到的特征的。因此我们引入了这个可学习重构参数γ、β，让我们的网络可以学习恢复出原始网络所要学习的特征分布。</li>
+</ul>
+<p>正向传播的代码实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">m = K.mean(X, axis=<span class="number">-1</span>, keepdims=<span class="literal">True</span>)        <span class="comment">#计算均值  </span></span><br><span class="line">std = K.std(X, axis=<span class="number">-1</span>, keepdims=<span class="literal">True</span>)           <span class="comment">#计算标准差  </span></span><br><span class="line">X_normed = (X - m) / (std + self.epsilon)         <span class="comment">#归一化  </span></span><br><span class="line">out = self.gamma * X_normed + self.beta           <span class="comment">#重构变换</span></span><br></pre></td></tr></table></figure>
+
+<p>在Tensorflow 2.0中，使用方法十分简洁：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tf.keras.layers.BatchNormalization(axis=<span class="number">-1</span>,momentum=<span class="number">0.99</span>,epsilon=<span class="number">1e-3</span>)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>对于卷积层后的批标准化，上述axis应等于-3.</li>
+</ul>
+<h2 id="2-3-加入BN层后的效果"><a href="#2-3-加入BN层后的效果" class="headerlink" title="2.3 加入BN层后的效果"></a>2.3 加入BN层后的效果</h2><p>我们在原来的基础上，加入批标准化后，可以看到原来feature大多数元素都是-1的问题已经解决了。</p>
+<p><img src="/2019/12/23/dl-08/after_bn.jpg" alt="after_bn"></p>
+<p>在测试样本上的效果如下：</p>
+<p><img src="/2019/12/23/dl-08/test.png" alt="test"></p>
+<h3 id="2-3-1-测试一"><a href="#2-3-1-测试一" class="headerlink" title="2.3.1 测试一"></a>2.3.1 测试一</h3><p>after 22000 iterations (7 epochs):</p>
+<p>accuracy = 97.8</p>
+<table>
+<thead>
+<tr>
+<th>测试图片</th>
+<th>y1</th>
+<th>y2</th>
+<th>y3</th>
+<th>red</th>
+<th>lss</th>
+<th>hg</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>相似度</td>
+<td></td>
+<td>0.4638</td>
+<td>0.386</td>
+<td>0.2066</td>
+<td>0.073</td>
+<td>0.252</td>
+</tr>
+<tr>
+<td>相似度</td>
+<td></td>
+<td></td>
+<td>0.3094</td>
+<td>0.1174</td>
+<td>-0.046</td>
+<td>-0.1314</td>
+</tr>
+<tr>
+<td>相似度</td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.0325</td>
+<td>0.0468</td>
+<td>0.287</td>
+</tr>
+</tbody></table>
+<h3 id="2-3-2-测试二"><a href="#2-3-2-测试二" class="headerlink" title="2.3.2 测试二"></a>2.3.2 测试二</h3><p>after 15000 iterations (4 epochs)</p>
+<p>accuracy = 95.20.287</p>
+<table>
+<thead>
+<tr>
+<th>测试图片</th>
+<th>y1</th>
+<th>y2</th>
+<th>y3</th>
+<th>red</th>
+<th>lss</th>
+<th>hg</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>相似度</td>
+<td></td>
+<td>0.5139</td>
+<td>0.4133</td>
+<td>0.1813</td>
+<td>0.07811</td>
+<td>0.0323</td>
+</tr>
+<tr>
+<td>相似度</td>
+<td></td>
+<td></td>
+<td>0.4163</td>
+<td>0.2022</td>
+<td>-0.0314</td>
+<td>-0.144325</td>
+</tr>
+<tr>
+<td>相似度</td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.2105</td>
+<td>0.11528</td>
+<td>0.1230</td>
+</tr>
+</tbody></table>
+<h3 id="2-3-3-测试三"><a href="#2-3-3-测试三" class="headerlink" title="2.3.3 测试三"></a>2.3.3 测试三</h3><p>after 7000 iterations (2 epochs)</p>
+<p>accuracy = 86.8</p>
+<table>
+<thead>
+<tr>
+<th>测试图片</th>
+<th>y1</th>
+<th>y2</th>
+<th>y3</th>
+<th>red</th>
+<th>lss</th>
+<th>hg</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>相似度</td>
+<td></td>
+<td>0.4843</td>
+<td>0.5704</td>
+<td>0.3027</td>
+<td>0.0668</td>
+<td>0.2624</td>
+</tr>
+<tr>
+<td>相似度</td>
+<td></td>
+<td></td>
+<td>0.4827</td>
+<td>0.2171</td>
+<td>0.1460</td>
+<td>-0.18625</td>
+</tr>
+<tr>
+<td>相似度</td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.356</td>
+<td>0.1978</td>
+<td>0.2169</td>
+</tr>
+</tbody></table>
+<p>上述测试结果表明网络已经可以一定程度上解析出不同行人之间的特征了。</p>
+<h1 id="3-cosine-softmax能够work的通俗解释"><a href="#3-cosine-softmax能够work的通俗解释" class="headerlink" title="3. cosine-softmax能够work的通俗解释"></a>3. cosine-softmax能够work的通俗解释</h1><p>传统的softmax定义式如下：<br>$$<br>softmax(x) = \frac {exp(logits)}{\Sigma exp(logits)}<br>$$</p>
+<p>其输出值大小与$logits$的分布关系如下：</p>
+<p><img src="/2019/12/23/dl-08/softmax.png" alt="softmax"></p>
+<ul>
+<li>可以看到，softmax的分类结果，和logits的向量方向没有关系。</li>
+</ul>
+<p>而cosine-softmax的定义式如下：<br>$$<br>cosine_{-}softmax(logits) = \frac {exp(k \cdot \frac{logits}{||logits||<em>{2}})}{\Sigma exp(k \cdot \frac{logits}{||logits||</em>{2}})}<br>$$<br>其输出值大小与$logits$的分布关系如下：</p>
+<p><img src="/2019/12/23/dl-08/cosine-softmax.png" alt="softmax"></p>
+<ul>
+<li>可以看到，cosine-softmax的分类结果，和logits的向量方向有关。</li>
+</ul>
+<p>下图展示了不同k值对分布的影响，在训练中，k也是可以训练的参数。</p>
+<p><img src="/2019/12/23/dl-08/cosine-k.png" alt="softmax"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/Python/" rel="tag"># Python</a>
+              <a href="/tags/CV/" rel="tag"># CV</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/13/dl-07/" rel="prev" title="多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中)">
+      <i class="fa fa-chevron-left"></i> 多相机行人跟踪[04]-用于行人重识别的余弦相似度网络(中)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/02/06/gan-01/" rel="next" title="GAN[01]-生成对抗网络:从GAN到到WGAN">
+      GAN[01]-生成对抗网络:从GAN到到WGAN <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-数据处理"><span class="nav-text">1. 数据处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-生成器的改进"><span class="nav-text">1.1 生成器的改进</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-归一化的官方做法：img-255"><span class="nav-text">1.2 归一化的官方做法：img&#x2F;255</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-cv2-resize和np-reshape的差异"><span class="nav-text">1.3 cv2.resize和np.reshape的差异</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-批标准化（BatchNormalization）"><span class="nav-text">2. 批标准化（BatchNormalization）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-问题简述"><span class="nav-text">2.1 问题简述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-Batch-Normalization"><span class="nav-text">2.2 Batch Normalization</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1-Batch-Normalization的作用"><span class="nav-text">2.1.1 Batch Normalization的作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2-Batch-Normalization的原理与实现"><span class="nav-text">2.1.2 Batch Normalization的原理与实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-加入BN层后的效果"><span class="nav-text">2.3 加入BN层后的效果</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-1-测试一"><span class="nav-text">2.3.1 测试一</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-2-测试二"><span class="nav-text">2.3.2 测试二</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-3-测试三"><span class="nav-text">2.3.3 测试三</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-cosine-softmax能够work的通俗解释"><span class="nav-text">3. cosine-softmax能够work的通俗解释</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>
