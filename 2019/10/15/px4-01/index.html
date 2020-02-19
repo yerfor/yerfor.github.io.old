@@ -283,7 +283,6 @@
 </li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-创建源文件"><a href="#1-创建源文件" class="headerlink" title="1. 创建源文件"></a>1. 创建源文件</h1><ol>
 <li><p>在Firmware/src/目录下选择一个地址，创建应用程序的文件夹，如example/px4_simple_app;</p>
 </li>
@@ -291,13 +290,11 @@
 </li>
 <li><p>在源文件中输入以下代码：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;px4_log.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">__EXPORT <span class="keyword">int</span> <span class="title">px4_simple_app_main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span>;<span class="comment">//对每个源文件中的main函数都要如此export出去</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">px4_simple_app_main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    PX4_INFO(<span class="string">"Hello Sky!"</span>); <span class="comment">//在终端打印消息，来自头文件px4_log.h，类似还有PX4_WARN、PX4_ERR、PX4_DEBUG等函数，warning和error会存进log文件。</span></span><br><span class="line">    <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>上述代码，每次执行都会在终端打印一个“Hello Sky!”。</p>
 </li>
 </ol>
 <h1 id="2-创建CMakelist-txt"><a href="#2-创建CMakelist-txt" class="headerlink" title="2. 创建CMakelist.txt"></a>2. 创建CMakelist.txt</h1><p>在文件夹下创建一个CMakeLists.txt</p>
 <figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">px4_add_module(</span><br><span class="line">    MODULE examples__px4_simple_app //新增模块名</span><br><span class="line">    MAIN px4_simple_app //调用模块用的命令名</span><br><span class="line">    STACK_MAIN <span class="number">2000</span> //</span><br><span class="line">    SRCS // 源文件</span><br><span class="line">        px4_simple_app.c</span><br><span class="line">    DEPENDS //依赖</span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
-
 <h1 id="3-编译模块"><a href="#3-编译模块" class="headerlink" title="3. 编译模块"></a>3. 编译模块</h1><ol>
 <li><p>￼修改cmake</p>
 <p>编译px4根据要编译的平台，选择相应的cmake文件进行修改。仿真采用的模块是PX4 SITL; 上传到pixhawk用的模块是pixhawk fmu_v2，下图是各个模块的cmake文件的位置：</p>
@@ -306,7 +303,7 @@
 <p><img src="/2019/10/15/px4-01/1.png" alt></p>
 <p>在cmake的px4_add_board函数下，一级缩进如EXAMPLES等是所在的一级文件夹example，二级缩进是模块文件夹的名字。</p>
 <p><img src="/2019/10/15/px4-01/2.png" alt></p>
-<ol start="2">
+<ol>
 <li>编译px4</li>
 </ol>
 <p><img src="/2019/10/15/px4-01/3.png" alt></p>

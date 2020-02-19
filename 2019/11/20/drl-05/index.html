@@ -291,7 +291,6 @@
 <li>展示了程序的训练结果，做了一些思考和展望</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-问题建模"><a href="#1-问题建模" class="headerlink" title="1. 问题建模"></a>1. 问题建模</h1><p>如何训练智能体完成对某一区域的搜索任务？</p>
 <p>一个很直观的想法是将连续的区域离散成均匀分布的点阵（类似围棋棋盘），当智能体经过了该点阵的所有点后，即认为完成了搜索任务。在现实生活中，这种建模方法已经有所应用，比如小区保安的巡逻需要在各个目标点进行打卡。因此认为，只要合理设置点阵中点的相对位置，这个转化是合理的。</p>
 <p>我们假设智能体能够探测的区域是一个半径为<code>R</code>的圆，当该圆包含点阵中的位置点时，代表该点已经被探测过。多智能体的目标是通过协作在限定时间内尽可能探测较多的位置点。</p>
@@ -308,19 +307,27 @@
 <h2 id="2-2-reward设计"><a href="#2-2-reward设计" class="headerlink" title="2.2 reward设计"></a>2.2 reward设计</h2><p>在上一篇博文里我们介绍了maddpg项目里所有sample的reward设计，掌握了部分reward shaping的思想。reward对强化学习训练的影响，不啻于深度学习中的Loss function，它的设计也是强化学习一个让人觉得难以把握的地方。以下是我针对该问题设计的reward，欢迎探讨。</p>
 <h3 id="2-2-1-距离惩罚项"><a href="#2-2-1-距离惩罚项" class="headerlink" title="2.2.1 距离惩罚项"></a>2.2.1 距离惩罚项</h3><p>在maddpg项目的<code>simple_spread</code>示例中，达到了分配各智能体占领数量相同的目标点的效果：</p>
 <p><img src="/2019/11/20/drl-05/simple_spread.gif" alt="simple_spread"></p>
-<p>其reward如下：<br>$$<br>reward=-\Sigma_i dist(landmark_i,nearest_{-}agent)<br>$$<br>也即对每个Landmark，都有考察离他最近的agent的距离，然后求和取负数，作为惩罚。只有当所有Landmark都有离它很近的agent，reward才会相对比较大。</p>
+<p>其reward如下：</p>
+<script type="math/tex; mode=display">
+reward=-\Sigma_i dist(landmark_i,nearest_{-}agent)</script><p>也即对每个Landmark，都有考察离他最近的agent的距离，然后求和取负数，作为惩罚。只有当所有Landmark都有离它很近的agent，reward才会相对比较大。</p>
 <p>我们的场景与其不同点在于：第一，我们不希望agent在到达目标点后停留在那里，而是继续探索其他目标点。第二，我们的目标点的数量远远多于agent。</p>
-<p>首先解决第一个问题，我们可以创建一个数组储存各个目标点是否被探索过，如果是探索过的目标点，其距离惩罚项不会计入reward的计算中，可以用如下公式表示：<br>$$<br>reward=-\Sigma_i dist(landmark_{-}not_{-}detected,nearest_{-}agent)<br>$$<br>接下来考虑第二个问题，即目标点的数量问题，基于上述公式，我们发现随着Landmarks不断被探索，计入reward的Landmark的数量是不断下降的，这会导致距离惩罚项的值域在一个Episode中不断改变（快速下降）。为了解决这个问题，对该项除以未被探测的Landmark数量，如下：<br>$$<br>reward=\frac {-\Sigma_i dist(landmark_{-}not_{-}detected,nearest_{-}agent)}{num_{-}of_{-}landmark_{-}not_{-}detected}<br>$$<br>我们会在最后考虑reward的各项的系数问题，所以这里先不关心上式的量级了。</p>
+<p>首先解决第一个问题，我们可以创建一个数组储存各个目标点是否被探索过，如果是探索过的目标点，其距离惩罚项不会计入reward的计算中，可以用如下公式表示：</p>
+<script type="math/tex; mode=display">
+reward=-\Sigma_i dist(landmark_{-}not_{-}detected,nearest_{-}agent)</script><p>接下来考虑第二个问题，即目标点的数量问题，基于上述公式，我们发现随着Landmarks不断被探索，计入reward的Landmark的数量是不断下降的，这会导致距离惩罚项的值域在一个Episode中不断改变（快速下降）。为了解决这个问题，对该项除以未被探测的Landmark数量，如下：</p>
+<script type="math/tex; mode=display">
+reward=\frac {-\Sigma_i dist(landmark_{-}not_{-}detected,nearest_{-}agent)}{num_{-}of_{-}landmark_{-}not_{-}detected}</script><p>我们会在最后考虑reward的各项的系数问题，所以这里先不关心上式的量级了。</p>
 <p>最后给出距离惩罚项的源代码：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">rew = <span class="number">0</span></span><br><span class="line">      dists_between_agent_and_landmarks = [np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos))) <span class="keyword">for</span> l <span class="keyword">in</span> world.landmarks]</span><br><span class="line">      <span class="keyword">for</span> idx_of_landmark, dist <span class="keyword">in</span> enumerate(dists_between_agent_and_landmarks):</span><br><span class="line">          <span class="keyword">if</span> dist &lt; agent.size:<span class="comment"># 如果目标点位于圆内，代表该点被探测了</span></span><br><span class="line">              self.detected_landmarks_list[idx_of_landmark] = <span class="literal">True</span></span><br><span class="line">      <span class="keyword">for</span> idx, l <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">          <span class="keyword">if</span> <span class="keyword">not</span> self.detected_landmarks_list[idx]:</span><br><span class="line">              dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) <span class="keyword">for</span> a <span class="keyword">in</span> world.agents]</span><br><span class="line">              rew -= np.min(dists) / (</span><br><span class="line">                          self.num_landmarks - self.detected_landmarks_list[self.detected_landmarks_list].size)</span><br></pre></td></tr></table></figure>
-
 <h3 id="2-2-2-碰撞惩罚项"><a href="#2-2-2-碰撞惩罚项" class="headerlink" title="2.2.2 碰撞惩罚项"></a>2.2.2 碰撞惩罚项</h3><p>如果两个智能体的监测区域（圆）重合了，无疑是十分低效率的，而且存在安全问题，所以仿照<code>simple_spread</code>的思想，设定了碰撞惩罚项：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> agent.collide:</span><br><span class="line">    <span class="keyword">for</span> a <span class="keyword">in</span> world.agents:</span><br><span class="line">        <span class="keyword">if</span> self.is_collision(a, agent):</span><br><span class="line">    <span class="comment"># if np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) &lt; 0.5 * a.size:</span></span><br><span class="line">            rew -= <span class="number">1</span></span><br></pre></td></tr></table></figure>
-
 <p>思想很简单，就是如果两个圆有重合，那么同时惩罚两个人。</p>
 <p>之前还想过更复杂的惩罚项，即根据重叠距离返回不同大小的惩罚，但发现这样修改后智能体重叠的现象反而变多了，所以还是直接用上面这种一刀切的方法。</p>
 <h3 id="2-2-3-任务完成进度奖励项"><a href="#2-2-3-任务完成进度奖励项" class="headerlink" title="2.2.3 任务完成进度奖励项"></a>2.2.3 任务完成进度奖励项</h3><p>如果只有上面的两项，训练出来的模型根据测试会在几个点停留下来，没有探索其他位置点的欲望，于是又设计了根据任务完成进度的奖励项。</p>
-<p>之前试过用探测过的目标点的数量作为奖励大小的依据，但是发现这样模型会在拿到一定数量的目标点后就满足了。所以后面考虑了将<strong>当前时刻新探测的目标点数量</strong>作为奖励的依据，因此引入了上一时刻已探测目标点这个参数。不妨先简单地设定任务完成进度奖励项为:<br>$$<br>reward=num_{landmark}_{detected}<em>{t+1}-num\</em>{landmark}_{detected}_{t}<br>$$<br>而且，在不同时刻探测相同数量的目标点的价值是不一样的，在一个新的Episode开始时，智能体随便移动一下都能探测一个目标点，但随着游戏的进行，未被探测的目标点越来越少，这时探测一个新的目标的价值就很高了。基于这一点，引入了“时间”这个维度，期望在上述公式前乘上一项由时间确定的修正参数，该参数需要在t=0时很小，随后逐渐变大。<br>考虑在深度学习中常用的sigmoid函数：<br>$$<br>sigmoid(x)=\frac {1}{1+e^{-x}}<br>$$<br>该函数的曲线为：</p>
+<p>之前试过用探测过的目标点的数量作为奖励大小的依据，但是发现这样模型会在拿到一定数量的目标点后就满足了。所以后面考虑了将<strong>当前时刻新探测的目标点数量</strong>作为奖励的依据，因此引入了上一时刻已探测目标点这个参数。不妨先简单地设定任务完成进度奖励项为:</p>
+<script type="math/tex; mode=display">
+reward=num\_{landmark}\_{detected}_{t+1}-num\_{landmark}\_{detected}_{t}</script><p>而且，在不同时刻探测相同数量的目标点的价值是不一样的，在一个新的Episode开始时，智能体随便移动一下都能探测一个目标点，但随着游戏的进行，未被探测的目标点越来越少，这时探测一个新的目标的价值就很高了。基于这一点，引入了“时间”这个维度，期望在上述公式前乘上一项由时间确定的修正参数，该参数需要在t=0时很小，随后逐渐变大。<br>考虑在深度学习中常用的sigmoid函数：</p>
+<script type="math/tex; mode=display">
+sigmoid(x)=\frac {1}{1+e^{-x}}</script><p>该函数的曲线为：</p>
 <p><img src="/2019/11/20/drl-05/sigmoid.png" alt="sigmoid"></p>
 <p>根据我们的训练条件（iteration=30）对其做平移和伸缩，如下：</p>
 <p><img src="/2019/11/20/drl-05/sigmoid_plus.png" alt="sigmoid_plus"></p>
@@ -328,9 +335,6 @@
 <p><img src="/2019/11/20/drl-05/task-fulfilling-reward.png" alt="task-fulfilling-reward"></p>
 <p>代码为：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">self.num_detected = self.detected_landmarks_list[self.detected_landmarks_list].size</span><br><span class="line">delta_num_detected = self.num_detected - self.previous_num_detected</span><br><span class="line">rew += <span class="number">3</span> * sigmoid_plus(self.time) * delta_num_detected</span><br></pre></td></tr></table></figure>
-
-
-
 <h1 id="3-训练结果"><a href="#3-训练结果" class="headerlink" title="3. 训练结果"></a>3. 训练结果</h1><p>将2.2节中设计的reward的三项在实验中进行量级测试后，进行加权求和作为reward。</p>
 <p>以下是上述模型的训练结果。</p>
 <ul>
@@ -347,73 +351,77 @@
 <li><p>统计数据-任务完成情况</p>
 </li>
 </ul>
+<div class="table-container">
 <table>
 <thead>
 <tr>
-<th align="center">episode</th>
-<th align="center">reward</th>
-<th align="center">steps_per_epi</th>
-<th align="center">mean(100%)</th>
-<th align="center">std(100%)</th>
+<th style="text-align:center">episode</th>
+<th style="text-align:center">reward</th>
+<th style="text-align:center">steps_per_epi</th>
+<th style="text-align:center">mean(100%)</th>
+<th style="text-align:center">std(100%)</th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="center">60w</td>
-<td align="center">10.1397</td>
-<td align="center">30</td>
-<td align="center">0.6708</td>
-<td align="center">0.0916</td>
+<tbody>
+<tr>
+<td style="text-align:center">60w</td>
+<td style="text-align:center">10.1397</td>
+<td style="text-align:center">30</td>
+<td style="text-align:center">0.6708</td>
+<td style="text-align:center">0.0916</td>
 </tr>
 <tr>
-<td align="center">60w</td>
-<td align="center">10.1397</td>
-<td align="center">60</td>
-<td align="center">0.8487</td>
-<td align="center">0.0631</td>
+<td style="text-align:center">60w</td>
+<td style="text-align:center">10.1397</td>
+<td style="text-align:center">60</td>
+<td style="text-align:center">0.8487</td>
+<td style="text-align:center">0.0631</td>
 </tr>
 <tr>
-<td align="center">60w</td>
-<td align="center">10.1397</td>
-<td align="center">90</td>
-<td align="center">0.8903</td>
-<td align="center">0.0633</td>
+<td style="text-align:center">60w</td>
+<td style="text-align:center">10.1397</td>
+<td style="text-align:center">90</td>
+<td style="text-align:center">0.8903</td>
+<td style="text-align:center">0.0633</td>
 </tr>
 <tr>
-<td align="center">60w</td>
-<td align="center">10.1397</td>
-<td align="center">120</td>
-<td align="center">0.9119</td>
-<td align="center">0.0632</td>
+<td style="text-align:center">60w</td>
+<td style="text-align:center">10.1397</td>
+<td style="text-align:center">120</td>
+<td style="text-align:center">0.9119</td>
+<td style="text-align:center">0.0632</td>
 </tr>
 <tr>
-<td align="center">100w</td>
-<td align="center">20.0138</td>
-<td align="center">30</td>
-<td align="center">0.7091</td>
-<td align="center">0.0677</td>
+<td style="text-align:center">100w</td>
+<td style="text-align:center">20.0138</td>
+<td style="text-align:center">30</td>
+<td style="text-align:center">0.7091</td>
+<td style="text-align:center">0.0677</td>
 </tr>
 <tr>
-<td align="center">100w</td>
-<td align="center">20.0138</td>
-<td align="center">60</td>
-<td align="center">0.9040</td>
-<td align="center">0.0525</td>
+<td style="text-align:center">100w</td>
+<td style="text-align:center">20.0138</td>
+<td style="text-align:center">60</td>
+<td style="text-align:center">0.9040</td>
+<td style="text-align:center">0.0525</td>
 </tr>
 <tr>
-<td align="center">100w</td>
-<td align="center">20.0138</td>
-<td align="center">90</td>
-<td align="center">0.9381</td>
-<td align="center">0.0461</td>
+<td style="text-align:center">100w</td>
+<td style="text-align:center">20.0138</td>
+<td style="text-align:center">90</td>
+<td style="text-align:center">0.9381</td>
+<td style="text-align:center">0.0461</td>
 </tr>
 <tr>
-<td align="center">100w</td>
-<td align="center">20.0138</td>
-<td align="center">120</td>
-<td align="center">0.9492</td>
-<td align="center">0.0391</td>
+<td style="text-align:center">100w</td>
+<td style="text-align:center">20.0138</td>
+<td style="text-align:center">120</td>
+<td style="text-align:center">0.9492</td>
+<td style="text-align:center">0.0391</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <p>​    </p>
 <h1 id="4-总结和思考"><a href="#4-总结和思考" class="headerlink" title="4. 总结和思考"></a>4. 总结和思考</h1><p>强化学习一直都不善于求取问题的最优解，路径规划问题其实使用传统的数学工具可以很容易地求取最优解，采用强化学习的优势我认为包括以下几点：</p>
 <ul>

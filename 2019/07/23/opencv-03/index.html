@@ -276,7 +276,6 @@
 <li>图像的几何变换，包括仿射变换和透视变换</li>
 </ol>
 <a id="more"></a>
-
 <h1 id="1-颜色空间转换和色彩筛选（BGR-Gray-HSV）"><a href="#1-颜色空间转换和色彩筛选（BGR-Gray-HSV）" class="headerlink" title="1. 颜色空间转换和色彩筛选（BGR/Gray/HSV）"></a>1. 颜色空间转换和色彩筛选（BGR/Gray/HSV）</h1><p>目前有150余种颜色空间转换的tag，但是最常用的只有两种：</p>
 <ul>
 <li>BGR &lt;——&gt; Gray</li>
@@ -300,32 +299,27 @@
 </li>
 </ul>
 <h2 id="1-1-cvtColor函数"><a href="#1-1-cvtColor函数" class="headerlink" title="1.1 cvtColor函数"></a>1.1 cvtColor函数</h2><h3 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;dst&gt; = cv2.cvtColor(&lt;img&gt;, &lt;cv2.COLOR_XXX&gt;)</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li><strong>For HSV, Hue range is [0,179], Saturation range is [0,255] and Value range is [0,255]. Different software use different scales. So if you are comparing OpenCV values with them, you need to normalize these ranges.</strong></li>
 </ul>
 <h2 id="1-2-inrange函数"><a href="#1-2-inrange函数" class="headerlink" title="1.2 inrange函数"></a>1.2 inrange函数</h2><h3 id="使用方法-1"><a href="#使用方法-1" class="headerlink" title="使用方法"></a>使用方法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;mask&gt; = cv2.inrange(&lt;img&gt;, &lt;minimum&gt;, &lt;maximum&gt;)</span><br></pre></td></tr></table></figure>
-
 <p>对于图像矩阵img，任何处于minimum和maximum之间的值都会被置为255，否则置为0。</p>
 <ul>
 <li>参数minimum和maximum是1x3的元组</li>
 </ul>
 <h2 id="1-3-例程——对摄像头实时图像进行色彩筛选"><a href="#1-3-例程——对摄像头实时图像进行色彩筛选" class="headerlink" title="1.3 例程——对摄像头实时图像进行色彩筛选"></a>1.3 例程——对摄像头实时图像进行色彩筛选</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2 <span class="keyword">as</span> cv</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line">cap = cv.VideoCapture(<span class="number">0</span>)</span><br><span class="line"><span class="keyword">while</span>(<span class="number">1</span>):</span><br><span class="line">    <span class="comment"># Take each frame</span></span><br><span class="line">    _, frame = cap.read()</span><br><span class="line">    <span class="comment"># Convert BGR to HSV</span></span><br><span class="line">    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)</span><br><span class="line">    <span class="comment"># define range of blue color in HSV</span></span><br><span class="line">    lower_blue = np.array([<span class="number">110</span>,<span class="number">50</span>,<span class="number">50</span>]) <span class="comment"># 上界</span></span><br><span class="line">    upper_blue = np.array([<span class="number">130</span>,<span class="number">255</span>,<span class="number">255</span>]) <span class="comment"># 上界</span></span><br><span class="line">    <span class="comment"># Threshold the HSV image to get only blue colors</span></span><br><span class="line">    mask = cv.inRange(hsv, lower_blue, upper_blue)</span><br><span class="line">    <span class="comment"># Bitwise-AND mask and original image</span></span><br><span class="line">    res = cv.bitwise_and(frame,frame, mask= mask)</span><br><span class="line">    cv.imshow(<span class="string">'frame'</span>,frame)</span><br><span class="line">    cv.imshow(<span class="string">'mask'</span>,mask)</span><br><span class="line">    cv.imshow(<span class="string">'res'</span>,res)</span><br><span class="line">    k = cv.waitKey(<span class="number">5</span>) &amp; <span class="number">0xFF</span></span><br><span class="line">    <span class="keyword">if</span> k == <span class="number">27</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">cv.destroyAllWindows()</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>在这里发现，imshow的默认格式应该时BGR，所以打印前要把图片改回BGR</li>
 <li>注意这里hsv只是用来确定mask的工具</li>
 </ul>
 <h1 id="2-图像的几何变换"><a href="#2-图像的几何变换" class="headerlink" title="2. 图像的几何变换"></a>2. 图像的几何变换</h1><p>在下述内容中，会时常看到 <strong>cv.warpAffine</strong> 和 <strong>cv.warpPerspective</strong>两个函数，二者都是根据变换矩阵来对图像进行变换的函数，不同点在于warpAffine采用2x3矩阵作为输入，warpPerspective采用3x3矩阵作为输入。</p>
 <h2 id="2-1-修改图像大小——resize"><a href="#2-1-修改图像大小——resize" class="headerlink" title="2.1 修改图像大小——resize"></a>2.1 修改图像大小——resize</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cv2.resize(src,dsize,dst=<span class="literal">None</span>,dx=<span class="literal">None</span>,fy=<span class="literal">None</span>,interpolation=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
-
 <h3 id="函数实现有两种方法"><a href="#函数实现有两种方法" class="headerlink" title="函数实现有两种方法"></a>函数实现有两种方法</h3><ol>
 <li><p>指定绝对的形状dsize=(m,n)</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;res&gt; &#x3D; cv2.resize(&lt;img&gt;,(m,n))</span><br></pre></td></tr></table></figure>
 </li>
 <li><p>指定缩放因子fx,fy</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;res&gt; = cv2.resize(&lt;img&gt;,<span class="literal">None</span>,fx=xxx,fy=xxx)</span><br></pre></td></tr></table></figure>
-
 </li>
 </ol>
 <h3 id="插值方式——interpolation"><a href="#插值方式——interpolation" class="headerlink" title="插值方式——interpolation"></a>插值方式——interpolation</h3><ul>
@@ -339,7 +333,6 @@
 <li>在OpenCV的坐标系中，x是列数，y是行数，左上角是原点</li>
 </ul>
 <h3 id="函数实现方法"><a href="#函数实现方法" class="headerlink" title="函数实现方法"></a>函数实现方法</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">M = np.float32([[<span class="number">1</span>,<span class="number">0</span>,tx],[<span class="number">0</span>,<span class="number">1</span>,ty]])</span><br><span class="line">&lt;res&gt; = cv2.warpAffine(&lt;img&gt;,M,&lt;output_shape&gt;)</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>上述的output_shape是（m,n）的元组</li>
 <li>M矩阵一定要是float格式的2x3矩阵</li>
@@ -353,7 +346,6 @@
 <p>scale即为图像的面积。</p>
 <h3 id="函数实现方法-1"><a href="#函数实现方法-1" class="headerlink" title="函数实现方法"></a>函数实现方法</h3><p>为了得到上述的一般旋转矩阵M，OpenCV提供了 <strong>cv2.getRotationMatrix2D</strong>函数：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">M = cv2.getRotationMatrix2D((x,y),&lt;angle&gt;,&lt;scale_factor=<span class="number">1</span>&gt;)</span><br><span class="line">dst = cv.warpAffine(&lt;img&gt;,M,(output_cols,output_rows))</span><br></pre></td></tr></table></figure>
-
 <h2 id="2-4-仿射变换的确定——getAffineTransform"><a href="#2-4-仿射变换的确定——getAffineTransform" class="headerlink" title="2.4 仿射变换的确定——getAffineTransform"></a>2.4 仿射变换的确定——getAffineTransform</h2><p><strong>仿射变换</strong>，又称<strong>仿射映射</strong>，是指在几何中，一个向量空间经过线性变换（<strong>旋转/缩放/平移</strong>）变换为另一个向量空间，我们在以上三节介绍的变换均属于仿射变换的范畴，如果想要叠加三种变换，只需要将他们的M矩阵相加即可，通过三者加和，我们可以得到任意的仿射变换的矩阵。</p>
 <p>但是反过来，如何从原图和仿射变换后的图片，反推出这次变换的变换矩阵M呢？</p>
 <p>我们知道，三个不共线的点可以确定一个平面。只要在原图中找到三个点编为一组，而后在变换后图找到这三个点，就可以唯一确定一个仿射变换矩阵。</p>
@@ -365,7 +357,6 @@
 </li>
 </ul>
 <h3 id="例程"><a href="#例程" class="headerlink" title="例程"></a>例程</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">'lss.jpg'</span>)</span><br><span class="line">height, width = img.shape[<span class="number">0</span>], img.shape[<span class="number">1</span>]</span><br><span class="line">pts1 = np.float32([[<span class="number">50</span>,<span class="number">50</span>],[<span class="number">200</span>,<span class="number">50</span>],[<span class="number">50</span>,<span class="number">200</span>]])</span><br><span class="line">pts2 = np.float32([[<span class="number">10</span>,<span class="number">100</span>],[<span class="number">200</span>,<span class="number">50</span>],[<span class="number">100</span>,<span class="number">250</span>]])</span><br><span class="line">M = cv2.getAffineTransform(pts1,pts2)</span><br><span class="line">res = cv2.warpAffine(img,M,(height,width))</span><br><span class="line">cv2.imshow(<span class="string">'img'</span>,img)</span><br><span class="line">cv2.imshow(<span class="string">'dst'</span>,res)</span><br><span class="line">cv2.waitKey(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
-
 <p><img src="/2019/07/23/opencv-03/affine.png" alt="affne"></p>
 <h2 id="2-5-透视变换——getPerspectiveTransform"><a href="#2-5-透视变换——getPerspectiveTransform" class="headerlink" title="2.5 透视变换——getPerspectiveTransform"></a>2.5 透视变换——getPerspectiveTransform</h2><p>透视变换(Perspective Transformation)是将图片投影到一个新的视平面(Viewing Plane)，也称作投影映射(Projective Mapping)。如下图所示</p>
 <p><img src="/2019/07/23/opencv-03/web2.jpg" alt="img"></p>
@@ -379,7 +370,6 @@
 </ul>
 <h3 id="函数实现方法-3"><a href="#函数实现方法-3" class="headerlink" title="函数实现方法"></a>函数实现方法</h3><p>与仿射变换类似，不同点在于每组包括<strong>四个点</strong>；得到的M矩阵是3x3；采用的是warpPerspective函数。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pts1 = np.float32([[<span class="number">56</span>,<span class="number">65</span>],[<span class="number">368</span>,<span class="number">52</span>],[<span class="number">28</span>,<span class="number">387</span>],[<span class="number">389</span>,<span class="number">390</span>]])</span><br><span class="line">pts2 = np.float32([[<span class="number">0</span>,<span class="number">0</span>],[<span class="number">300</span>,<span class="number">0</span>],[<span class="number">0</span>,<span class="number">300</span>],[<span class="number">300</span>,<span class="number">300</span>]])</span><br><span class="line">M = cv2.getPerspectiveTransform(pts1，pts2)</span><br><span class="line">dst = cv.warpPerspective(img,M,(<span class="number">300</span>,<span class="number">300</span>))</span><br></pre></td></tr></table></figure>
-
 <p>下图是仿射变换的应用实例：</p>
 <p><img src="/2019/07/23/opencv-03/per.png" alt="perspect"></p>
 

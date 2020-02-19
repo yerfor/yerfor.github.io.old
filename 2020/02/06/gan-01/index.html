@@ -281,7 +281,6 @@
 <li>提供了具体实现WGAN-GP的项目代，并，并码</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-生成对抗网络-GAN-介绍"><a href="#1-生成对抗网络-GAN-介绍" class="headerlink" title="1. 生成对抗网络(GAN)介绍"></a>1. 生成对抗网络(GAN)介绍</h1><h2 id="1-1-Generator和Discriminator"><a href="#1-1-Generator和Discriminator" class="headerlink" title="1.1 Generator和Discriminator"></a>1.1 Generator和Discriminator</h2><ul>
 <li>Generator和Discriminator都是神经网络。</li>
 <li>Generator网络的输入通常是一个来自于高斯分布的噪声向量，在网络中经过一系列上采样，输出一张图片或其他高维数据，下图是用于图像生成和文本生成时的Generator输入输出结构。</li>
@@ -306,7 +305,7 @@
 <li>从高斯分布中随机抽取m个噪声{$z_1,…,z_m$}</li>
 <li>将噪声全部输入到Generator网络中，得到m个生成的图像{$x’_1,…,x’_m$},其中$x’_i=Generator(z_i)$</li>
 <li>将数据集中的m个样本和伪造的m个图像都输入到Discriminator中，用以下方式更新Discriminator：<ul>
-<li>定义目标函数：$V=\frac{1}{m}\Sigma^{m}<em>{i=1}logD(x_i)+\frac{1}{m}\Sigma^{m}</em>{i=1}log(1-D(x’_i))$<ul>
+<li>定义目标函数：$V=\frac{1}{m}\Sigma^{m}_{i=1}logD(x_i)+\frac{1}{m}\Sigma^{m}_{i=1}log(1-D(x’_i))$<ul>
 <li>上式类似于分类问题中的交叉熵，最大化上式，意味着最大化对真实图像的评分$D(x_i)$，同时最小化对虚假图像的评分$D(x’_i)$。</li>
 </ul>
 </li>
@@ -332,12 +331,15 @@
 <p><img src="/2020/02/06/gan-01/3.png" alt="3"></p>
 <p>如下图所示，Generator的输入$z$是一个高斯分布，经过Generator后<a href="https://github.com/yerfor/WGAN-TensorFlow2该分布被弯曲变形成下图所示的$P_G(x)$，在不断训练的过程中，$P_G(x)$会越来越趋同于$P_{data}(x)$。统计学中用散度($Div$)来描述两组概率分布的相似程度，所以我们期望训练出来的Generator可以表示为$G=argminDiv(P_G,P_{data})$。" target="_blank" rel="noopener">https://github.com/yerfor/WGAN-TensorFlow2该分布被弯曲变形成下图所示的$P_G(x)$，在不断训练的过程中，$P_G(x)$会越来越趋同于$P_{data}(x)$。统计学中用散度($Div$)来描述两组概率分布的相似程度，所以我们期望训练出来的Generator可以表示为$G=argminDiv(P_G,P_{data})$。</a></p>
 <p><img src="/2020/02/06/gan-01/4.png" alt="4"></p>
-<p>要计算$Div(P_G,P_{data})$,必须要能够判断一个图像属不属于$P_{data}$，根据1.1中GAN的算法，我们训练了Discriminator来拟合$P_{data}(x)$的形状，只有落在该区域内的图像才能获得高分。当Discriminator训练的足够好的时候，我们认为它已经可以描述$P_{data}(x)$，下面是条件：<br>$$<br>D = argmaxV , where<br>$$</p>
-<p>$$<br>V=\frac{1}{m}\Sigma^{m}<em>{i=1}logD(x_i)+\frac{1}{m}\Sigma^{m}</em>{i=1}log(1-D(x’_i))<br>$$</p>
-<ul>
+<p>要计算$Div(P_G,P_{data})$,必须要能够判断一个图像属不属于$P_{data}$，根据1.1中GAN的算法，我们训练了Discriminator来拟合$P_{data}(x)$的形状，只有落在该区域内的图像才能获得高分。当Discriminator训练的足够好的时候，我们认为它已经可以描述$P_{data}(x)$，下面是条件：</p>
+<script type="math/tex; mode=display">
+D = argmaxV , where</script><script type="math/tex; mode=display">
+V=\frac{1}{m}\Sigma^{m}_{i=1}logD(x_i)+\frac{1}{m}\Sigma^{m}_{i=1}log(1-D(x'_i))</script><ul>
 <li>当然，在GAN中我们不可能一步到位地训练Discriminator，因为我们没有足够的负样本，实作中这些负样本都要由Generator来提供。所以一般都是把二个网络一起迭代更新。</li>
 </ul>
-<p>我们认为被最优化后的$V$可以最好的分辨图片是否属于Data，可以数学证明（略）：<br>$$<br>maxV=-2log2+2JSD(P_G,P_{data})<br>$$<br>也就是说我们用交叉熵作为目标函数训练Discriminator，实际是教会了Discriminator计算输入图片和数据集分布之间的<code>JS散度</code>。</p>
+<p>我们认为被最优化后的$V$可以最好的分辨图片是否属于Data，可以数学证明（略）：</p>
+<script type="math/tex; mode=display">
+maxV=-2log2+2JSD(P_G,P_{data})</script><p>也就是说我们用交叉熵作为目标函数训练Discriminator，实际是教会了Discriminator计算输入图片和数据集分布之间的<code>JS散度</code>。</p>
 <p>如果让Generator的目标是最小化$maxV(G,D)$，那么训练Generator 的过程实际上就是减小Generator生成的数据分布和数据集分布之间的JS散度。</p>
 <ul>
 <li>本节讨论的意义在于：修改目标函数V，可以起到修改作为度量标准的散度的目的。如下表所示：</li>
@@ -361,8 +363,9 @@
 <p><img src="/2020/02/06/gan-01/wgan.png" alt="wgan"></p>
 <p>发现该式子完全继承了上一小节的LSGAN的目标函数，只是多亏了一个$D(x)\in 1-Lipschitzd$的约束。这个约束的意思就是D(x)函数在任意一点的导数不能大于1。</p>
 <p>当时提出WGAN的人最初没有想到好方法满足该式，于是简单地对Discriminator做了一个weight clilpping，实验下来发现也能用。</p>
-<p>后来，WGAN的作者再次发文，指出D满足$1-Lipschitzd$等价于D(x)相对于x（x是discriminator的输入，即图像）的梯度小于等于1，所以在目标函数的后面剪去了一项Gradient Penalty，这样目标函数变为：<br>$$<br>V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{<em>}{x}\in P_{G}}(D(\overset{</em>}{x}))-E_{\overset{*}{x}\in P_{data}}(\nabla _x||D(x)||^2-1)]<br>$$</p>
-<p>这种改良后的WGAN因为增加了Gradient Penalty，也被称作WGAN-GP。它能够显著减少Mode Collapse和Mode Dropping。</p>
+<p>后来，WGAN的作者再次发文，指出D满足$1-Lipschitzd$等价于D(x)相对于x（x是discriminator的输入，即图像）的梯度小于等于1，所以在目标函数的后面剪去了一项Gradient Penalty，这样目标函数变为：</p>
+<script type="math/tex; mode=display">
+V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(D(\overset{*}{x}))-E_{\overset{*}{x}\in P_{data}}(\nabla _x||D(x)||^2-1)]</script><p>这种改良后的WGAN因为增加了Gradient Penalty，也被称作WGAN-GP。它能够显著减少Mode Collapse和Mode Dropping。</p>
 <p>WGAN是对传统GAN的全方面优化，下面是两个结构performance的对比：</p>
 <ul>
 <li>GAN，iterations=10000</li>

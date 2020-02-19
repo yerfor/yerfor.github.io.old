@@ -654,7 +654,7 @@
           <h2 id="0-引言"><a href="#0-引言" class="headerlink" title="0. 引言"></a>0. 引言</h2><p>传统无人机控制手段有RC控制和地面站控制，这两种方式都具有高度依赖手动控制、受通信距离限制的局限性。随着硬件算力的提高和理论的发展，学界开始尝试开发能够独立生存、自主完成任务的无人机。</p>
 <p>机器人操作系统（Robot Operating System，ROS）是一组开源的软件库，它可以帮助开发者构建机器人应用环境。ROS的核心概念有节点（Node）和话题（Topic），节点可以处理数据，解决具体问题，然后将结果以话题的形式广播（Publish）到通信域中，供需要的节点订阅（Subscribe）。</p>
 <p>值得关注的是，MAVROS作为ROS的一个拓展包，提供了基于MAVLink协议的ROS与PX4、APM等主流飞行控制固件之间的通信功能。这意味着我们只需要在ROS中搭建做出飞行决策的系统，再简单地以MAVROS作为桥梁将ROS中的控制指令信息传输到飞控固件，就能够搭建一个无人机的控制系统。</p>
-<p>基于ROS、YOLO、PX4等软件模块，本文介绍了一种可以独立生存、自主决策并灵活完成任务的微型无人机软件系统。</p>
+<p>基于ROS、YOLO、PX4等软件模块，本文介绍了一种可以独立生存、自主决策并灵活完成任务的微型无人机软件系统。<br></p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/07/12/uav-02/#more" rel="contents">
@@ -728,7 +728,7 @@
       
           <h2 id="0-引言"><a href="#0-引言" class="headerlink" title="0. 引言"></a>0. 引言</h2><p>从今年四月底开始在罗老师门下学习人工智能的项目开发，“基于目标识别的自主无人机”是我参与的第一个项目。在开发环境的搭建中踩了很多的坑，中间也重装了很多次系统，在这过程中深觉记录研究成果的必要，罗老师也建议我对自己所作的工作进行记录，因此有了这个博客。</p>
 <p>经过摸索，需要安装的开发环境主要包括：</p>
-<p><strong>1.Ubuntu 16.04 LTS 操作系统</strong><br><strong>2.Nvidia显卡驱动</strong><br><strong>3.CUDA + CUDNN 深度学习的加速引擎</strong><br><strong>4.px4固件（在安装过程中会安装opencv等依赖）</strong><br><strong>5.gazebo7仿真软件（经过测试，独立安装的gazebo7性能要远远优于px4或ROS整合安装的版本）</strong><br><strong>6.ROS kinetic</strong></p>
+<p><strong>1.Ubuntu 16.04 LTS 操作系统</strong><br><strong>2.Nvidia显卡驱动</strong><br><strong>3.CUDA + CUDNN 深度学习的加速引擎</strong><br><strong>4.px4固件（在安装过程中会安装opencv等依赖）</strong><br><strong>5.gazebo7仿真软件（经过测试，独立安装的gazebo7性能要远远优于px4或ROS整合安装的版本）</strong><br><strong>6.ROS kinetic</strong><br></p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/07/07/uav-01/#more" rel="contents">

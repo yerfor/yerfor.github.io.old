@@ -277,7 +277,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>毕业设计的题目与基于强化学习的多Agent协同任务规划相关。之前只接触过基于深度学习的CV相关项目，这次的课题对我而言是个较大的挑战。花费了几天时间学习了强化学习的基本概念和常用算法，主要参考的是台湾大学<a href="https://www.bilibili.com/video/av63546968?from=search&seid=8588499706669408642" target="_blank" rel="noopener">李宏毅教授的强化学习课程</a>，以及南京大学周志华教授的西瓜书。</p>
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>毕业设计的题目与基于强化学习的多Agent协同任务规划相关。之前只接触过基于深度学习的CV相关项目，这次的课题对我而言是个较大的挑战。花费了几天时间学习了强化学习的基本概念和常用算法，主要参考的是台湾大学<a href="https://www.bilibili.com/video/av63546968?from=search&amp;seid=8588499706669408642" target="_blank" rel="noopener">李宏毅教授的强化学习课程</a>，以及南京大学周志华教授的西瓜书。</p>
 <p>初学强化学习，感觉其中的概念、算法繁多，但各个算法之间的思路有些地方是相通，所以做个总结，强化记忆。欢迎交流、指导！</p>
 <p>本文总结了：</p>
 <ul>
@@ -286,7 +286,6 @@
 <li>A2C算法</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-Policy-Gradient（基于概率）"><a href="#1-Policy-Gradient（基于概率）" class="headerlink" title="1. Policy Gradient（基于概率）"></a>1. Policy Gradient（基于概率）</h1><p>强化学习的目标是训练一个Agent，可以感受外界的环境状态（State，符号<code>s</code>），然后根据训练的行为准则（Policy，符号$\pi$），做出操作（Action，符号<code>a</code>）。</p>
 <p>每当Agent做出操作<code>a</code>后，都会改变环境状态<code>s</code>，并从环境获得一个反馈（Reward，符号<code>r</code>）, 这个反馈会指导Agent的行为准则$\pi$朝增大Reward的方向进行改变。</p>
 <p><img src="/2019/11/05/drl-01/1.jpeg" alt="1"></p>
@@ -299,9 +298,15 @@
 <p>所以要训练一个好的Policy，我们的目标就是要让这个Policy的<code>R</code>的期望尽可能地高。</p>
 <p>如下图所示，参考深度学习中的梯度下降法，我们要优化Policy的参数，只需要求解<code>R</code>的期望相对于Policy网络中各个参数$\theta$的梯度。</p>
 <p><img src="/2019/11/05/drl-01/4.jpeg" alt="4"></p>
-<p>那么，先来考察一下<code>R</code>的期望的数学表达式，因为他是各个轨迹的总回报的期望，所以我们用条件概率公式有：<br>$$<br>R_{\theta}=\sum_{\tau}R(\tau)P(\tau|\theta)<br>$$<br>对<code>R</code>其相对于参数$\theta$求梯度，有：<br>$$<br>\nabla R_{\theta}=\sum_{\tau}R(\tau)\nabla P(\tau|\theta)=\sum_{\tau}R(\tau)P(\tau|\theta)\frac{\nabla P(\tau|\theta)}{P(\tau|\theta)}\approx \frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\nabla lnP(\tau^{n}|\theta)<br>$$<br>对上式来说，$R(\tau^{n})$是直接用采样获取训练中各个<code>episode</code>的总reward的均值。而如下图所示，我们可以求解$\nabla lnP$项：</p>
+<p>那么，先来考察一下<code>R</code>的期望的数学表达式，因为他是各个轨迹的总回报的期望，所以我们用条件概率公式有：</p>
+<script type="math/tex; mode=display">
+R_{\theta}=\sum_{\tau}R(\tau)P(\tau|\theta)</script><p>对<code>R</code>其相对于参数$\theta$求梯度，有：</p>
+<script type="math/tex; mode=display">
+\nabla R_{\theta}=\sum_{\tau}R(\tau)\nabla P(\tau|\theta)=\sum_{\tau}R(\tau)P(\tau|\theta)\frac{\nabla P(\tau|\theta)}{P(\tau|\theta)}\approx \frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\nabla lnP(\tau^{n}|\theta)</script><p>对上式来说，$R(\tau^{n})$是直接用采样获取训练中各个<code>episode</code>的总reward的均值。而如下图所示，我们可以求解$\nabla lnP$项：</p>
 <p><img src="/2019/11/05/drl-01/7.jpeg" alt="7"></p>
-<p>至此，我们已经化简了R的期望的梯度公式，如下：<br>$$<br>\nabla R_{\theta}=\frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\cdot \sum_{t=1}^{T}\nabla lnP(a_{t}|s_{t},\theta)<br>$$<br>上述化简后的梯度公式，里面的概率$P(a|s,\theta)$就是policy网络的输出。所以梯度公式中已经可以求解了。</p>
+<p>至此，我们已经化简了R的期望的梯度公式，如下：</p>
+<script type="math/tex; mode=display">
+\nabla R_{\theta}=\frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\cdot \sum_{t=1}^{T}\nabla lnP(a_{t}|s_{t},\theta)</script><p>上述化简后的梯度公式，里面的概率$P(a|s,\theta)$就是policy网络的输出。所以梯度公式中已经可以求解了。</p>
 <p>总结一下，Policy Gradient的总体步骤如下：</p>
 <p>1.先随机正向推理N个episode，得到N条轨迹和对应的总reward；</p>
 <p>2.用上面得到的公式得到梯度，然后更新参数；</p>
@@ -313,14 +318,24 @@
 <p><img src="/2019/11/05/drl-01/11.jpg" alt="11"></p>
 <p>Q函数的作用是对任一个环境状态$s$下，要执行动作$a$，都返回一个值对其进行评价。</p>
 <p>Q-Learning的思路就是不断训练Q函数，提升其评价($s,a)$的准确率。</p>
-<p>先假设我们已经有一个训练得很好的Q函数了，在决策时，给定环境$s$，我们在Q函数中寻找使Q值最大的$a$即可，即：<br>$$<br>a=\pi(s)=argmax Q(s,a)<br>$$<br>在经典的Q-Learning中，Q函数往往是简单的表格（纵轴是State，横轴是Action，表中的block就是该(s,a)对的Q值，Q值越大说明在s时做a这个操作越好，机器会直接选择这个最好的值）。如下图所示，如果环境<code>s=4</code>，那么Policy就会选择第四行中使Q值最大的那个操作$a$，也就是<code>right</code>。</p>
+<p>先假设我们已经有一个训练得很好的Q函数了，在决策时，给定环境$s$，我们在Q函数中寻找使Q值最大的$a$即可，即：</p>
+<script type="math/tex; mode=display">
+a=\pi(s)=argmax Q(s,a)</script><p>在经典的Q-Learning中，Q函数往往是简单的表格（纵轴是State，横轴是Action，表中的block就是该(s,a)对的Q值，Q值越大说明在s时做a这个操作越好，机器会直接选择这个最好的值）。如下图所示，如果环境<code>s=4</code>，那么Policy就会选择第四行中使Q值最大的那个操作$a$，也就是<code>right</code>。</p>
 <p><img src="/2019/11/05/drl-01/3.PNG" alt="3"></p>
 <p>每次做出如上推理，都会更新Q函数（Q-table），接下来来看Q-Learning如何实现Q函数（Q-table）的更新。</p>
 <p>首先通过上述推理，可以得到在当前环境$s$下要做的决策$a$，接下来观察该操作$a$带来的反馈$r$和下一时刻的环境$s’$。</p>
-<p>在Policy Gradient里我们知道操作$a$的好坏要看两部分，首先是当时刻的反馈如何，另外还要看$a$操作造成的新环境$s’$，它的得分期望怎么样。因为也许$a$操作虽然当前没有得到分数，但它是<code>happy ending</code>的必要操作呢。所以，Q函数的更新迭代公式综合考虑了当前的reward和下一时刻环境的得分期望，如下：<br>$$<br>Q_{n}(s,a_{i})= Q_{n-1}(s,a_{i})+\alpha[r_{i}^{t}+\gamma\cdot maxQ(s’,a’)-Q_{n-1}(s,a_{i})]<br>$$<br>上面的$r_{i}^{t}$即为当前reward，$maxQ(s’)$即为下一时刻环境的最大得分期望，$\gamma$是一个小于1的衰减系数，这个系数会随着迭代而不断升次，换句话说里当前时刻越往后的时刻，它的得分我们认为和当前时刻的操作$a_i$干系越不大。$\alpha$则是学习率，是一个超参数。</p>
+<p>在Policy Gradient里我们知道操作$a$的好坏要看两部分，首先是当时刻的反馈如何，另外还要看$a$操作造成的新环境$s’$，它的得分期望怎么样。因为也许$a$操作虽然当前没有得到分数，但它是<code>happy ending</code>的必要操作呢。所以，Q函数的更新迭代公式综合考虑了当前的reward和下一时刻环境的得分期望，如下：</p>
+<script type="math/tex; mode=display">
+Q_{n}(s,a_{i})= Q_{n-1}(s,a_{i})+\alpha[r_{i}^{t}+\gamma\cdot maxQ(s',a')-Q_{n-1}(s,a_{i})]</script><p>上面的$r_{i}^{t}$即为当前reward，$maxQ(s’)$即为下一时刻环境的最大得分期望，$\gamma$是一个小于1的衰减系数，这个系数会随着迭代而不断升次，换句话说里当前时刻越往后的时刻，它的得分我们认为和当前时刻的操作$a_i$干系越不大。$\alpha$则是学习率，是一个超参数。</p>
 <p>事实上，从数学意义上看，当前步骤的$r$和下一步骤的最大Q值，不就是当前步骤理论的最大Q值吗？这样我们着眼整个迭代公式，会发现Q-table的更新实际上就是一个Q-table在自身基础上以a为学习率向理论的最大Q值努力迭代靠近的过程。</p>
 <p>经过上述讲述，可能仍然不明白迭代公式的形式为何是这个样子的。为此我参考了西瓜书上<code>K-摇臂赌博机</code>的例子。</p>
-<p>一个赌博机有k个摇臂，我们要用Q函数评价某一环境<code>s</code>下按下各个摇臂（其实就是k个action<code>a</code>）的好坏。一个很自然的想法就是分别统计各个摇臂被按下时的reward情况，求其平均值，将该值作为Q函数的值，也即：<br>$$<br>Q(s,a_{i})=\frac{1}{T}\Sigma r_{i}^{t}<br>$$<br>这种表示方法需要统计下每次摇臂的reward，效率十分低下，于是转换成增量式计算的形式，即：<br>$$<br>Q_{n}(s,a_{i})= \frac {n-1}{n}Q_{n-1}(s,a_{i})+\frac {1}{n}r_{i}^{t}<br>$$<br>这样，就只需要记录前一时刻的Q值和当前时刻的reward了，再将它等价地转换一下，就得到了类似Q-Learning更新迭代公式的形式：<br>$$<br>Q_{n}(s,a_{i})= Q_{n-1}(s,a_{i})+\frac {1}{n}(r_{i}^{t}-Q_{n-1}(s,a_{i}))<br>$$<br>比较一下两个公式，发现只要将上式的<code>1/n</code>变成学习率，在括号里加上考虑下一时刻环境的得分期望的项，就得到了Q-Learning的迭代公式。</p>
+<p>一个赌博机有k个摇臂，我们要用Q函数评价某一环境<code>s</code>下按下各个摇臂（其实就是k个action<code>a</code>）的好坏。一个很自然的想法就是分别统计各个摇臂被按下时的reward情况，求其平均值，将该值作为Q函数的值，也即：</p>
+<script type="math/tex; mode=display">
+Q(s,a_{i})=\frac{1}{T}\Sigma r_{i}^{t}</script><p>这种表示方法需要统计下每次摇臂的reward，效率十分低下，于是转换成增量式计算的形式，即：</p>
+<script type="math/tex; mode=display">
+Q_{n}(s,a_{i})= \frac {n-1}{n}Q_{n-1}(s,a_{i})+\frac {1}{n}r_{i}^{t}</script><p>这样，就只需要记录前一时刻的Q值和当前时刻的reward了，再将它等价地转换一下，就得到了类似Q-Learning更新迭代公式的形式：</p>
+<script type="math/tex; mode=display">
+Q_{n}(s,a_{i})= Q_{n-1}(s,a_{i})+\frac {1}{n}(r_{i}^{t}-Q_{n-1}(s,a_{i}))</script><p>比较一下两个公式，发现只要将上式的<code>1/n</code>变成学习率，在括号里加上考虑下一时刻环境的得分期望的项，就得到了Q-Learning的迭代公式。</p>
 <p>至此我们介绍完了Q-Learning算法的基本思想和公式推导。为了Exploration，在已知环境$s$，选择操作$a$的时候可以不完全根据Q函数的值来。最常用的有$\epsilon-greedy$算法，即有一定几率不依据Q-table，而是用随机数，随机选取$a$。（和模拟退火法的思想类似）</p>
 <h1 id="3-Actor-Critic结构"><a href="#3-Actor-Critic结构" class="headerlink" title="3. Actor-Critic结构"></a>3. Actor-Critic结构</h1><p>在上文中，我们分别介绍了基于概率决策的Policy Gradient算法和基于数值决策的Q-Learning算法。A3C算法可以说是结合了二者优点的方法。我们在这篇文章中只是简略介绍了Actor-Critic的思想，详细算法可以看<a href="https://yerfor.github.io/2019/11/12/drl-02/" target="_blank" rel="noopener">下一篇博文</a>。</p>
 <p><img src="/2019/11/05/drl-01/555.webp" alt="555"></p>

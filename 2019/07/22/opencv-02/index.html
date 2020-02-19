@@ -273,7 +273,6 @@
 <li>如何提升程序性能</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-图像的基本操作"><a href="#1-图像的基本操作" class="headerlink" title="1. 图像的基本操作"></a>1. 图像的基本操作</h1><h2 id="1-1-像素的访问和选取"><a href="#1-1-像素的访问和选取" class="headerlink" title="1.1 像素的访问和选取"></a>1.1 像素的访问和选取</h2><ol>
 <li><p>单个像素</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">img[x,y]</span><br></pre></td></tr></table></figure>
@@ -300,26 +299,22 @@
 </li>
 <li><p>图像矩阵的数据类型</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">img.dtype</span><br></pre></td></tr></table></figure>
-
 </li>
 </ol>
 <h2 id="1-3-选取矩形ROI"><a href="#1-3-选取矩形ROI" class="headerlink" title="1.3 选取矩形ROI"></a>1.3 选取矩形ROI</h2><ul>
 <li>用1.1的方法，选择矩形ROI</li>
 </ul>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ball &#x3D; img[280:340, 330:390]</span><br><span class="line">img[273:333, 100:160] &#x3D; ball</span><br></pre></td></tr></table></figure>
-
 <h2 id="1-4-分离、融合颜色通道"><a href="#1-4-分离、融合颜色通道" class="headerlink" title="1.4 分离、融合颜色通道"></a>1.4 分离、融合颜色通道</h2><ul>
 <li><p>split函数分离通道</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">b,g,r &#x3D; cv2.split(img)</span><br></pre></td></tr></table></figure>
 </li>
 <li><p>merge函数融合通道</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">img &#x3D; cv2.merge((b,g,r))</span><br></pre></td></tr></table></figure>
-
 </li>
 </ul>
 <h2 id="1-5-为图像增加边框"><a href="#1-5-为图像增加边框" class="headerlink" title="1.5 为图像增加边框"></a>1.5 为图像增加边框</h2><p><img src="/2019/07/22/opencv-02/frame.png" alt="add_frame"></p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np&lt;</span><br><span class="line"><span class="keyword">from</span> matplotlib <span class="keyword">import</span> pyplot <span class="keyword">as</span> plt</span><br><span class="line">BLUE = [<span class="number">255</span>,<span class="number">0</span>,<span class="number">0</span>]</span><br><span class="line">img1 = cv2.imread(<span class="string">'opencv-logo.png'</span>)</span><br><span class="line">replicate = cv2.copyMakeBorder(img1,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,cv2.BORDER_REPLICATE)</span><br><span class="line">reflect = cv2.copyMakeBorder(img1,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,cv2.BORDER_REFLECT)</span><br><span class="line">reflect101 = cv2.copyMakeBorder(img1,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,cv2.BORDER_REFLECT_101)</span><br><span class="line">wrap = cv2.copyMakeBorder(img1,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,cv2.BORDER_WRAP)</span><br><span class="line">constant= cv2.copyMakeBorder(img1,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,<span class="number">10</span>,cv2.BORDER_CONSTANT,value=BLUE)</span><br><span class="line">plt.subplot(<span class="number">231</span>),plt.imshow(img1,<span class="string">'gray'</span>),plt.title(<span class="string">'ORIGINAL'</span>)</span><br><span class="line">plt.subplot(<span class="number">232</span>),plt.imshow(replicate,<span class="string">'gray'</span>),plt.title(<span class="string">'REPLICATE'</span>)</span><br><span class="line">plt.subplot(<span class="number">233</span>),plt.imshow(reflect,<span class="string">'gray'</span>),plt.title(<span class="string">'REFLECT'</span>)</span><br><span class="line">plt.subplot(<span class="number">234</span>),plt.imshow(reflect101,<span class="string">'gray'</span>),plt.title(<span class="string">'REFLECT_101'</span>)</span><br><span class="line">plt.subplot(<span class="number">235</span>),plt.imshow(wrap,<span class="string">'gray'</span>),plt.title(<span class="string">'WRAP'</span>)</span><br><span class="line">plt.subplot(<span class="number">236</span>),plt.imshow(constant,<span class="string">'gray'</span>),plt.title(<span class="string">'CONSTANT'</span>)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
-
 <p><img src="/2019/07/22/opencv-02/frame-2.png" alt="add_frame2"></p>
 <h1 id="2-图像的加法与融合"><a href="#2-图像的加法与融合" class="headerlink" title="2. 图像的加法与融合"></a>2. 图像的加法与融合</h1><h2 id="2-1-图像的加法"><a href="#2-1-图像的加法" class="headerlink" title="2.1 图像的加法"></a>2.1 图像的加法</h2><ul>
 <li><p>图像的加法有两种方法：</p>
@@ -342,27 +337,22 @@
 <ul>
 <li><p>addWeighted函数使用方法</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;dst&gt; &#x3D; cv2.addWeighted(&lt;img1&gt;, &lt;alpha&gt;, &lt;img2&gt;, &lt;beta&gt;, &lt;gamma&gt;)</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>上式中，alpha和beta之和应该等于1。</li>
 </ul>
 </li>
 </ul>
 <h2 id="2-3-图像位运算"><a href="#2-3-图像位运算" class="headerlink" title="2.3 图像位运算"></a>2.3 图像位运算</h2><h3 id="与运算"><a href="#与运算" class="headerlink" title="与运算"></a>与运算</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">img1_bg &#x3D; cv2.bitwise_and(roi,roi,mask &#x3D; mask_inv)</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li><strong>mask是灰度图</strong></li>
 </ul>
 <h3 id="逆运算"><a href="#逆运算" class="headerlink" title="逆运算"></a>逆运算</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mask_inv &#x3D; cv2.bitwise_not(&lt;mask&gt;)</span><br></pre></td></tr></table></figure>
-
 <p><img src="/2019/07/22/opencv-02/inv.png" alt="inv"></p>
 <h3 id="阈值函数threshold"><a href="#阈值函数threshold" class="headerlink" title="阈值函数threshold"></a>阈值函数threshold</h3><ul>
 <li>把灰度图像中大于threshold的值都赋值为max</li>
 </ul>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ret, mask = cv2.threshold(&lt;img&gt;, &lt;threshold&gt;, &lt;max&gt;, cv2.THRESH_BINARY)</span><br></pre></td></tr></table></figure>
-
 <h3 id="例程"><a href="#例程" class="headerlink" title="例程"></a>例程</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"></span><br><span class="line">img1 = cv2.imread(<span class="string">'lss.jpg'</span>) <span class="comment"># 载体图片</span></span><br><span class="line">img2 = cv2.imread(<span class="string">'wei.png'</span>) <span class="comment"># 待移植图标</span></span><br><span class="line">rows, cols, colors = img2.shape</span><br><span class="line">roi = img1[<span class="number">0</span>:rows, <span class="number">0</span>:cols] <span class="comment"># 根据img2的大小，确定roi</span></span><br><span class="line">img2gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY) <span class="comment"># 获得图标的灰度图</span></span><br><span class="line">ret, mask = cv2.threshold(img2gray, <span class="number">80</span>, <span class="number">255</span>, cv2.THRESH_BINARY) <span class="comment"># 把图标灰度图0-1化</span></span><br><span class="line">mask_inv = cv2.bitwise_not(mask) </span><br><span class="line">img1_bg = cv2.bitwise_and(roi, roi, mask=mask) <span class="comment"># 处理roi，挖出空位</span></span><br><span class="line">img2_fg = cv2.bitwise_and(img2,img2, mask=mask_inv) <span class="comment"># 处理图标，挖出待移植图标</span></span><br><span class="line">dst = cv2.add(img1_bg, img2_fg) <span class="comment"># 得到新roi</span></span><br><span class="line">img1[<span class="number">0</span>:rows, <span class="number">0</span>:cols] = dst <span class="comment"># 把新的roi更新到img1中</span></span><br><span class="line">cv2.imshow(<span class="string">'roi'</span>, img1)</span><br><span class="line">cv2.waitKey(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
-
 <h1 id="3-如何提升程序性能"><a href="#3-如何提升程序性能" class="headerlink" title="3. 如何提升程序性能"></a>3. 如何提升程序性能</h1><h2 id="3-1-测量程序用时的三种方法"><a href="#3-1-测量程序用时的三种方法" class="headerlink" title="3.1 测量程序用时的三种方法"></a>3.1 测量程序用时的三种方法</h2><h3 id="cv2-getTickCount-cv2-getTickFrequency"><a href="#cv2-getTickCount-cv2-getTickFrequency" class="headerlink" title="cv2.getTickCount + cv2.getTickFrequency"></a>cv2.getTickCount + cv2.getTickFrequency</h3><ul>
 <li><p>cv2.getTickCount可以测量时钟在两次调用之间的时间内count的次数</p>
 </li>
@@ -370,23 +360,19 @@
 </li>
 <li><p>因此可以用以下代码块得到程序用时：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">e1 = cv2.getTickCount()</span><br><span class="line"><span class="comment"># your code execution</span></span><br><span class="line">e2 = cv2.getTickCount()</span><br><span class="line">time = (e2 - e1)/ cv2.getTickFrequency()</span><br></pre></td></tr></table></figure>
-
 </li>
 </ul>
 <h3 id="time-time"><a href="#time-time" class="headerlink" title="time.time()"></a>time.time()</h3><ul>
 <li><p>python的官方库time可以用于测量程序运行时间</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">start = time.time()</span><br><span class="line"><span class="comment"># your code execution</span></span><br><span class="line">end = time.time()</span><br><span class="line">time = end - start</span><br></pre></td></tr></table></figure>
-
 </li>
 </ul>
 <h3 id="Ipython的-timeit"><a href="#Ipython的-timeit" class="headerlink" title="Ipython的%timeit"></a>Ipython的%timeit</h3><ul>
 <li><strong>%timeit专门用于测试单一语句或者函数的性能</strong></li>
 </ul>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">2</span>]: %timeit res = cv2.medianBlur(img,<span class="number">49</span>)</span><br><span class="line"><span class="number">42.1</span> ms ± <span class="number">209</span> µs per loop (mean ± std. dev. of <span class="number">7</span> runs, <span class="number">10</span> loops each)</span><br></pre></td></tr></table></figure>
-
 <h2 id="3-2-启用OpenCV默认优化"><a href="#3-2-启用OpenCV默认优化" class="headerlink" title="3.2 启用OpenCV默认优化"></a>3.2 启用OpenCV默认优化</h2><p>先来看开启和不开启优化的程序用时：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># check if optimization is enabled</span></span><br><span class="line">In [<span class="number">5</span>]: cv2.useOptimized()</span><br><span class="line">Out[<span class="number">5</span>]: <span class="literal">True</span></span><br><span class="line">In [<span class="number">6</span>]: %timeit res = cv2.medianBlur(img,<span class="number">49</span>)</span><br><span class="line"><span class="number">10</span> loops, best of <span class="number">3</span>: <span class="number">34.9</span> ms per loop</span><br><span class="line"><span class="comment"># Disable it</span></span><br><span class="line">In [<span class="number">7</span>]: cv2.setUseOptimized(<span class="literal">False</span>)</span><br><span class="line">In [<span class="number">8</span>]: cv2.useOptimized()</span><br><span class="line">Out[<span class="number">8</span>]: <span class="literal">False</span></span><br><span class="line">In [<span class="number">9</span>]: %timeit res = cv2.medianBlur(img,<span class="number">49</span>)</span><br><span class="line"><span class="number">10</span> loops, best of <span class="number">3</span>: <span class="number">64.1</span> ms per loop</span><br></pre></td></tr></table></figure>
-
 <p>我们使用：</p>
 <ul>
 <li>cv2.useOptimized() 查看是否启用优化</li>

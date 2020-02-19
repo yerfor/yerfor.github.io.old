@@ -68,7 +68,7 @@
 <meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/3.PNG">
 <meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/4.PNG">
 <meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/dpg.png">
-<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/drl-02%5C222.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/222.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/12.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/h2.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/12/drl-02/h1.png">
@@ -314,7 +314,6 @@
 <li><code>DDPG</code> （Deep Deterministic Policy Gradient）</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-DQN-算法（Deep-Q-Learning）"><a href="#1-DQN-算法（Deep-Q-Learning）" class="headerlink" title="1. DQN 算法（Deep Q Learning）"></a>1. DQN 算法（Deep Q Learning）</h1><p>DQN算法（Deep Q Learning）是DeepMind在于2013年提出的算法。这个算法首次提出了由一个可以训练的函数（critic）来生成reward。事实上，后续的大多数算法如DDPG、MADDPG都延续了这种思想。当然上述算法大多采用了A-C框架，值得注意的是DQN本身并没有一个专门训练的Actor函数，它的决策函数是简单的argmaxQ，和后期成熟的基于AC框架的算法中，专门训练Actor函数是由区别的。</p>
 <p>不过，深入理解DQN还是十分重要，我们主要可以通过学习DQN来提升对Critic函数训练过程的理解。</p>
 <h2 id="1-1-DQN-详解"><a href="#1-1-DQN-详解" class="headerlink" title="1.1 DQN 详解"></a>1.1 DQN 详解</h2><p>DQN的最大创新在于将Q-Learning中Critic采用的Q-Table改成了一个深度神经网络，这也是Deep Q Learning名字的来历。所述的替代Q-Table的神经网络输入为上述的元组（s,a），输出是一个标量（scaler）。</p>
@@ -418,17 +417,27 @@
 </ul>
 <h2 id="3-2-DDPG算法-（Deep-Deterministic-Policy-Gradient）"><a href="#3-2-DDPG算法-（Deep-Deterministic-Policy-Gradient）" class="headerlink" title="3.2 DDPG算法 （Deep Deterministic Policy Gradient）"></a>3.2 DDPG算法 （Deep Deterministic Policy Gradient）</h2><p>DDPG算法是从DPG的基础上发展来的，它主要借鉴了DQN里的Target Network(见<code>1.1.1</code> )和经验池(见<code>1.1.2</code>)方法</p>
 <p>DDPG采用了类似DQN的双网络结构，我们之前介绍过DQN有两个神经网络，即Critic的Target（也叫现实网络，因为这个Target的网络是fixed的，且是状态估计网络的目标）和状态估计网络。而DDPG的Actor和Critic都有Target和现实网络。需要强调的是，我们只需要训练动作估计网络和状态估计网络的参数，而动作现实网络和状态现实网络的参数是由前面两个网络每隔一定的时间复制过去的。</p>
-<p>我们先来说说Critic这边，Critic这边的学习过程跟DQN类似，我们都知道DQN根据下面的损失函数来进行网络学习，即现实的Q’值和估计的Q值的平方损失：<br>$$<br>Loss_{critic} = [R+\gamma max_{a’}Q’(S’,a’)-Q(s,a)]^2<br>$$<br>Critic中的状态估计网络就是通过最小化上述Loss的梯度下降法执行自身的优化，与DQN不同，DDPG在每次更新后，都会用：<br>$$<br>Q’\leftarrow \tau Q’ + (1-\tau)Q<br>$$<br>实现target（现实）网络参数更新，这个更新有两个好处，首先是每步都更新，比DQN每隔几步更新可能更加up-to-date，其次就是他不是简单的覆盖，而是一个比较温和的加权更新。</p>
+<p>我们先来说说Critic这边，Critic这边的学习过程跟DQN类似，我们都知道DQN根据下面的损失函数来进行网络学习，即现实的Q’值和估计的Q值的平方损失：</p>
+<script type="math/tex; mode=display">
+Loss_{critic} = [R+\gamma max_{a'}Q'(S',a')-Q(s,a)]^2</script><p>Critic中的状态估计网络就是通过最小化上述Loss的梯度下降法执行自身的优化，与DQN不同，DDPG在每次更新后，都会用：</p>
+<script type="math/tex; mode=display">
+Q'\leftarrow \tau Q' + (1-\tau)Q</script><p>实现target（现实）网络参数更新，这个更新有两个好处，首先是每步都更新，比DQN每隔几步更新可能更加up-to-date，其次就是他不是简单的覆盖，而是一个比较温和的加权更新。</p>
 <p>接下来看看Actor是如何更新的，下式是Actor网络的梯度公式，似乎和我们之前所学有一些差异：</p>
-<p><img src="/2019/11/12/drl-02/drl-02%5C222.png" alt="222"></p>
-<p>为了理解这个式子，我先去复习了一下Policy Gradient里的梯度公式，如下：<br>$$<br>\nabla R_{\theta}=\frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\nabla lnP(\tau^{n}|\theta)<br>$$<br>而经过发展，在基于Q-learning的AC算法中，Actor的梯度公式如下：</p>
+<p><img src="/2019/11/12/drl-02/222.png" alt="222"></p>
+<p>为了理解这个式子，我先去复习了一下Policy Gradient里的梯度公式，如下：</p>
+<script type="math/tex; mode=display">
+\nabla R_{\theta}=\frac{1}{N}\sum_{n=1}^{N}R(\tau^{n})\nabla lnP(\tau^{n}|\theta)</script><p>而经过发展，在基于Q-learning的AC算法中，Actor的梯度公式如下：</p>
 <p><img src="/2019/11/12/drl-02/12.png" alt="12"></p>
 <p>上面这个公式和最初PG算法的一个明显区别就是它的输入不再是一个个轨迹trajectory，而是experience replay buffer的元组<code>(s,a,r,s&#39;)</code>，它用<code>Q(s,a)</code>评价Policy在做出某个<code>(s,a)</code>决策的好坏，这个Q作为权重，乘在了针对Policy作出(s,a)的概率的梯度向量<code>lnP(a,s)</code>上，这是一个TD(Temporal Difference)的更新过程。</p>
 <p>现在将目光转回DDPG，我们先看在DDPG如何评价一个Actor的好坏：</p>
 <p><img src="/2019/11/12/drl-02/h2.png" alt="h2"></p>
-<p>上面的式子其实就是所有环境情况<code>s</code>下Q值的加权平均，从感性角度认识，<code>J(u)</code>其实就是Policy<code>u</code>的Q值期望。Actor的梯度下降法的目标就是训练u的参数$\theta$，将J(u)函数尽可能最大化：<br>$$<br>\theta^{\mu} = \theta^{\mu} + \eta \cdot \nabla_{\theta} J(\mu)<br>$$<br>现在我们对该<code>J</code>公式关于$\theta$求梯度：</p>
+<p>上面的式子其实就是所有环境情况<code>s</code>下Q值的加权平均，从感性角度认识，<code>J(u)</code>其实就是Policy<code>u</code>的Q值期望。Actor的梯度下降法的目标就是训练u的参数$\theta$，将J(u)函数尽可能最大化：</p>
+<script type="math/tex; mode=display">
+\theta^{\mu} = \theta^{\mu} + \eta \cdot \nabla_{\theta} J(\mu)</script><p>现在我们对该<code>J</code>公式关于$\theta$求梯度：</p>
 <p><img src="/2019/11/12/drl-02/h1.png" alt="h1"></p>
-<p>因为是确定性策略，即：<br>$$<br>a=\mu(s|\theta^{\mu})<br>$$<br>所以根据链式法则，梯度公式推导为：</p>
+<p>因为是确定性策略，即：</p>
+<script type="math/tex; mode=display">
+a=\mu(s|\theta^{\mu})</script><p>所以根据链式法则，梯度公式推导为：</p>
 <p><img src="/2019/11/12/drl-02/h3.png" alt="h3"></p>
 <p>将上述公式中的两项进行转换，即为：</p>
 <p><img src="/2019/11/12/drl-02/222.png" alt="222"></p>

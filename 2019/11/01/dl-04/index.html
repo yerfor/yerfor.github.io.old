@@ -285,7 +285,6 @@
 <li>用<code>TensorRT</code>加速<code>YOLO</code>网络</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-TensorRT介绍"><a href="#1-TensorRT介绍" class="headerlink" title="1. TensorRT介绍"></a>1. TensorRT介绍</h1><p><code>TensorRT</code>是英伟达公司出品的高性能的推断C++库（有python API），和传统的深度学习框架不同，TensorRT只提供推理功能。<code>TensorRT</code>使用了大量的技巧来加速神经网络的前向传播功能，目前，TensorRT是（在加速框架中）inference精度最高，速度最快的框架，而且有大量人员在不断地改进、维护。因此，TensorRT可能是所有需要部署神经网络到工程实践中的同志需要理解并精通的一项技能。</p>
 <h2 id="1-1-TensorRT的安装"><a href="#1-1-TensorRT的安装" class="headerlink" title="1.1 TensorRT的安装"></a>1.1 TensorRT的安装</h2><p>可以参考官网提供的《<a href="https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html" target="_blank" rel="noopener">TensorRT Installation Guide</a>》，强烈建议使用<a href="https://docs.nvidia.com/deeplearning/sdk/tensorrt-install-guide/index.html#installing-tar" target="_blank" rel="noopener">tar file</a>的安装方法。</p>
 <h2 id="1-2-为什么TensorRT可以加速推理"><a href="#1-2-为什么TensorRT可以加速推理" class="headerlink" title="1.2 为什么TensorRT可以加速推理"></a>1.2 为什么TensorRT可以加速推理</h2><p>使用<code>TensorRT</code>可以大大提升神经网络推理（inference）的速度，这是因为：</p>
@@ -330,16 +329,12 @@
 <p>每次推理大概要经过以下流程：</p>
 <p>1.建立一个运行环境（context）：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> myEngine.create_execution_context() <span class="keyword">as</span> myContext:</span><br></pre></td></tr></table></figure>
-
 <p>2.根据引擎的参数，给context分配内存（inputs, outputs,…）：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inputs, outputs, bindings, stream = common.allocate_buffers(myEngine)</span><br></pre></td></tr></table></figure>
-
 <p>3.将推理的输入数据传输到context的对应inputs的内存里：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inputs[<span class="number">0</span>].host = img_for_network_input</span><br></pre></td></tr></table></figure>
-
 <p>4.执行该context的推理（调用do_inference）：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tensorrt_outputs = common.do_inference(myContext, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)</span><br></pre></td></tr></table></figure>
-
 <p>5.当然，推理得到的结果还需要转换成python可以处理的格式，这个暂且不表。</p>
 <h1 id="2-尝试用TensorRT加速YOLO目标检测系统"><a href="#2-尝试用TensorRT加速YOLO目标检测系统" class="headerlink" title="2. 尝试用TensorRT加速YOLO目标检测系统"></a>2. 尝试用TensorRT加速YOLO目标检测系统</h1><p>之所以接触<code>TensorRT</code>，主要是为了提升我们《跨相机行人跟踪》项目中，<code>YOLO</code>网络的推理速度。</p>
 <p>刚好<code>TensorRT</code>官方提供的sample里就有<code>onnx_yolo</code>，所以我根据这个sample做了个简单的二次开发，主要修改的是：</p>
@@ -356,6 +351,7 @@
 <p><img src="/2019/11/01/dl-04/trt.png" alt="trt"></p>
 <p>但是，实际将我的<code>TensorrtYOLO</code>类运用在项目中时，发现处理一张照片的时间达到了约<code>0.6s</code>(几乎是<code>do_inference</code>用时的10倍)。</p>
 <p>我用<code>perf_counter</code>测量了<code>TensorrtYOLO</code>运行过程中各个阶段所消耗的时间，结果如下：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -363,7 +359,8 @@
 <th>耗时（s）</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>将图像缩放成<code>YOLO</code>所需的尺寸</td>
 <td>0.0037</td>
 </tr>
@@ -383,7 +380,9 @@
 <td>总计</td>
 <td>0.5544</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <p>可以看到，程序在<code>将trt_outputs转换成可以处理的boxes, classes, scores</code>这个阶段中花费了太多的时间，这个过程是由官方提供的<code>PostProcessor</code>类（in python）执行的，它的运行效率不是很好。</p>
 <h2 id="2-3-改进方向"><a href="#2-3-改进方向" class="headerlink" title="2.3 改进方向"></a>2.3 改进方向</h2><p>目前，本项目已经实现了：</p>
 <ul>

@@ -295,8 +295,8 @@
 <li>项目优化结果展示</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-原python模块优化"><a href="#1-原python模块优化" class="headerlink" title="1. 原python模块优化"></a>1. 原python模块优化</h1><p>从上次的表格可以看到，程序在数据后处理PostProcessing部分花费了大量的时间，如下：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -304,7 +304,8 @@
 <th>耗时（s）</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>将图像缩放成YOLO所需的尺寸</td>
 <td>0.0037</td>
 </tr>
@@ -324,7 +325,9 @@
 <td>总计</td>
 <td>0.5544</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <p>所以我进入该模块进行逐层计时，最后锁定了出问题的部分：</p>
 <p><img src="/2019/11/09/dl-05/2.png" alt="2"></p>
 <p>可以看到，官方的逻辑是，先调用math库的函数，定义了标量的sigmiod函数和指数函数，然后用numpy将其向量化，这种方法显然是效率很低的。我将其修改成直接使用numpy库的矩阵运算，该模块的性能立即获得提高，如下:</p>
@@ -332,6 +335,7 @@
 <p>忽然想起在初学OpenCV的时候，在官方的tutorial上看到，OpenCV的矩阵运算库是基于numpy进行优化的，所以在做矩阵运算时效率会比用numpy更高，所以尝试了一下OpenCV的函数，发现性能进一步得到了提升，后处理的速度再次提高了大约25%左右。</p>
 <p>OpenCV的tutorial诚不欺我呀！</p>
 <p>接着，再对项目的各模块进行了运行时间的测量、统计，发现python代码的性能已经到了可以接受的程度，各模块最终用时如下：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -339,7 +343,8 @@
 <th>耗时（s）</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>TensorRT执行推理（inference）</td>
 <td>0.038</td>
 </tr>
@@ -363,7 +368,9 @@
 <td>总计</td>
 <td>0.053</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <p>通过优化python模块，我们在<code>RTX2060</code>显卡上运行<code>TensorRT-YOLOv3-608</code>的帧率达到了18～19hz，而直接运行<code>Darknet</code>上的<code>YOLOv3-608</code>，帧率则为12～13hz。</p>
 <p>可见<code>TensorRT</code>建立正项推理引擎（不修改参数精度），加速了大约50%左右。</p>
 <h1 id="2-用C语言加速Python"><a href="#2-用C语言加速Python" class="headerlink" title="2. 用C语言加速Python"></a>2. 用C语言加速Python</h1><p>说来惭愧，我尝试用<code>Cython</code>加速我们<code>Python</code>的主要计算模块<code>data_processing.py</code>，但似乎速度没有丝毫提升，这可能是因为在该模块里，对所有矩阵计算我都采用了优化到极致的<code>OpenCV</code>库，而其他地方本来也没有太多优化的空间（根据实测，非矩阵运算部分耗时量级在<code>1e-5</code>秒左右）。</p>
@@ -378,17 +385,14 @@
 </ul>
 <p><strong>tips:所有函数都必须放在extern “C”里面声明</strong>，这是因为用c++方式编译的话会修改函数名（为了重载），用c的方式编译才能保留函数名，方便我们在python中调用。经过实测，这种方式可以正常编译c++程序。</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> ATEST_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ATEST_H</span></span><br><span class="line"><span class="keyword">extern</span> <span class="string">"C"</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">say_hello</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>创建源文件<code>“hello.c”</code></li>
 </ul>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"> </span><br><span class="line"> <span class="function"><span class="keyword">void</span> <span class="title">say_hello</span><span class="params">()</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line"> 	<span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="string">"hello world!"</span> &lt;&lt; <span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-
 <ul>
 <li>编译指令：将C文件编译成<code>.so</code>库</li>
 </ul>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g++ -fpic -shared -o libHello.so hello.c</span><br></pre></td></tr></table></figure>
-
 <h3 id="2-1-2-用Python调用-so库"><a href="#2-1-2-用Python调用-so库" class="headerlink" title="2.1.2 用Python调用.so库"></a>2.1.2 用Python调用<code>.so</code>库</h3><ul>
 <li>通过pip安装ctypes库</li>
 <li>在python中引用ctypes.cdll分库</li>
@@ -397,7 +401,6 @@
 </ul>
 <p>下面是一个demo：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> ctypes <span class="keyword">import</span> cdll</span><br><span class="line"></span><br><span class="line">lib=  cdll.LoadLibrary(<span class="string">'./libHello.so'</span>)</span><br><span class="line">say_hello = lib.say_hello</span><br><span class="line"></span><br><span class="line">say_hello()</span><br></pre></td></tr></table></figure>
-
 <p>上面的程序在python中调用了我们在<code>2.1.1</code>中定义的动态库<code>libHello.so</code>，运行了库里的函数<code>say_hello</code>，所以终端中会打印出<code>&quot;Hello World!&quot;</code>。</p>
 <h2 id="2-2-用Cython将Python代码转换成so库"><a href="#2-2-用Cython将Python代码转换成so库" class="headerlink" title="2.2 用Cython将Python代码转换成so库"></a>2.2 用Cython将Python代码转换成so库</h2><ul>
 <li>通过pip安装Cython</li>
@@ -407,9 +410,7 @@
 <h3 id="2-2-1-创建setup-py"><a href="#2-2-1-创建setup-py" class="headerlink" title="2.2.1 创建setup.py"></a>2.2.1 创建setup.py</h3><p>选择好想要<code>cythonized</code>的<code>py</code>文件后，将该文件的后缀名改成<code>.pyx</code>。这是因为生成的<code>.so</code>会有同样的名字，在import的时候，<code>.py</code>的优先级大于<code>.so</code>。改成<code>.pyx</code>的话，就不会引用到<code>.py</code>文件上去了。</p>
 <p>话讲远了，看下面的demo，一般的<code>setup.py</code>都是如下所示：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> distutils.core <span class="keyword">import</span> setup</span><br><span class="line"><span class="keyword">from</span> Cython.Build <span class="keyword">import</span> cythonize</span><br><span class="line"></span><br><span class="line">setup(name=<span class="string">'your module name'</span>,</span><br><span class="line">      ext_modules=cythonize(<span class="string">"./xxx.py"</span>))</span><br></pre></td></tr></table></figure>
-
 <h3 id="2-2-2-运行setup-py进行编译"><a href="#2-2-2-运行setup-py进行编译" class="headerlink" title="2.2.2 运行setup.py进行编译"></a>2.2.2 运行setup.py进行编译</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 setup.py build_ext --inplace</span><br></pre></td></tr></table></figure>
-
 <p>编译完成后会在<code>setup.py</code>的目录下生成一个<code>.so</code>文件，文件名可以任意修改</p>
 <h3 id="2-2-3-在python中直接import-so文件"><a href="#2-2-3-在python中直接import-so文件" class="headerlink" title="2.2.3 在python中直接import.so文件"></a>2.2.3 在python中直接import<code>.so</code>文件</h3><p>通过<code>Cython</code>编译得到的<code>.so</code>文件可以像<code>.py</code>文件一样直接import，引用方式是完全一致的，并且函数名等内容都和原来的<code>.py</code>文件里一样，调用起来十分方便。</p>
 <h1 id="3-减小YOLO网络输入数据的尺寸"><a href="#3-减小YOLO网络输入数据的尺寸" class="headerlink" title="3. 减小YOLO网络输入数据的尺寸"></a>3. 减小YOLO网络输入数据的尺寸</h1><h2 id="3-1-darknet框架中：直接修改-cfg文件"><a href="#3-1-darknet框架中：直接修改-cfg文件" class="headerlink" title="3.1 darknet框架中：直接修改.cfg文件"></a>3.1 darknet框架中：直接修改<code>.cfg</code>文件</h2><p><code>darknet</code>因为和<code>YOLO</code>是同一个作者的作品，优化支持得比较好，只需在<code>.cfg</code>文件中修改下述参数就可以减小<code>YOLO</code>网络输入层尺寸，以达到加速推理的目的（数据统计见下文）。</p>
@@ -430,10 +431,10 @@
 <h1 id="4-基于TensorRT的混合参数精度方法"><a href="#4-基于TensorRT的混合参数精度方法" class="headerlink" title="4. 基于TensorRT的混合参数精度方法"></a>4. 基于TensorRT的混合参数精度方法</h1><p>在上一篇文章中提到过，<code>TensorRT</code>的加速途径除了直接生成<code>Engine</code>时可以对网络结构进行优化外，还有降低参数精度的途径（事实上，经过实测，这个途径才是真的简单粗暴）。</p>
 <p><code>TensorRT</code>提供了简单的Python API支持我们进行混合参数精度操作。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">builder.fp16_mode = <span class="literal">True</span> <span class="comment"># Use 16-bit as long as possible, flexible</span></span><br><span class="line">builder.strict_type_constraints = <span class="literal">True</span> <span class="comment"># Optional, force 16-bit precision</span></span><br></pre></td></tr></table></figure>
-
 <p>在<code>builder</code>阶段设定上述参数即可修改参数的精度。除了<code>fp16</code>外，还有<code>int8</code>类型，不过笔者运行的时候报错了，有待进一步研究。</p>
 <p>上述方法是对网络中所有层的参数进行参数精度调整，如果必要，还可以对特定层进行设置，因为感觉不是很有必要所以没有深入研究下去。</p>
 <h1 id="5-项目优化结果"><a href="#5-项目优化结果" class="headerlink" title="5. 项目优化结果"></a>5. 项目优化结果</h1><p>为了考察各个加速零件的优化效果，方便后续工程部署时根据需求选择加速方案，笔者对不同条件下的<code>YOLO</code>网络推理性能进行了统计，也算是展示对本项目优化的成果。汇总如下：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -443,7 +444,8 @@
 <th>帧率(hz)</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>YOLOv3-608</td>
 <td>DPP*</td>
 <td>0.1012</td>
@@ -497,7 +499,9 @@
 <td>0.0141</td>
 <td>70.9</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <ul>
 <li>*<code>DPP(Darknet-Python-Pack)</code>, <code>TRT(TensorRT)</code>,<code>TRT-fp16(TensorRT with 16-bit precision)</code></li>
 </ul>

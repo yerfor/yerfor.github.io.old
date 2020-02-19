@@ -46,12 +46,12 @@
   };
 </script>
 
-  <meta name="description" content="0. 摘要终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是： $$PG&#x3D;&#x3D;&gt;Q-Learning&#x3D;&#x3D;&gt;DQN&#x3D;&#x3D;&gt;AC&#x3D;&#x3D;&gt;DPG&#x3D;&#x3D;&gt;DDPG$$ 这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenA">
+  <meta name="description" content="0. 摘要终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是： PG&#x3D;&#x3D;&gt;Q-Learning&#x3D;&#x3D;&gt;DQN&#x3D;&#x3D;&gt;AC&#x3D;&#x3D;&gt;DPG&#x3D;&#x3D;&gt;DDPG这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenAI于2017年发表的多智能体强化学习算法">
 <meta property="og:type" content="article">
 <meta property="og:title" content="强化学习随笔[03]-MADDPG算法学习与实践">
 <meta property="og:url" content="http://yoursite.com/2019/11/13/drl-03/index.html">
 <meta property="og:site_name" content="yerfor&#39;s Journey">
-<meta property="og:description" content="0. 摘要终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是： $$PG&#x3D;&#x3D;&gt;Q-Learning&#x3D;&#x3D;&gt;DQN&#x3D;&#x3D;&gt;AC&#x3D;&#x3D;&gt;DPG&#x3D;&#x3D;&gt;DDPG$$ 这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenA">
+<meta property="og:description" content="0. 摘要终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是： PG&#x3D;&#x3D;&gt;Q-Learning&#x3D;&#x3D;&gt;DQN&#x3D;&#x3D;&gt;AC&#x3D;&#x3D;&gt;DPG&#x3D;&#x3D;&gt;DDPG这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenAI于2017年发表的多智能体强化学习算法">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/maddpg-00.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/13/drl-03/maddpg.png">
@@ -286,19 +286,17 @@
 
       
         <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>终于学习到项目需要采用的MADDPG算法了。之前对强化学习的学习链路是：</p>
-<p>$$PG==&gt;Q-Learning==&gt;DQN==&gt;AC==&gt;DPG==&gt;DDPG$$</p>
-<p>这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenAI于2017年发表的多智能体强化学习算法，在处理多agent协同、竞争、或是二者混合的场景时都有不错的表现。</p>
+<script type="math/tex; mode=display">PG==>Q-Learning==>DQN==>AC==>DPG==>DDPG</script><p>这条链路从某种意义上来说介绍了主流强化学习算法的演化历程。不过，上述的算法都是解决单智能体的训练问题的，似乎从一开始，强化学习算法对多智能体协同、竞争问题的解决都不是很理想。MADDPG是OpenAI于2017年发表的多智能体强化学习算法，在处理多agent协同、竞争、或是二者混合的场景时都有不错的表现。</p>
 <p>本文主要介绍了：</p>
 <ul>
 <li>MADDPG算法的原理；</li>
 <li>对OpenAI提供的maddpg开源项目做了初步了解</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-MADDPG算法"><a href="#1-MADDPG算法" class="headerlink" title="1. MADDPG算法"></a>1. MADDPG算法</h1><p>参考资料：</p>
 <p><a href="https://arxiv.org/abs/1706.02275" target="_blank" rel="noopener">《Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments》</a></p>
 <p><a href="https://zhuanlan.zhihu.com/p/53811876" target="_blank" rel="noopener">多智能体强化学习入门（四）——MADDPG算法</a></p>
-<p><a href="https://zhuanlan.zhihu.com/p/32333293?edition=yidianzixun&utm_source=yidianzixun&yidian_docid=0Hz5AfFa" target="_blank" rel="noopener">MADDPG算法思路解读</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/32333293?edition=yidianzixun&amp;utm_source=yidianzixun&amp;yidian_docid=0Hz5AfFa" target="_blank" rel="noopener">MADDPG算法思路解读</a></p>
 <p><code>MADDPG</code>算法是<code>OpenAI</code>于2017发表、在<code>DDPG</code>基础上针对多智能体协同与竞争设计的算法。</p>
 <p>传统强化学习算法解决多智能体问题的最大问题是：</p>
 <ul>
@@ -310,7 +308,9 @@
 <h2 id="1-2-集中式训练过程"><a href="#1-2-集中式训练过程" class="headerlink" title="1.2 集中式训练过程"></a>1.2 集中式训练过程</h2><p>集中式训练，分布式执行(Centralized Training with Decentralized Execution)是<code>MADDPG</code>算法最大的创新。现在我们来介绍一个完整的训练过程，这包括数据采集过程和参数训练过程。</p>
 <p>先给出<code>MADDPG</code>算法的伪代码：</p>
 <p><img src="/2019/11/13/drl-03/maddpg.png" alt="maddpg"></p>
-<h3 id="1-2-1-数据采集阶段"><a href="#1-2-1-数据采集阶段" class="headerlink" title="1.2.1 数据采集阶段"></a>1.2.1 数据采集阶段</h3><p>首先是数据采集过程，每个Agent观察环境得到<code>o</code>（每个agent观察到的<code>o</code>保存成数组就是环境状态<code>s</code>），然后送入决策网络中输出对应的操作<code>a</code>，得到reward<code>r</code>。执行完上述操作后，每一个iteration_step我们都会将数据以如下形式储存：<br>$$<br>(s,s’,a_{1},…,a_{N},r_{1},…,r_{n})<br>$$<br>上述向量中，<code>s</code>和<code>s&#39;</code>是所有智能体在做操作<code>a</code>前后的环境观测<code>o</code>和<code>o&#39;</code>的集合<code>(o1,...,on)</code>,<code>(o&#39;1,...,o&#39;n)</code>。</p>
+<h3 id="1-2-1-数据采集阶段"><a href="#1-2-1-数据采集阶段" class="headerlink" title="1.2.1 数据采集阶段"></a>1.2.1 数据采集阶段</h3><p>首先是数据采集过程，每个Agent观察环境得到<code>o</code>（每个agent观察到的<code>o</code>保存成数组就是环境状态<code>s</code>），然后送入决策网络中输出对应的操作<code>a</code>，得到reward<code>r</code>。执行完上述操作后，每一个iteration_step我们都会将数据以如下形式储存：</p>
+<script type="math/tex; mode=display">
+(s,s',a_{1},...,a_{N},r_{1},...,r_{n})</script><p>上述向量中，<code>s</code>和<code>s&#39;</code>是所有智能体在做操作<code>a</code>前后的环境观测<code>o</code>和<code>o&#39;</code>的集合<code>(o1,...,on)</code>,<code>(o&#39;1,...,o&#39;n)</code>。</p>
 <p>我们会进行大量的episode以获取足够多的经验向量，将其全部存在经验池(experience replay buffer)中。</p>
 <p>这一阶段不涉及Critic评价网络，只包括Actor决策网络和环境的互动。</p>
 <p>一种很直接的思路是在参数训练前进行大量的episode以获取足够大的经验池。但这种方案有一个问题：</p>
@@ -319,7 +319,15 @@
 </ul>
 <p>所以一种更常见的做法是，边采集边训练网络，然后用更新的Actor网络去采集数据，这样采集到的数据会比较diverse。</p>
 <h3 id="1-2-2-参数训练"><a href="#1-2-2-参数训练" class="headerlink" title="1.2.2 参数训练"></a>1.2.2 参数训练</h3><p><code>MADDPG</code>的参数更新过程和之前介绍的<code>DDPG</code>算法十分类似，我们来比较一下二者迭代公式的区别。</p>
-<h4 id="1-2-3-Critic网络的训练"><a href="#1-2-3-Critic网络的训练" class="headerlink" title="1.2.3 Critic网络的训练"></a>1.2.3 Critic网络的训练</h4><p>首先看Critic网络的迭代公式，下面是<code>DDPG</code>算法的Critic网络更新方案，它会以缩小下面的Loss为目标执行梯度下降法：<br>$$<br>Loss_{i}=\frac{1}{S}\Sigma_{j}[y_{i}^j-Q_{i}(s^{j},a^{j})]^2<br>$$<br>其中y是由Target网络生成的目标值，其定义如下：<br>$$<br>y_{i}^{j} = r_{i}^{j}+\gamma Q’<em>{i}(s’^{j},a’^{j})<br>$$<br>下图是<code>MADDPG</code>算法的Q网络迭代公式：<br>$$<br>Loss</em>{i}=\frac{1}{S}\Sigma_{j}[y_{i}^j-Q_{i}(x^{j},a_{1}^{j},…,a_{N}^{j})]^2<br>$$<br>上式中，i下标代表第i个Agent，j上标代表第j个sample (因为我们每次会从经验池里取S个sample)，$y_i^j$是由Target网络生成的目标值，其定义如下：<br>$$<br>y_{i}^{j} = r_{i}^{j}+\gamma Q’<em>{i}(x’^{j},a</em>{1}’^{j},…,a_{N}’^{j})<br>$$<br>怎么理解这个式子呢？我们在学Q-Learning的时候知道，$Q^{\pi}(s,a)$函数的定义是<code>State-Action Value Function</code>，也就是始终使用$\pi$作为policy，在状态$s$做完$a$及以后的期望累计reward(可能英文会更好理解一些: <code>when using actor pi, the cumulated reward expects to be obtained after taking a at state s</code>)。这个也是我们现在主网络可以输出的值。</p>
+<h4 id="1-2-3-Critic网络的训练"><a href="#1-2-3-Critic网络的训练" class="headerlink" title="1.2.3 Critic网络的训练"></a>1.2.3 Critic网络的训练</h4><p>首先看Critic网络的迭代公式，下面是<code>DDPG</code>算法的Critic网络更新方案，它会以缩小下面的Loss为目标执行梯度下降法：</p>
+<script type="math/tex; mode=display">
+Loss_{i}=\frac{1}{S}\Sigma_{j}[y_{i}^j-Q_{i}(s^{j},a^{j})]^2</script><p>其中y是由Target网络生成的目标值，其定义如下：</p>
+<script type="math/tex; mode=display">
+y_{i}^{j} = r_{i}^{j}+\gamma Q'_{i}(s'^{j},a'^{j})</script><p>下图是<code>MADDPG</code>算法的Q网络迭代公式：</p>
+<script type="math/tex; mode=display">
+Loss_{i}=\frac{1}{S}\Sigma_{j}[y_{i}^j-Q_{i}(x^{j},a_{1}^{j},...,a_{N}^{j})]^2</script><p>上式中，i下标代表第i个Agent，j上标代表第j个sample (因为我们每次会从经验池里取S个sample)，$y_i^j$是由Target网络生成的目标值，其定义如下：</p>
+<script type="math/tex; mode=display">
+y_{i}^{j} = r_{i}^{j}+\gamma Q'_{i}(x'^{j},a_{1}'^{j},...,a_{N}'^{j})</script><p>怎么理解这个式子呢？我们在学Q-Learning的时候知道，$Q^{\pi}(s,a)$函数的定义是<code>State-Action Value Function</code>，也就是始终使用$\pi$作为policy，在状态$s$做完$a$及以后的期望累计reward(可能英文会更好理解一些: <code>when using actor pi, the cumulated reward expects to be obtained after taking a at state s</code>)。这个也是我们现在主网络可以输出的值。</p>
 <p>而对于$y_{i}^{j}$，它的数学意义是(s,a)操作的reward加上下一状态<code>s&#39;</code>时最大的Q值，我们总是能有$y_i^j&gt;Q^{\pi}(s,a)$，因此$y_i^j$是我们的主网络想要变成的值（y是目标网络的输出），$\gamma$则是一个时间衰减因子。</p>
 <p>可以看到<code>MADDPG</code>在Critic方面的创新大致有两点：</p>
 <ul>
@@ -340,7 +348,6 @@
 <h2 id="2-1-开发环境配置和demo"><a href="#2-1-开发环境配置和demo" class="headerlink" title="2.1 开发环境配置和demo"></a>2.1 开发环境配置和demo</h2><p>依赖：<code>Python (3.5.4)</code>, <code>OpenAI gym (0.10.5)</code>, <code>tensorflow (1.8.0)</code>, <code>numpy (1.14.5)</code></p>
 <p>自己写了一个脚本，用下面的脚本可以快速建立开发环境，你需要先安装Anaconda.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">conda create -n maddpg python=3.5.4</span><br><span class="line">conda activate maddpg</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/openai/maddpg.git</span><br><span class="line"><span class="built_in">cd</span> maddpg</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/openai/multiagent-particle-envs.git</span><br><span class="line"><span class="built_in">echo</span> <span class="string">"export PYTHONPATH=~/maddpg/multiagent-particle-envs:\$PYTHONPATH"</span> &gt;&gt; ~/.bashrc</span><br><span class="line">pip install numpy==1.14.5 gym==0.10.5</span><br><span class="line">conda install tensorflow-gpu=1.8.0 <span class="comment"># 一定要用conda安装tensorflow，否则cuda要自己装</span></span><br></pre></td></tr></table></figure>
-
 <p>现在开发环境已经建立好了，<code>maddpg</code>项目用来训练模型的脚本是<code>experiments</code>子文件夹下的<code>train.py</code>文件，执行<code>python train.py -h</code>以查看帮助。</p>
 <p><img src="/2019/11/13/drl-03/help.png" alt="help"></p>
 <ul>
@@ -354,7 +361,6 @@
 </ul>
 <p>作为demo，输入：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">conda activate maddpg</span><br><span class="line"><span class="built_in">cd</span> ~/maddpg/experiments</span><br><span class="line">python train.py --scenario=simple_world_comm --display</span><br></pre></td></tr></table></figure>
-
 <p>就可以看到训练的过程，当然这个模型还没训练过，可视化出来的结果肯定也很差，就当是个<code>helloworld</code>吧，见下图：</p>
 <p><img src="/2019/11/13/drl-03/demo.png" alt="demo"></p>
 <h2 id="2-2-maddpg代码框架"><a href="#2-2-maddpg代码框架" class="headerlink" title="2.2 maddpg代码框架"></a>2.2 maddpg代码框架</h2><p>maddpg项目的框架如下。说实话，maddpg算法部分代码量不大，不过250行左右，但经过测试性能已经足够优秀。我们未来的工作可能主要集中在应用情景<code>scenario</code>文件的设计。以及，如果有可能，对算法做一定的改进吧。想发paper！</p>

@@ -294,24 +294,29 @@
 <li>使用生成器(<code>Generator</code>)来支持大批量数据集</li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-网络结构"><a href="#1-网络结构" class="headerlink" title="1.网络结构"></a>1.网络结构</h1><p>由于时间有限，来不及在电脑上画好看的图了，先手写一个placeholder。</p>
 <p><img src="/2019/12/13/dl-07/network_structure.jpg" alt="network_structure"></p>
 <h2 id="1-1-轻量级的Resnet-block"><a href="#1-1-轻量级的Resnet-block" class="headerlink" title="1.1 轻量级的Resnet-block"></a>1.1 轻量级的Resnet-block</h2><p><code>Cosine-metric-learning</code>采用的<code>Resnet-block</code>相比起<code>Resnet</code>论文里的结构有所改进。</p>
 <p>先说共同点，都有Identity和Convolutional两种Block，并且输入和输出的关系也是一样的，即Identity的输入输出Shape一致，而Convolutional的输出比输入在尺寸上少了一半，通道数增加了一倍。</p>
 <p>再说不同点，cosine-metric-learning将Block内(1,1)的卷积层删去，转而采用两个（3,3）的卷积层，如下图所示：</p>
 <p><img src="/2019/12/13/dl-07/resblock.jpg" alt="resblock"></p>
-<h2 id="1-2-自定义的cosine-softmax激活函数"><a href="#1-2-自定义的cosine-softmax激活函数" class="headerlink" title="1.2 自定义的cosine-softmax激活函数"></a>1.2 自定义的cosine-softmax激活函数</h2><h3 id="1-2-1-传统Softmax函数在cosine-metric中面临的问题"><a href="#1-2-1-传统Softmax函数在cosine-metric中面临的问题" class="headerlink" title="1.2.1 传统Softmax函数在cosine-metric中面临的问题"></a>1.2.1 传统Softmax函数在cosine-metric中面临的问题</h3><p>假设一个二分类问题，输出的feature是一个shape=(2,)的向量（用下图所示的二维平面表示）。将该向量送入softmax中，会得到一个概率分布的向量，shape也是（2,），该向量中的每一位标量代表输入的图像是某一类的概率。我们把概率分布的第一个标量取出来，作为下图的画的等高线考察的值。<br>$$<br>softmax(x)=\frac{e^{x}}{\Sigma e^{x_i}}<br>$$<br><img src="/2019/12/13/dl-07/softmax.png" alt="softmax"><br>$$<br>softmax_{-}10(x)=\frac{e^{10x}}{\Sigma e^{10x_i}}<br>$$<br><img src="/2019/12/13/dl-07/10softmax.png" alt="10softmax"></p>
-<h3 id="1-2-2-针对余弦区分度优化的cosine-softmax函数"><a href="#1-2-2-针对余弦区分度优化的cosine-softmax函数" class="headerlink" title="1.2.2 针对余弦区分度优化的cosine-softmax函数"></a>1.2.2 针对余弦区分度优化的cosine-softmax函数</h3><p>传统的<code>softmax</code>可以用下式描述：<br>$$<br>classical_{-}softmax =\frac{exp(w\cdot r+b)}{\Sigma exp(w\cdot r+b) }<br>$$<br><code>cosine-softmax</code>的定义式如下：<br>$$<br>cosine_{-}softmax = \frac{exp(k\cdot w\cdot r)}{\Sigma exp(k\cdot w) }<br>$$<br>二者的对比：</p>
+<h2 id="1-2-自定义的cosine-softmax激活函数"><a href="#1-2-自定义的cosine-softmax激活函数" class="headerlink" title="1.2 自定义的cosine-softmax激活函数"></a>1.2 自定义的cosine-softmax激活函数</h2><h3 id="1-2-1-传统Softmax函数在cosine-metric中面临的问题"><a href="#1-2-1-传统Softmax函数在cosine-metric中面临的问题" class="headerlink" title="1.2.1 传统Softmax函数在cosine-metric中面临的问题"></a>1.2.1 传统Softmax函数在cosine-metric中面临的问题</h3><p>假设一个二分类问题，输出的feature是一个shape=(2,)的向量（用下图所示的二维平面表示）。将该向量送入softmax中，会得到一个概率分布的向量，shape也是（2,），该向量中的每一位标量代表输入的图像是某一类的概率。我们把概率分布的第一个标量取出来，作为下图的画的等高线考察的值。</p>
+<script type="math/tex; mode=display">
+softmax(x)=\frac{e^{x}}{\Sigma e^{x_i}}</script><p><img src="/2019/12/13/dl-07/softmax.png" alt="softmax"></p>
+<script type="math/tex; mode=display">
+softmax_{-}10(x)=\frac{e^{10x}}{\Sigma e^{10x_i}}</script><p><img src="/2019/12/13/dl-07/10softmax.png" alt="10softmax"></p>
+<h3 id="1-2-2-针对余弦区分度优化的cosine-softmax函数"><a href="#1-2-2-针对余弦区分度优化的cosine-softmax函数" class="headerlink" title="1.2.2 针对余弦区分度优化的cosine-softmax函数"></a>1.2.2 针对余弦区分度优化的cosine-softmax函数</h3><p>传统的<code>softmax</code>可以用下式描述：</p>
+<script type="math/tex; mode=display">
+classical_{-}softmax =\frac{exp(w\cdot r+b)}{\Sigma exp(w\cdot r+b) }</script><p><code>cosine-softmax</code>的定义式如下：</p>
+<script type="math/tex; mode=display">
+cosine_{-}softmax = \frac{exp(k\cdot w\cdot r)}{\Sigma exp(k\cdot w) }</script><p>二者的对比：</p>
 <p><img src="/2019/12/13/dl-07/1.png" alt="1"></p>
 <p>参数k的作用：</p>
 <p><img src="/2019/12/13/dl-07/2.png" alt="2"></p>
 <p><code>cosine-softmax</code>的<code>Tensorflow2.0</code>实现：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TrainableCosineSoftmax</span><span class="params">(tf.keras.layers.Layer)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, W, **kwargs)</span>:</span></span><br><span class="line">        super(TrainableCosineSoftmax, self).__init_＿(**kwargs)</span><br><span class="line">        self.w = W</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">build</span><span class="params">(self, input_shape)</span>:</span></span><br><span class="line">        self.k = self.add_weight(name=<span class="string">'k'</span>, shape=(<span class="number">1</span>,),</span><br><span class="line">                                 initializer=tf.keras.initializers.Ones(), trainable=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">(self, x)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> tf.exp(self.k * x) / tf.reduce_sum(tf.exp(self.k * self.w))</span><br></pre></td></tr></table></figure>
-
 <p>实际使用方法：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">feature_layer = Dense(classes, name=<span class="string">'feature'</span>, activation=<span class="string">'relu'</span>, kernel_regularizer=tf.keras.regularizers.l2(),kernel_constraint=tf.keras.constraints.UnitNorm(), use_bias=<span class="literal">False</span>)</span><br><span class="line">X = feature_layer(X)</span><br><span class="line"></span><br><span class="line">W = feature_layer.kernel</span><br><span class="line">X = l2_normalization(X)</span><br><span class="line"></span><br><span class="line">X = TrainableCosineSoftmax(W)(X)</span><br></pre></td></tr></table></figure>
-
 <h3 id="1-2-3-两种激活函数的效果对比："><a href="#1-2-3-两种激活函数的效果对比：" class="headerlink" title="1.2.3 两种激活函数的效果对比："></a>1.2.3 两种激活函数的效果对比：</h3><p>待续</p>
 <h2 id="1-3-对feature层的参数约束"><a href="#1-3-对feature层的参数约束" class="headerlink" title="1.3 对feature层的参数约束"></a>1.3 对feature层的参数约束</h2><h3 id="1-3-1-feature层的参数约束"><a href="#1-3-1-feature层的参数约束" class="headerlink" title="1.3.1 feature层的参数约束"></a>1.3.1 feature层的参数约束</h3><ul>
 <li>对参数进行<code>l2</code>正则化，防止过拟合</li>
@@ -320,22 +325,23 @@
 </ul>
 <p>具体实现：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">feature_layer &#x3D; Dense(classes, name&#x3D;&#39;feature&#39;, activation&#x3D;&#39;relu&#39;, kernel_regularizer&#x3D;tf.keras.regularizers.l2(),kernel_constraint&#x3D;tf.keras.constraints.UnitNorm(), use_bias&#x3D;False)</span><br></pre></td></tr></table></figure>
-
-<h2 id="1-4-对feature层输出进行归一化"><a href="#1-4-对feature层输出进行归一化" class="headerlink" title="1.4 对feature层输出进行归一化"></a>1.4 对feature层输出进行归一化</h2><p>feature的输出，即为下面<code>cosine-softmax</code>函数里的<code>r</code>，必须要保证归一化，即单位方向向量。<br>$$<br>cosine_{-}softmax = \frac{exp(k\cdot w\cdot r)}{\Sigma exp(k\cdot w) }<br>$$</p>
-<ul>
+<h2 id="1-4-对feature层输出进行归一化"><a href="#1-4-对feature层输出进行归一化" class="headerlink" title="1.4 对feature层输出进行归一化"></a>1.4 对feature层输出进行归一化</h2><p>feature的输出，即为下面<code>cosine-softmax</code>函数里的<code>r</code>，必须要保证归一化，即单位方向向量。</p>
+<script type="math/tex; mode=display">
+cosine_{-}softmax = \frac{exp(k\cdot w\cdot r)}{\Sigma exp(k\cdot w) }</script><ul>
 <li>具体实现——使用<code>tensorflow1.0</code>的函数，自定义了一个层：</li>
 </ul>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">l2_normalization = tf.keras.layers.Lambda(<span class="keyword">lambda</span> x: tf.nn.l2_normalize(x, dim=<span class="number">1</span>), name=<span class="string">'l2_normalization'</span>)</span><br></pre></td></tr></table></figure>
-
 <h2 id="1-5-一些已经解决的小问题"><a href="#1-5-一些已经解决的小问题" class="headerlink" title="1.5 一些已经解决的小问题"></a>1.5 一些已经解决的小问题</h2><p>引入<code>cosine-softmax</code>函数后,网络的<code>loss</code>在训练时总会在某一个新的<code>epoch</code>骤然变成<code>nan</code>:</p>
 <p><img src="/2019/12/13/dl-07/acc-cosine-softmax.png" alt="acc-cosine-softmax"></p>
-<p>经过排查,发现可能是因为我们的<code>cosine-softmax</code>过于严格,导致其输出时,<strong>正确的那一类对应的probability是0</strong>,由于我们用的损失函数是交叉熵，其计算公式为:<br>$$<br>cross_{-}entropy=\Sigma [y_{true}\cdot ln(y_{pred})]<br>$$<br>上式中，$y_{true}$是一个one-hot格式的向量，只在所表示的那类的位置取1，其他均为0；$y_{pred}$即为网络输出的预测向量，输出的是一个图像相对于所有分类的一个概率分布．</p>
+<p>经过排查,发现可能是因为我们的<code>cosine-softmax</code>过于严格,导致其输出时,<strong>正确的那一类对应的probability是0</strong>,由于我们用的损失函数是交叉熵，其计算公式为:</p>
+<script type="math/tex; mode=display">
+cross_{-}entropy=\Sigma [y_{true}\cdot ln(y_{pred})]</script><p>上式中，$y_{true}$是一个one-hot格式的向量，只在所表示的那类的位置取1，其他均为0；$y_{pred}$即为网络输出的预测向量，输出的是一个图像相对于所有分类的一个概率分布．</p>
 <p>言归正传，对上面的式子，整个$\Sigma$里面实际上只有正确的那一类对应的项不等于０，所以当网络输出的预测向量对正确那类的预测概率是0时，交叉熵的值就是$ln(0)\rightarrow -\infin$。导致loss变成<code>nan</code>。</p>
 <ul>
 <li>我的解决方法是在交叉熵计算信息量的公式里面加上一个很小的偏置，以确保$ln()$里面的数不会取到0，于是新的交叉熵公式变成：</li>
 </ul>
-<p>$$<br>cross_{-}entropy=\Sigma [y_{true}\cdot ln(y_{pred}+e^{-10})]<br>$$</p>
-<p>修改<code>loss</code>函数后，<code>nan</code>的现象确实消失了。</p>
+<script type="math/tex; mode=display">
+cross_{-}entropy=\Sigma [y_{true}\cdot ln(y_{pred}+e^{-10})]</script><p>修改<code>loss</code>函数后，<code>nan</code>的现象确实消失了。</p>
 <h2 id="1-6-一些论文采用的新特性的失败尝试"><a href="#1-6-一些论文采用的新特性的失败尝试" class="headerlink" title="1.6 一些论文采用的新特性的失败尝试"></a>1.6 一些论文采用的新特性的失败尝试</h2><h3 id="1-6-1-Dropout-AlphaDropout"><a href="#1-6-1-Dropout-AlphaDropout" class="headerlink" title="1.6.1 Dropout/AlphaDropout"></a>1.6.1 Dropout/AlphaDropout</h3><p>Dropout层不能转换成TRT</p>
 <p><img src="/2019/12/13/dl-07/drop-to-trt.png" alt="drop-&gt;trt"></p>
 <h3 id="1-6-2-‘elu’-‘selu’"><a href="#1-6-2-‘elu’-‘selu’" class="headerlink" title="1.6.2 ‘elu’/‘selu’"></a>1.6.2 ‘elu’/‘selu’</h3><p>会导致梯度消失等问题。</p>
@@ -346,16 +352,18 @@
 <p>生成器是Python内置的函数类型，与一般函数采用<code>return</code>一次返回全部内容不同，它的函数体由一个while循环组成，在while循环内有一个<code>yield</code>，每次调用生成器函数，都会运行一次循环，然后通过<code>yield</code>返回本次循环生成的值。于是结合之前的数据集处理函数，编写了一个Generator。</p>
 <p>具体实现如下：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 应对大批量数据时，需要使用生成器产生数据</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">data_generator</span><span class="params">(filenames, ids, batch_size=<span class="number">128</span>, image_shape=<span class="params">(<span class="number">128</span>, <span class="number">64</span>)</span>, classes=<span class="number">625</span>)</span>:</span></span><br><span class="line">    reshape_fn = (</span><br><span class="line">        (<span class="keyword">lambda</span> x: (x / <span class="number">255</span><span class="number">-0.5</span>) * <span class="number">2</span>) <span class="keyword">if</span> image_shape == IMAGE_SHAPE[:<span class="number">2</span>]</span><br><span class="line">        <span class="keyword">else</span> (<span class="keyword">lambda</span> x: (cv2.resize(x, image_shape[::<span class="number">-1</span>]) / <span class="number">255</span><span class="number">-0.5</span>) * <span class="number">2</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        data = [(filename, _id) <span class="keyword">for</span> filename, _id <span class="keyword">in</span> zip(filenames, ids)]</span><br><span class="line">        np.random.shuffle(data) <span class="comment"># 将数据文件名随机洗牌</span></span><br><span class="line">        data = data[:batch_size]  <span class="comment"># 选取前batch_size组作为本次的输出</span></span><br><span class="line">        image_names = [filename <span class="keyword">for</span> filename, _id <span class="keyword">in</span> data]</span><br><span class="line">        bathch_ids = [_id <span class="keyword">for</span> filename, _id <span class="keyword">in</span> data]</span><br><span class="line"></span><br><span class="line">        images = np.zeros((len(image_names),) + image_shape + (<span class="number">3</span>,), np.float32)</span><br><span class="line">        <span class="keyword">for</span> i, filename <span class="keyword">in</span> enumerate(image_names):</span><br><span class="line">            image = cv2.imread(filename, cv2.IMREAD_COLOR)</span><br><span class="line">            images[i] = reshape_fn(image)</span><br><span class="line">        bathch_ids = np.asarray(bathch_ids, dtype=np.int64)</span><br><span class="line">        bathch_ids = convert_to_one_hot(bathch_ids, classes)</span><br><span class="line">        bathch_ids = bathch_ids.T</span><br><span class="line">        <span class="keyword">yield</span> (images, bathch_ids)</span><br></pre></td></tr></table></figure>
-
 <h3 id="2-1-4-数据的预处理"><a href="#2-1-4-数据的预处理" class="headerlink" title="2.1.4 数据的预处理"></a>2.1.4 数据的预处理</h3><h4 id="2-1-4-1-归一化"><a href="#2-1-4-1-归一化" class="headerlink" title="2.1.4.1 归一化"></a>2.1.4.1 归一化</h4><p>对之前训练的网络做了测试，以下是测试样本：</p>
 <p><img src="/2019/12/13/dl-07/test.png" alt="test"></p>
-<p>测试了两种归一化方法，一般来说，最通用的归一化方法应该是：<br>$$<br>normalized_{-}data=\frac {data-\mu}{\sigma ^{2}}<br>$$<br>但是因为我们的数据集实在太大了(450,000张照片)，加载这么大量的数据需要巨大的内存（所以我们训练用的是生成器的方式获得batch而不是一开始全部读取到内存里），<code>scikit-learn</code>现有的函数无法处理这么大的数据，所以我试了两种方法来近似：</p>
+<p>测试了两种归一化方法，一般来说，最通用的归一化方法应该是：</p>
+<script type="math/tex; mode=display">
+normalized_{-}data=\frac {data-\mu}{\sigma ^{2}}</script><p>但是因为我们的数据集实在太大了(450,000张照片)，加载这么大量的数据需要巨大的内存（所以我们训练用的是生成器的方式获得batch而不是一开始全部读取到内存里），<code>scikit-learn</code>现有的函数无法处理这么大的数据，所以我试了两种方法来近似：</p>
 <ul>
-<li><p>$$<br>\frac {data-\mu}{255}<br>$$</p>
-</li>
+<li><script type="math/tex; mode=display">
+\frac {data-\mu}{255}</script></li>
 <li><p>该模型训练了80个epoch</p>
 </li>
 </ul>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -363,7 +371,8 @@
 <th>余弦相似度（=1-余弦距离）</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>yellow1</td>
 <td>/</td>
 </tr>
@@ -387,13 +396,16 @@
 <td>huge</td>
 <td>0.6379674</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <ul>
-<li><p>$$<br>\frac {data}{255}-0.5<br>$$</p>
-</li>
+<li><script type="math/tex; mode=display">
+\frac {data}{255}-0.5</script></li>
 <li><p>该模型训练了15个epoch</p>
 </li>
 </ul>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -401,7 +413,8 @@
 <th>余弦距离（=1-余弦距离）</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>yellow1</td>
 <td>/</td>
 </tr>
@@ -425,7 +438,9 @@
 <td>huge</td>
 <td>0.47507387</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <h4 id="2-1-4-2-数据类型："><a href="#2-1-4-2-数据类型：" class="headerlink" title="2.1.4.2 数据类型："></a>2.1.4.2 数据类型：</h4><ul>
 <li>在上述归一化的过程中，要先cv2.resize成(128,64)后再除255，因为opencv采用uint8的数据类型，会把0.xxx近似成0 </li>
 <li>tensorrt不支持float64，而该类型是numpy的默认类型，所以输入前要转成float32</li>

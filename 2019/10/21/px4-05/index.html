@@ -308,28 +308,26 @@
 </li>
 </ul>
 <a id="more"></a>
-
 <h1 id="1-PID控制"><a href="#1-PID控制" class="headerlink" title="1. PID控制"></a>1. PID控制</h1><p>PID控制是工程实际中应用最为广泛控制器，按照控制规律为比例（Proportion）、积分（Intergration)、微分(Differentiation) 控制。</p>
 <p>当被控对象结构和参数不能完全掌握，或找不到精确数学模型时，控制理论其它技术难以采用时，系统控制器结构和参数必须依靠经验和现场调试来确定，这时应用PID控制技术最为方便。</p>
 <p>PID控制的是系统误差err，利用比例、积分、微分计算出控制量u，进行控制，控制关系如下所示：</p>
-<p><code>err(t)=X-x(t)</code>—&gt;<code>u(t)=PID(err(t))</code>—&gt;<code>x(t+1)=x(t)+u(t)</code>—&gt;<code>下一时刻...</code></p>
+<p><code>err(t)=X-x(t)</code>—-&gt;<code>u(t)=PID(err(t))</code>—-&gt;<code>x(t+1)=x(t)+u(t)</code>—-&gt;<code>下一时刻...</code></p>
 <p>下式是连续PID控制的表达式：</p>
 <p><img src="/2019/10/21/px4-05/0.png" alt="0"></p>
-<p>在实际使用中，常常使用离散PID控制：<br>$$<br>u_{k}=K_{P}\cdot[err_{k}+\frac{1}{T_{I}}\Sigma err_j + T_{d}\frac{err_{k}-err_{k-1}}{\Delta T}]<br>$$</p>
-<h2 id="1-1-基本原理"><a href="#1-1-基本原理" class="headerlink" title="1.1 基本原理"></a>1.1 基本原理</h2><p>参考资料： <a href="http://blog.csdn.net/qq_25352981/article/details/81007075" target="_blank" rel="noopener">一文读懂PID控制算法</a></p>
+<p>在实际使用中，常常使用离散PID控制：</p>
+<script type="math/tex; mode=display">
+u_{k}=K_{P}\cdot[err_{k}+\frac{1}{T_{I}}\Sigma err_j + T_{d}\frac{err_{k}-err_{k-1}}{\Delta T}]</script><h2 id="1-1-基本原理"><a href="#1-1-基本原理" class="headerlink" title="1.1 基本原理"></a>1.1 基本原理</h2><p>参考资料： <a href="http://blog.csdn.net/qq_25352981/article/details/81007075" target="_blank" rel="noopener">一文读懂PID控制算法</a></p>
 <h3 id="1-1-1-比例控制（Proportion）"><a href="#1-1-1-比例控制（Proportion）" class="headerlink" title="1.1.1 比例控制（Proportion）"></a>1.1.1 比例控制（Proportion）</h3><p><strong>原理部分</strong></p>
 <p>比例控制是一种最简单的控制方式。其控制器的输出与输入误差信号成比例关系。</p>
-<p>假设我有一个水缸，最终的控制目的是要保证水缸里的水位永远的维持在1米的高度。假设初试时刻，水缸里的水位是0.2米，那么当前时刻的水位和目标水位之间是存在一个误差的<code>error</code>，且<code>error</code>为0.8.这个时候，假设旁边站着一个人，这个人通过往缸里加水的方式来控制水位。如果单纯的用比例控制算法，就是指加入的水量<code>u</code>和误差<code>error</code>是成正比的。即<code>u=kp * error</code>。<br>假设<code>kp</code>取0.5，那么t=1时（表示第1次加水，也就是第一次对系统施加控制），那么<code>u=0.5 * 0.8=0.4</code>，所以这一次加入的水量会使水位在0.2的基础上上升0.4，达到0.6。 接着，<code>t=2</code>时刻（第2次施加控制），当前水位是0.6，所以<code>error</code>是0.4。`u=0.5 * 0.4=0.21，会使水位再次上升0.2，达到0.8。如此这么循环下去，就是比例控制算法的运行方法。可以看到，最终水位会达到我们需要的1米。<br>但是，一旦水桶存在漏水现象，那么当P项输出等于漏水的量时，P控制系统就会停止在不等于理想输出的某一值，即<strong>系统存在稳态误差</strong>。</p>
+<p>假设我有一个水缸，最终的控制目的是要保证水缸里的水位永远的维持在1米的高度。假设初试时刻，水缸里的水位是0.2米，那么当前时刻的水位和目标水位之间是存在一个误差的<code>error</code>，且<code>error</code>为0.8.这个时候，假设旁边站着一个人，这个人通过往缸里加水的方式来控制水位。如果单纯的用比例控制算法，就是指加入的水量<code>u</code>和误差<code>error</code>是成正比的。即<code>u=kp * error</code>。<br>假设<code>kp</code>取0.5，那么t=1时（表示第1次加水，也就是第一次对系统施加控制），那么<code>u=0.5 * 0.8=0.4</code>，所以这一次加入的水量会使水位在0.2的基础上上升0.4，达到0.6。 接着，<code>t=2</code>时刻（第2次施加控制），当前水位是0.6，所以<code>error</code>是0.4。`u=0.5 <em> 0.4=0.21，会使水位再次上升0.2，达到0.8。如此这么循环下去，就是比例控制算法的运行方法。可以看到，最终水位会达到我们需要的1米。<br>但是，一旦水桶存在漏水现象，那么当P项输出等于漏水的量时，P控制系统就会停止在不等于理想输出的某一值，即<em>*系统存在稳态误差</em></em>。</p>
 <p><strong>总结</strong></p>
 <ul>
 <li><p>比例控制是<code>PID</code>中最基础的一种控制方式，反映了对误差最直接的负反馈，一般是必须的;</p>
 </li>
 <li><p>当仅有比例控制时系统输出存在稳态误差;</p>
 </li>
-<li><p>增大比例系数使系统反应灵敏，调节速度加快，并且可以减小稳态误差;</p>
-</li>
-<li><p>比例系数过大会使超调量增大，振荡次数增加，调节时间加长，动态性能变坏，比例系数太大甚至会使闭环系统不稳定。</p>
-</li>
+<li>增大比例系数使系统反应灵敏，调节速度加快，并且可以减小稳态误差;</li>
+<li>比例系数过大会使超调量增大，振荡次数增加，调节时间加长，动态性能变坏，比例系数太大甚至会使闭环系统不稳定。</li>
 </ul>
 <h3 id="1-1-2-积分控制（Integration）"><a href="#1-1-2-积分控制（Integration）" class="headerlink" title="1.1.2 积分控制（Integration）"></a>1.1.2 积分控制（Integration）</h3><p><strong>原理部分</strong></p>
 <p>单纯的P控制可能会导致被控量和期待值之间有一个稳态误差，针对这一点，加入了积分控制。</p>
@@ -443,18 +441,33 @@
 <h1 id="3-TECS-控制"><a href="#3-TECS-控制" class="headerlink" title="3. TECS 控制"></a>3. TECS 控制</h1><p>参考材料： <a href="https://blog.csdn.net/Miku_HU/article/details/88632526" target="_blank" rel="noopener">固定翼位置控制_TECS</a>，<a href="https://dev.px4.io/master/en/flight_stack/controller_diagrams.html#total-energy-control-system-tecs" target="_blank" rel="noopener">PX4官网Controller_Diagram</a></p>
 <p>TECS主要控制纵向的高度和速度。因为升降舵可以控制飞机的高度，油门可以控制飞机的速度，但是单单通过升降舵改变高度会使速度下降或者上升，单单通过油门改变速度会使高度改变，所以我们通过TECS将二者解耦，协调油门和俯仰角要求来控制飞机的高度和速度达到预设的值。</p>
 <p><strong>Tecs算法的功能：输入设定的高度和速度，输出目标油门和俯仰角。</strong></p>
-<p><img src="/2019/10/21/px4-05/3.svg" alt="3">)$sin(\gamma)\approx\gamma$，</p>
+<p><img src="/2019/10/21/px4-05/3.svg" alt="3">$sin(\gamma)\approx\gamma$，</p>
 <h2 id="3-1-油门控制方法"><a href="#3-1-油门控制方法" class="headerlink" title="3.1 油门控制方法"></a>3.1 油门控制方法</h2><p><img src="/2019/10/21/px4-05/24.jpg" alt="24"></p>
-<p>定义一个飞行器的总能量为:<br>$$<br>E_{T}=\frac{1}{2}mV_{T}^{2}+mgh<br>$$<br>将总能量对时间求导，得到其变化率为：<br>$$<br>\dot{E_{T}}=mV_{T}\dot{V_{T}}+mg\dot{h}<br>$$<br>将其除以<code>mgv</code>，得到无量纲的“特征能量变化率”（specific energy rate）：<br>$$<br>\dot{E}=\frac{\dot{E_{T}}}{mgV_{T}}=\frac{\dot{V_{T}}}{g}+\frac{\dot{h}}{V_{T}}=\frac{\dot{V_{T}}}{g}+sin(\gamma)<br>$$<br>其中，<code>gamma</code>是飞机上升的迎角，上式的第二步转化基于飞行动力学的爬升速率公式：<br>$$<br>\dot{h}=\dot{V}sin(\gamma)<br>$$<br>对于小的爬升迎角，我们有<br>$$<br>sin(\gamma)\approx\gamma<br>$$<br>因此特征能量变化率公式进一步推导为：<br>$$<br>\dot{E}\approx\frac{\dot{V_{T}}}{g}+\gamma<br>$$<br>根据飞行动力学的飞机运动方程，有：<br>$$<br>\Delta T=T-D=mg(\frac{\dot{V_{T}}}{g}+sin(\gamma))\approx mg(\frac{\dot{V_{T}}}{g}+\gamma)<br>$$<br>上式中，<code>T</code>是推力，<code>D</code>是阻力。在平飞过程中，初始推力与阻力方向相反。二者合力$\Delta T$的变化与能量消耗的速度成正比：</p>
-<p>$$<br>\Delta T\propto \dot{E}<br>$$</p>
-<p>我们可以在已知期望特征能量变化率的情况下求出前馈的期望油门（Throttle Setpoint），使用本公式：</p>
+<p>定义一个飞行器的总能量为:</p>
+<script type="math/tex; mode=display">
+E_{T}=\frac{1}{2}mV_{T}^{2}+mgh</script><p>将总能量对时间求导，得到其变化率为：</p>
+<script type="math/tex; mode=display">
+\dot{E_{T}}=mV_{T}\dot{V_{T}}+mg\dot{h}</script><p>将其除以<code>mgv</code>，得到无量纲的“特征能量变化率”（specific energy rate）：</p>
+<script type="math/tex; mode=display">
+\dot{E}=\frac{\dot{E_{T}}}{mgV_{T}}=\frac{\dot{V_{T}}}{g}+\frac{\dot{h}}{V_{T}}=\frac{\dot{V_{T}}}{g}+sin(\gamma)</script><p>其中，<code>gamma</code>是飞机上升的迎角，上式的第二步转化基于飞行动力学的爬升速率公式：</p>
+<script type="math/tex; mode=display">
+\dot{h}=\dot{V}sin(\gamma)</script><p>对于小的爬升迎角，我们有</p>
+<script type="math/tex; mode=display">
+sin(\gamma)\approx\gamma</script><p>因此特征能量变化率公式进一步推导为：</p>
+<script type="math/tex; mode=display">
+\dot{E}\approx\frac{\dot{V_{T}}}{g}+\gamma</script><p>根据飞行动力学的飞机运动方程，有：</p>
+<script type="math/tex; mode=display">
+\Delta T=T-D=mg(\frac{\dot{V_{T}}}{g}+sin(\gamma))\approx mg(\frac{\dot{V_{T}}}{g}+\gamma)</script><p>上式中，<code>T</code>是推力，<code>D</code>是阻力。在平飞过程中，初始推力与阻力方向相反。二者合力$\Delta T$的变化与能量消耗的速度成正比：</p>
+<script type="math/tex; mode=display">
+\Delta T\propto \dot{E}</script><p>我们可以在已知期望特征能量变化率的情况下求出前馈的期望油门（Throttle Setpoint），使用本公式：</p>
 <p><img src="/2019/10/21/px4-05/hh.png" alt="hh"></p>
 <p>对前馈的期望油门，还使用了控制特征能量差和特征能量变化率之差的ID控制器进行了修正。油门的修正值为：</p>
-<p>$$<br>T_{ID}=ID_Controller(error_{E},error_{\dot{E}})\cdot K_{\dot{E}\rightarrow\Delta T}<br>$$</p>
-<p>上式最后一部分定义了总能量变化率到油门的增益，（这里的定义和上图有差异，把油门时间常数也包括了进来）其计算式为：</p>
-<p>$$<br>K_{\dot{E}\rightarrow\Delta T}=\frac{1}{\tau_{thr}\cdot (\dot{E_{max}}-\dot{E_{min}})}<br>$$</p>
-<p>将修正值<code>T_ID</code>加到前馈的期望油门<code>T_FF</code>上，即可得到油门的期望值<code>T_SP</code>：<br>$$<br>T_{SP}=T_{FF}+T_{ID}<br>$$</p>
-<h2 id="3-2-俯仰角控制方法"><a href="#3-2-俯仰角控制方法" class="headerlink" title="3.2 俯仰角控制方法"></a>3.2 俯仰角控制方法</h2><p><img src="/2019/10/21/px4-05/25.jpg" alt="25"></p>
+<script type="math/tex; mode=display">
+T_{ID}=ID\_Controller(error_{E},error_{\dot{E}})\cdot K_{\dot{E}\rightarrow\Delta T}</script><p>上式最后一部分定义了总能量变化率到油门的增益，（这里的定义和上图有差异，把油门时间常数也包括了进来）其计算式为：</p>
+<script type="math/tex; mode=display">
+K_{\dot{E}\rightarrow\Delta T}=\frac{1}{\tau_{thr}\cdot (\dot{E_{max}}-\dot{E_{min}})}</script><p>将修正值<code>T_ID</code>加到前馈的期望油门<code>T_FF</code>上，即可得到油门的期望值<code>T_SP</code>：</p>
+<script type="math/tex; mode=display">
+T_{SP}=T_{FF}+T_{ID}</script><h2 id="3-2-俯仰角控制方法"><a href="#3-2-俯仰角控制方法" class="headerlink" title="3.2 俯仰角控制方法"></a>3.2 俯仰角控制方法</h2><p><img src="/2019/10/21/px4-05/25.jpg" alt="25"></p>
 <p>飞机爬升的控制过程被认为是机械能守恒的，在这个过程中重力势能和动能相互转化。</p>
 <p>因此定义几个参数：</p>
 <ul>
@@ -465,8 +478,10 @@
 <li><p>无量纲数”特征能量平衡变化率“（specific energy balance rate）$\dot{B}$：</p>
 </li>
 </ul>
-<p>$$<br>\dot{B}=\gamma-\frac{\dot{V_{T}}}{g}<br>$$</p>
-<p>俯仰角和特征能量平衡变化率之间存在转化关系：<br>$$<br>\theta=\frac{\dot{B}}{V_{T}\cdot g}<br>$$<br><a href="https://yerfor.github.io/img/profile.pdf接下来的过程与3.1类似，需要详细了解可以参照第一篇参考材料。" target="_blank" rel="noopener">https://yerfor.github.io/img/profile.pdf接下来的过程与3.1类似，需要详细了解可以参照第一篇参考材料。</a></p>
+<script type="math/tex; mode=display">
+\dot{B}=\gamma-\frac{\dot{V_{T}}}{g}</script><p>俯仰角和特征能量平衡变化率之间存在转化关系：</p>
+<script type="math/tex; mode=display">
+\theta=\frac{\dot{B}}{V_{T}\cdot g}</script><p><a href="https://yerfor.github.io/img/profile.pdf接下来的过程与3.1类似，需要详细了解可以参照第一篇参考材料。" target="_blank" rel="noopener">https://yerfor.github.io/img/profile.pdf接下来的过程与3.1类似，需要详细了解可以参照第一篇参考材料。</a></p>
 <h2 id="3-3-TECS参数调整"><a href="#3-3-TECS参数调整" class="headerlink" title="3.3 TECS参数调整"></a>3.3 TECS参数调整</h2><p>参考资料： <strong><a href="https://docs.px4.io/master/en/config_fw/pid_tuning_guide_fixedwing.html" target="_blank" rel="noopener">PX4固定翼PID调参教程</a></strong>， <strong><a href="http://www.moz8.com/thread-86242-1-14.html?_dsign=1fb2e568" target="_blank" rel="noopener">机翻中文版</a></strong></p>
 <p>总能量控制系统几乎总是可以使用默认增益，但是需要关于主机身属性的一些信息来正确地执行。</p>
 <ul>

@@ -296,18 +296,14 @@
 </ul>
 <p>总的来说，本文为我们自己设计Scenario提供了基础。</p>
 <a id="more"></a>
-
 <h1 id="1-定义Scenario类"><a href="#1-定义Scenario类" class="headerlink" title="1. 定义Scenario类"></a>1. 定义Scenario类</h1><p>首先，引用依赖，定义Scenario类：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> multiagent.core <span class="keyword">import</span> World, Agent, Landmark</span><br><span class="line"><span class="keyword">from</span> multiagent.scenario <span class="keyword">import</span> BaseScenario</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Scenario</span><span class="params">(BaseScenario)</span>:</span></span><br></pre></td></tr></table></figure>
-
 <h2 id="1-1-make-world-self"><a href="#1-1-make-world-self" class="headerlink" title="1.1 make_world(self)"></a>1.1 make_world(self)</h2><h3 id="1-1-1-World类"><a href="#1-1-1-World类" class="headerlink" title="1.1.1 World类"></a>1.1.1 World类</h3><p>我们要先创建一个世界，这个世界包括了agent和landmark等，它提供了对二维空间的物理描述，包括时间、位置、加速度和速度等。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">make_world</span><span class="params">(self)</span>:</span></span><br><span class="line">    world = World()</span><br></pre></td></tr></table></figure>
-
 <p>这里我们调用了<code>multiagent.core</code>中定义的<code>World</code>对象:</p>
 <p><img src="/2019/11/14/drl-04/World.png" alt="World"></p>
 <p>至此我们创建了一个初始的World，这个World里储存agents和landmarks的列表是空的，需要我们创建对象后添加进去，如下：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># set any world properties first</span></span><br><span class="line">world.dim_c = <span class="number">2</span></span><br><span class="line">num_agents = <span class="number">5</span></span><br><span class="line">num_adversaries = <span class="number">4</span></span><br><span class="line">num_landmarks = <span class="number">2</span></span><br><span class="line"><span class="comment"># add agents</span></span><br><span class="line"><span class="comment"># 创建了5个初始的Agent的对象，传到world中</span></span><br><span class="line">world.agents = [Agent() <span class="keyword">for</span> i <span class="keyword">in</span> range(num_agents)]</span><br><span class="line"><span class="comment"># 遍历所有agent，设定他们的名字、是否可碰撞、是否是哑巴（不能通信）</span></span><br><span class="line"><span class="comment"># 此外还要设定adversary这个属性以标示是否是敌人</span></span><br><span class="line"><span class="keyword">for</span> i, agent <span class="keyword">in</span> enumerate(world.agents):</span><br><span class="line">    agent.name = <span class="string">'agent %d'</span> % i</span><br><span class="line">    agent.collide = <span class="literal">True</span></span><br><span class="line">    agent.silent = <span class="literal">True</span></span><br><span class="line">    <span class="keyword">if</span> i &lt; num_adversaries:</span><br><span class="line">        agent.adversary = <span class="literal">True</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        agent.adversary = <span class="literal">False</span></span><br><span class="line"><span class="comment"># add landmarks</span></span><br><span class="line">world.landmarks = [Landmark() <span class="keyword">for</span> i <span class="keyword">in</span> range(num_landmarks)]</span><br><span class="line"><span class="keyword">for</span> i, landmark <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">    landmark.name = <span class="string">'landmark %d'</span> % i</span><br><span class="line">    landmark.collide = <span class="literal">False</span></span><br><span class="line">    landmark.movable = <span class="literal">False</span></span><br><span class="line"><span class="comment"># make initial conditions</span></span><br><span class="line">self.reset_world(world)</span><br><span class="line"><span class="keyword">return</span> world</span><br></pre></td></tr></table></figure>
-
 <h3 id="1-1-2-Agent类"><a href="#1-1-2-Agent类" class="headerlink" title="1.1.2 Agent类"></a>1.1.2 Agent类</h3><p>让我们看看Agent有哪些属性：</p>
 <p><img src="/2019/11/14/drl-04/Agent.png" alt="Agent"></p>
 <p>Agent继承自Entity，所以还拥有Entity的属性和方法：</p>
@@ -322,17 +318,13 @@
 <h2 id="1-2-reset-world-self-world"><a href="#1-2-reset-world-self-world" class="headerlink" title="1.2 reset_world(self, world)"></a>1.2 reset_world(self, world)</h2><p>在将<code>agent</code>和<code>landmark</code>加入<code>world</code>中后，<code>make_world</code>还运行了一次<code>reset_world</code>来刷新重置世界，事实上这个刷新重置的函数每个<code>episode</code>都要执行，所以我们另开一章介绍。</p>
 <p>我们先定义reset_world函数：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reset_world</span><span class="params">(self, world)</span>:</span></span><br></pre></td></tr></table></figure>
-
 <p>首先，设置每个landmark的颜色和index：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># random properties for landmarks</span></span><br><span class="line"><span class="keyword">for</span> i, landmark <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">    landmark.color = np.array([<span class="number">0.1</span>, <span class="number">0.1</span>, <span class="number">0.1</span>])</span><br><span class="line">    landmark.color[i + <span class="number">1</span>] += <span class="number">0.8</span></span><br><span class="line">    landmark.index = i</span><br></pre></td></tr></table></figure>
-
 <p>注意，上面这个color的设置方法只能用于landmark数量小于等于2个的时候，当大于2个的时候就会有color[i+1]下标越界的情况，这时可以直接把color的生成方案换成随机数。其实是小事情。</p>
 <p>接着，从所有landmarks中随机找一个landmark作为目标goal。然后告诉每个agent目标是哪个landmark，注意这里他们又在Agent外面定义了一个属性，这个习惯真的很不好哈哈哈。然后再给agent和敌人设定颜色。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># set goal landmark</span></span><br><span class="line">goal = np.random.choice(world.landmarks)</span><br><span class="line"><span class="keyword">for</span> i, agent <span class="keyword">in</span> enumerate(world.agents):</span><br><span class="line">    agent.goal_a = goal</span><br><span class="line">    agent.color = np.array([<span class="number">0.25</span>, <span class="number">0.25</span>, <span class="number">0.25</span>])</span><br><span class="line">    <span class="keyword">if</span> agent.adversary:</span><br><span class="line">        agent.color = np.array([<span class="number">0.75</span>, <span class="number">0.25</span>, <span class="number">0.25</span>])</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        j = goal.index</span><br><span class="line">        agent.color[j + <span class="number">1</span>] += <span class="number">0.5</span></span><br></pre></td></tr></table></figure>
-
 <p>最后，用标准正态分布和0初始化了agent和landmark的初始状态<code>agent.state</code>，包括位置和速度。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># set random initial states</span></span><br><span class="line"><span class="keyword">for</span> agent <span class="keyword">in</span> world.agents:</span><br><span class="line">    agent.state.p_pos = np.random.uniform(<span class="number">-1</span>, +<span class="number">1</span>, world.dim_p)</span><br><span class="line">    agent.state.p_vel = np.zeros(world.dim_p)</span><br><span class="line">    agent.state.c = np.zeros(world.dim_c)</span><br><span class="line"><span class="keyword">for</span> i, landmark <span class="keyword">in</span> enumerate(world.landmarks):</span><br><span class="line">    landmark.state.p_pos = np.random.uniform(<span class="number">-1</span>, +<span class="number">1</span>, world.dim_p)</span><br><span class="line">    landmark.state.p_vel = np.zeros(world.dim_p)</span><br></pre></td></tr></table></figure>
-
 <p>这里发现忘了交代State类的定义，其实很简单，只有位置<code>p_pos</code>、速度<code>p_vel</code>和通讯渠道<code>c</code>：</p>
 <p><img src="/2019/11/14/drl-04/State.png" alt="State"></p>
 <h2 id="1-3-reward-self-agent-world"><a href="#1-3-reward-self-agent-world" class="headerlink" title="1.3 reward(self, agent, world)"></a>1.3 reward(self, agent, world)</h2><p>因为simple_push的场景同时用到了协作和竞争，所以我们需要对agent和adversary分别设立reward。</p>
@@ -341,14 +333,17 @@
 <p>之前定义的<code>agent.adversary</code>属性起到了辨识的作用，使agent和adversary分别执行不同的reward函数。</p>
 <p>先来看agent的reward，因为他的目标比较简单，就是离目标的Landmark尽可能的近：</p>
 <p><img src="/2019/11/14/drl-04/agentReward.png" alt="agentReward"></p>
-<p>上式中，<code>p_pos</code>是<code>(x,y)</code>形式的向量，所以agent的reward实际上就是agent和goal的欧氏距离：<br>$$<br>r_{agent}^{i}=\sqrt{\Delta x^{2}+\Delta y^{2}}<br>$$</p>
-<ul>
+<p>上式中，<code>p_pos</code>是<code>(x,y)</code>形式的向量，所以agent的reward实际上就是agent和goal的欧氏距离：</p>
+<script type="math/tex; mode=display">
+r_{agent}^{i}=\sqrt{\Delta x^{2}+\Delta y^{2}}</script><ul>
 <li>这里因为设定的场景里只有一个<code>goal</code>，所以<code>reward</code>设置的比较简单。实际上，设计一个<code>Scenario</code>最大的难点可能就在于<code>reward</code>的选定，所以为了更好地指导我们根据自己的场景选择合适的<code>reward</code>，我在本文的最后对<code>MADDPG</code>提供的所有<code>scenario</code>示例的场景和对应的<code>reward</code>做了一个总结。</li>
 </ul>
 <p>接下来看adversary的reward，它的任务比agent复杂，是尽量避免agent触及goal-Landmark：</p>
 <p><img src="/2019/11/14/drl-04/adversaryReward.png" alt="adversaryReward"></p>
 <p>首先计算了环境中所有agent（非adversary）和目标Goal-Landmark之间的欧氏距离，保存成一个列表agent_list，随后选择其中最小值（即距离目标最近的agent和目标之间的距离），储存为<code>pos_rew</code>，我们看到return是<code>pos_rew-neg_rew</code>，所以只要离目标最近的agent和目标之间的距离（等价于所有的agent离目标越远），adversary的reward越高。</p>
-<p>后面又计算了所有agent到目标的距离的平方和再开根，即：<br>$$<br>neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}<br>$$<br>可以看出这一项考虑的是所有adversary离目标的距离。如果<code>neg_rew</code>很小，即所有adversary离目标都很近，那么我们认为这是很好的，体现在return的 <code>pos_rew-neg_rew</code>里，减的<code>neg_rew</code>比较小，reward比较大。</p>
+<p>后面又计算了所有agent到目标的距离的平方和再开根，即：</p>
+<script type="math/tex; mode=display">
+neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可以看出这一项考虑的是所有adversary离目标的距离。如果<code>neg_rew</code>很小，即所有adversary离目标都很近，那么我们认为这是很好的，体现在return的 <code>pos_rew-neg_rew</code>里，减的<code>neg_rew</code>比较小，reward比较大。</p>
 <h2 id="1-4-关于reward的确定"><a href="#1-4-关于reward的确定" class="headerlink" title="1.4 关于reward的确定"></a>1.4 关于reward的确定</h2><ul>
 <li>虽然打算到最后本文最后好好总结一下所有reward的设计后再来发表感想的，但是看完这个示例的reward设计之后觉得，reward应该是<code>正相关于我们想要尽可能高的东西，负相关于我们不想要的东西</code>的一个式子。我们在设计reward时，可以好好想一下我们想要达到什么效果，这个效果下什么参数要尽可能大，什么参数要尽可能小。</li>
 <li>然后就是adversary的reward，让我觉得可能这种竞争的reward，阻挠对方完成任务的一方，它的reward需要综合双方的属性，即削弱彼方，增强己方。</li>
@@ -360,17 +355,15 @@
 <p>在本文末，会对官方给出的所有sample的reward做一个汇总，对其设计策略进行评析、总结。</p>
 <h2 id="1-5-Observation-self-agent-world"><a href="#1-5-Observation-self-agent-world" class="headerlink" title="1.5 Observation(self, agent, world)"></a>1.5 Observation(self, agent, world)</h2><p>Observation函数用于单个agent观察它周围的环境，agent会首先计算自己和所有Landmark之间的相对位置（一个向量），储存在名为<code>entity_pos</code>的list里：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">observation</span><span class="params">(self, agent, world)</span>:</span></span><br><span class="line">    <span class="comment"># get positions of all entities in this agent's reference frame</span></span><br><span class="line">    entity_pos = []</span><br><span class="line">    <span class="keyword">for</span> entity <span class="keyword">in</span> world.landmarks:  <span class="comment"># world.entities:</span></span><br><span class="line">        entity_pos.append(entity.state.p_pos - agent.state.p_pos)</span><br></pre></td></tr></table></figure>
-
 <p>再把所有landmark的颜色储存在名为<code>entity_color</code>的list里：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">entity_color = []</span><br><span class="line"><span class="keyword">for</span> entity <span class="keyword">in</span> world.landmarks:  <span class="comment"># world.entities:</span></span><br><span class="line">    entity_color.append(entity.color)</span><br></pre></td></tr></table></figure>
-
 <p>接下来是通信阶段，如果有通信的话，每个agent都会把设定分享的东西放到<code>agent.state.c</code>（不妨叫它<code>共享区</code>）里，然后某个agent执行observe时就会把所有agent的<code>共享区</code>的东西存到名叫<code>comm</code>的list里，在这个例子里没有用到。</p>
 <p>然后这个环境还默认每个agent都知道其他agent的位置，所以可以得到名叫<code>other_pos</code>的list，里面存的是其他agent和当前agent的相对位置。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># communication of all other agents</span></span><br><span class="line">        comm = []</span><br><span class="line">        other_pos = []</span><br><span class="line">        <span class="keyword">for</span> other <span class="keyword">in</span> world.agents:oushijulki</span><br><span class="line">            <span class="keyword">if</span> other <span class="keyword">is</span> agent: <span class="keyword">continue</span></span><br><span class="line">            comm.append(other.state.c)</span><br><span class="line">            other_pos.append(other.state.p_pos - agent.state.p_pos)</span><br></pre></td></tr></table></figure>
-
 <p>最后是将数据保存起来return回去，这里的concatenate函数内部用<code>+</code>的方法有点没看懂，但想来不可能是数组相加，可能和(a,b,c)是同一个用法吧。</p>
 <p><img src="/2019/11/14/drl-04/observe.png" alt="observe"></p>
 <h1 id="2-讨论：如何设计reward？"><a href="#2-讨论：如何设计reward？" class="headerlink" title="2. 讨论：如何设计reward？"></a>2. 讨论：如何设计reward？</h1><p>我首先对官方提供的所有Scenario sample进行了阅读和训练测试，各个sample的场景和reward设计如下：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -381,7 +374,8 @@
 <th>adversary_reward</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>simple</td>
 <td>单个agent尽可能地靠近一个goal_landmark</td>
 <td>/</td>
@@ -437,7 +431,9 @@
 <td>如果agent和adversaries有collide，那么有<code>reward-=10</code>；如果考虑shape（默认不考虑），reward会有一个和其他所有adv的距离的根平方和：$0.1\Sigma_i dist(agent,adversary_i)$;对agent跑出窗口有巨大惩罚。</td>
 <td>和agent刚好相反。考虑shape时和agent的距离越近越好（注意这里也是adversary整体的加和）；如果有adversary和agent有collide，所有adversary都有奖励。</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
+</div>
 <p>下面是几个我觉得有参考意义的sample的训练结果demo：</p>
 <ul>
 <li>simple_push：一个agent想要靠近目标，其他几个adversary的任务是阻止他靠近目标<ul>
@@ -466,12 +462,9 @@
 </li>
 <li><p>对串行协作的，二者一荣俱荣一辱俱辱的（比如speaker和listener），使用同一个reward。</p>
 </li>
-<li><p>对于多机并行协作的，reward应该体现所有agent的分布情况的好坏，譬如simple_push里adversary的reward就包括了对adversary整体分布情况的考量。</p>
-</li>
-<li><p>对于多机并行协作，如果不想让它们扎堆导致低效率，可以在reward里对单个agent和其他agent出现collide的情况进行惩罚。</p>
-</li>
-<li><p>对竞争的，reward需要体现出正相关于己方的目标、负相关于敌方的目标。</p>
-</li>
+<li>对于多机并行协作的，reward应该体现所有agent的分布情况的好坏，譬如simple_push里adversary的reward就包括了对adversary整体分布情况的考量。</li>
+<li>对于多机并行协作，如果不想让它们扎堆导致低效率，可以在reward里对单个agent和其他agent出现collide的情况进行惩罚。</li>
+<li>对竞争的，reward需要体现出正相关于己方的目标、负相关于敌方的目标。</li>
 <li><p>竞争双方的reward的形式可以是相反数（如simple_tag）。</p>
 </li>
 <li><p>如果只有一个距离作为reward，最好用平方，以增加reward在训练中的效果；如果有多个距离的加减，一定用一次方，否则会导致各项之间自带诡异的权重。</p>
