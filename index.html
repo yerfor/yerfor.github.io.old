@@ -207,6 +207,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/19/gan-02/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/02/19/gan-02/" class="post-title-link" itemprop="url">GAN[02]-边界均衡生成对抗网络:BEGAN</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-02-19 17:40:42" itemprop="dateCreated datePublished" datetime="2020-02-19T17:40:42+08:00">2020-02-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-20 12:57:49" itemprop="dateModified" datetime="2020-02-20T12:57:49+08:00">2020-02-20</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p><code>BEGAN</code> (Boundary Equilibrium Generative Adversarial Networks)是2017年谷歌发表的框架，它在WGAN和EBGAN的基础上做出了改进。关于<code>WGAN</code>和<code>EBGAN</code>：</p>
+<ul>
+<li><p><code>WGAN</code>的原理和实现在上一篇博文中有介绍，它通过修改<code>Loss函数</code>使<code>Discriminator</code>的训练目标从传统GAN的<code>JS散度</code>变成了描述两个分布之间迁移所需步数的<code>Wasserstein 距离</code>(也叫Earth Moving Distance，即挖掘机距离)</p>
+</li>
+<li><p><code>EBGAN</code>(Energy-Based GAN)是<code>Yann Le Cun</code>在2016年发表的算法，论文号称是将Yann教授于2006年发表的<code>Energy-Based Model</code>应用在GAN中，不过实际上最大的贡献是网络结构的创新，即首次将<code>Auto-Encoder</code>用作Discriminator。</p>
+</li>
+</ul>
+<p>在<code>BEGAN</code>出现之前，<code>DCGAN</code>使用了卷积结构来提高生成图像的质量；<code>EBGAN</code>引入了<code>Auto-Encoder</code>结构提高收敛的稳定性和模型的鲁棒性；<code>WGAN</code>引入<code>Wasserstein距离</code>提高了稳定性和更好的模式覆盖，但是收敛速度慢。</p>
+<p><code>BEGAN</code>借鉴了<code>EBGAN</code>的<code>Auto-Encoder</code>结构，同样采用了<code>Wasserstein距离</code>，但<code>Loss函数</code>比<code>WGAN</code>更简洁。其独创之处在于：<code>BEGAN</code>第二个提供了可以衡量收敛情况的参数(第一个是<code>WGAN</code>的<code>gradient penalty</code>)，提供了一个超参数$\gamma$可以用来均衡生成器和判别器训练程度，此外$\gamma$还可以用来权衡生成图像的品质和多样性。</p>
+<p>上述的创新使得<code>BEGAN</code>成为当时性能最好的简单GAN结构，它是第二个可以生成清晰<code>(128x128)</code>图像的网络结构(第一个是2016年的<code>stackedGAN</code>，该结构是由多层GAN网络堆叠成的)。<code>BEGAN</code>提供了一个简单且鲁棒性更好的 GAN 架构，使用标准的训练步骤实现了快速、稳定的收敛，生成的图像质量更高。</p>
+<p>2017年后，对GAN的研究重心从理论提升转变到应用层面，所以<code>BEGAN</code>的理论在今天或许可以说仍是十分先进的。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/02/19/gan-02/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/10/ssd/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -307,10 +389,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2020-02-06 17:40:42 / 修改时间：17:37:19" itemprop="dateCreated datePublished" datetime="2020-02-06T17:40:42+08:00">2020-02-06</time>
+              <time title="创建时间：2020-02-06 17:40:42" itemprop="dateCreated datePublished" datetime="2020-02-06T17:40:42+08:00">2020-02-06</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-19 22:14:18" itemprop="dateModified" datetime="2020-02-19T22:14:18+08:00">2020-02-19</time>
+              </span>
 
           
 
@@ -993,102 +1081,6 @@
   
   
 
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/09/dl-05/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
-      <meta itemprop="name" content="Zhenhui Ye">
-      <meta itemprop="description" content="Be a superhero.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="yerfor's Journey">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/11/09/dl-05/" class="post-title-link" itemprop="url">多相机行人跟踪[02]-用TensorRT加速YOLO(2)</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-11-09 11:44:42" itemprop="dateCreated datePublished" datetime="2019-11-09T11:44:42+08:00">2019-11-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-02-06 15:24:57" itemprop="dateModified" datetime="2020-02-06T15:24:57+08:00">2020-02-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%A4%9A%E7%9B%B8%E6%9C%BA%E8%A1%8C%E4%BA%BA%E8%B7%9F%E8%B8%AA%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index">
-                    <span itemprop="name">多相机行人跟踪项目</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p><a href="https://yerfor.github.io/2019/11/01/dl-04/" target="_blank" rel="noopener">上篇深度学习随笔</a>里分享了<code>Nvidia</code>的神经网络推理引擎<code>TensorRT</code>，并且展示了一个官方给的example：<code>onnx_yolo</code>，当时虽然跑通了程序，但是在将其移植做实时检测的时候发现处理一张图片的时间达到了可怕的0.5秒。经过初步排查后发现<code>TensorRT</code>的推理效率已经得到充分提高（0.03秒/帧），问题主要出在官网提供的python脚本的数据后处理模块。</p>
-<p>今天就来解决这个问题，并且为了用于嵌入式部署，尝试了多种手段来提升<code>TensorRT-YOLO</code>的推理速率。</p>
-<p>本文主要介绍了：</p>
-<ul>
-<li>对<code>onnx_yolo</code>项目中运行效率低下的<code>python</code>模块进行优化</li>
-<li>尝试了用C语言加速python的方法，这包括：<ul>
-<li>用c++编写程序，转换成<code>.so</code>动态库，在python通过<code>ctypes</code>库调用<code>.so</code>动态库中的函数和类</li>
-<li>用<code>cython</code>将python脚本转换成<code>.so</code>库</li>
-</ul>
-</li>
-<li>减小<code>YOLO</code>网络输入层尺寸以提升速度的方法，及网络参数之间的修改逻辑</li>
-<li>基于<code>TensorRT</code>的混合参数精度方法</li>
-<li>项目优化结果展示</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/11/09/dl-05/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
   </div>
 
   
@@ -1161,7 +1153,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

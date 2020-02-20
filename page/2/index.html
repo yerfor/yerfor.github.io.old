@@ -207,6 +207,102 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/09/dl-05/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/11/09/dl-05/" class="post-title-link" itemprop="url">多相机行人跟踪[02]-用TensorRT加速YOLO(2)</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-09 11:44:42" itemprop="dateCreated datePublished" datetime="2019-11-09T11:44:42+08:00">2019-11-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-06 15:24:57" itemprop="dateModified" datetime="2020-02-06T15:24:57+08:00">2020-02-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A4%9A%E7%9B%B8%E6%9C%BA%E8%A1%8C%E4%BA%BA%E8%B7%9F%E8%B8%AA%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index">
+                    <span itemprop="name">多相机行人跟踪项目</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p><a href="https://yerfor.github.io/2019/11/01/dl-04/" target="_blank" rel="noopener">上篇深度学习随笔</a>里分享了<code>Nvidia</code>的神经网络推理引擎<code>TensorRT</code>，并且展示了一个官方给的example：<code>onnx_yolo</code>，当时虽然跑通了程序，但是在将其移植做实时检测的时候发现处理一张图片的时间达到了可怕的0.5秒。经过初步排查后发现<code>TensorRT</code>的推理效率已经得到充分提高（0.03秒/帧），问题主要出在官网提供的python脚本的数据后处理模块。</p>
+<p>今天就来解决这个问题，并且为了用于嵌入式部署，尝试了多种手段来提升<code>TensorRT-YOLO</code>的推理速率。</p>
+<p>本文主要介绍了：</p>
+<ul>
+<li>对<code>onnx_yolo</code>项目中运行效率低下的<code>python</code>模块进行优化</li>
+<li>尝试了用C语言加速python的方法，这包括：<ul>
+<li>用c++编写程序，转换成<code>.so</code>动态库，在python通过<code>ctypes</code>库调用<code>.so</code>动态库中的函数和类</li>
+<li>用<code>cython</code>将python脚本转换成<code>.so</code>库</li>
+</ul>
+</li>
+<li>减小<code>YOLO</code>网络输入层尺寸以提升速度的方法，及网络参数之间的修改逻辑</li>
+<li>基于<code>TensorRT</code>的混合参数精度方法</li>
+<li>项目优化结果展示</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/09/dl-05/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/05/drl-01/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -932,88 +1028,6 @@
   
   
 
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/17/px4-03/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
-      <meta itemprop="name" content="Zhenhui Ye">
-      <meta itemprop="description" content="Be a superhero.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="yerfor's Journey">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/17/px4-03/" class="post-title-link" itemprop="url">px4学习笔记[03]-PX4系统架构概览</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-10-17 13:15:59" itemprop="dateCreated datePublished" datetime="2019-10-17T13:15:59+08:00">2019-10-17</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-12-12 16:14:51" itemprop="dateModified" datetime="2019-12-12T16:14:51+08:00">2019-12-12</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>本文简要介绍了：</p>
-<ul>
-<li><p>PX4的系统架构，这包括</p>
-<ul>
-<li>位置控制器（Position Controller）</li>
-<li>固定翼姿态控制器（Fixed Wing Attitude Controller）</li>
-<li>混控器（Mixer）</li>
-</ul>
-<p>本文不涉及以上模块的具体源码分析，仅从其顶层原理、控制流程方面进行了介绍。</p>
-</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/10/17/px4-03/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
   </div>
 
   
@@ -1086,7 +1100,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

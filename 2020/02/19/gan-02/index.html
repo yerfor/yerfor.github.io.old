@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要BEGAN (Boundary Equilibrium Generative Adversarial Networks)是2017年谷歌发表的框架，它在WGAN和EBGAN的基础上做出了改进。关于WGAN和EBGAN：  WGAN的原理和实现在上一篇博文中有介绍，它通过修改Loss函数使Discriminator的训练目标从传统GAN的JS散度变成了描述两个分布之间迁移所需步数的Wasse">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GAN[02]-边界均衡生成对抗网络:BEGAN">
+<meta property="og:url" content="http://yoursite.com/2020/02/19/gan-02/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要BEGAN (Boundary Equilibrium Generative Adversarial Networks)是2017年谷歌发表的框架，它在WGAN和EBGAN的基础上做出了改进。关于WGAN和EBGAN：  WGAN的原理和实现在上一篇博文中有介绍，它通过修改Loss函数使Discriminator的训练目标从传统GAN的JS散度变成了描述两个分布之间迁移所需步数的Wasse">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/gen.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/encoder.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/dis_change.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/ebgan-dx.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/w-loss.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/began-loss.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/19/gan-02/BEGAN-demo.gif">
+<meta property="article:published_time" content="2020-02-19T09:40:42.000Z">
+<meta property="article:modified_time" content="2020-02-20T04:57:49.022Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="CV">
+<meta property="article:tag" content="GAN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/02/19/gan-02/gen.png">
+
+<link rel="canonical" href="http://yoursite.com/2020/02/19/gan-02/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>GAN[02]-边界均衡生成对抗网络:BEGAN | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/19/gan-02/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          GAN[02]-边界均衡生成对抗网络:BEGAN
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-02-19 17:40:42" itemprop="dateCreated datePublished" datetime="2020-02-19T17:40:42+08:00">2020-02-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-20 12:57:49" itemprop="dateModified" datetime="2020-02-20T12:57:49+08:00">2020-02-20</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p><code>BEGAN</code> (Boundary Equilibrium Generative Adversarial Networks)是2017年谷歌发表的框架，它在WGAN和EBGAN的基础上做出了改进。关于<code>WGAN</code>和<code>EBGAN</code>：</p>
+<ul>
+<li><p><code>WGAN</code>的原理和实现在上一篇博文中有介绍，它通过修改<code>Loss函数</code>使<code>Discriminator</code>的训练目标从传统GAN的<code>JS散度</code>变成了描述两个分布之间迁移所需步数的<code>Wasserstein 距离</code>(也叫Earth Moving Distance，即挖掘机距离)</p>
+</li>
+<li><p><code>EBGAN</code>(Energy-Based GAN)是<code>Yann Le Cun</code>在2016年发表的算法，论文号称是将Yann教授于2006年发表的<code>Energy-Based Model</code>应用在GAN中，不过实际上最大的贡献是网络结构的创新，即首次将<code>Auto-Encoder</code>用作Discriminator。</p>
+</li>
+</ul>
+<p>在<code>BEGAN</code>出现之前，<code>DCGAN</code>使用了卷积结构来提高生成图像的质量；<code>EBGAN</code>引入了<code>Auto-Encoder</code>结构提高收敛的稳定性和模型的鲁棒性；<code>WGAN</code>引入<code>Wasserstein距离</code>提高了稳定性和更好的模式覆盖，但是收敛速度慢。</p>
+<p><code>BEGAN</code>借鉴了<code>EBGAN</code>的<code>Auto-Encoder</code>结构，同样采用了<code>Wasserstein距离</code>，但<code>Loss函数</code>比<code>WGAN</code>更简洁。其独创之处在于：<code>BEGAN</code>第二个提供了可以衡量收敛情况的参数(第一个是<code>WGAN</code>的<code>gradient penalty</code>)，提供了一个超参数$\gamma$可以用来均衡生成器和判别器训练程度，此外$\gamma$还可以用来权衡生成图像的品质和多样性。</p>
+<p>上述的创新使得<code>BEGAN</code>成为当时性能最好的简单GAN结构，它是第二个可以生成清晰<code>(128x128)</code>图像的网络结构(第一个是2016年的<code>stackedGAN</code>，该结构是由多层GAN网络堆叠成的)。<code>BEGAN</code>提供了一个简单且鲁棒性更好的 GAN 架构，使用标准的训练步骤实现了快速、稳定的收敛，生成的图像质量更高。</p>
+<p>2017年后，对GAN的研究重心从理论提升转变到应用层面，所以<code>BEGAN</code>的理论在今天或许可以说仍是十分先进的。</p>
+<a id="more"></a>
+<h1 id="1-网络结构"><a href="#1-网络结构" class="headerlink" title="1.网络结构"></a>1.网络结构</h1><h2 id="1-1-生成器-Generator"><a href="#1-1-生成器-Generator" class="headerlink" title="1.1 生成器(Generator)"></a>1.1 生成器(Generator)</h2><p>论文所述的网络结构如下，可以看到和现在主流的全卷积网络有一定出入，论文中采用的是2个<code>strides=1</code>、<code>kernel_size=(3,3)</code>、<code>通道数n=16</code>的卷积层为一组，每组内的特征图储存相等；每组间添加一个<code>nearest</code>(最近邻)策略的<code>Upsampling</code>(上采样)层，进行特征图的扩增。下图中的结构用于生成<code>(32x32)</code>的图像，若要输出<code>(128x128)</code>，只需在下图结构的基础上再加两组卷积+<code>Upsampling</code>层。</p>
+<p><img src="/2020/02/19/gan-02/gen.png" alt="gen"></p>
+<ul>
+<li>上面图中有个坑值得注意，即图中的<code>Embedding(h)</code>，笔者一开始以为是NLP中常用的<code>Word Embedding</code>，对应的是<code>tensorflow</code>中的<code>tf.keras.layers.Embedding</code>，但是这不符合数学规则，最后查阅了源码发现图中<code>Embedding</code>的输出是<code>feature_code</code>，对<code>Generator</code>来说就是服从<code>normal分布</code>的噪声，对<code>Decoder</code>来说，就是简单的全连接层，这一点在下一小节判别器的源码中会用注释标注出来。</li>
+</ul>
+<p>使用<code>Tensorflow2</code>实现<code>Generator</code>的代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Generator</span><span class="params">(tf.keras.models.Model)</span>:</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,n=<span class="number">16</span>)</span>:</span></span><br><span class="line">    super(Generator,self).__init__()</span><br><span class="line">    <span class="comment"># fc+reshape [b, noise_length] -&gt; [b, 8*8*n] -&gt; [b, 8, 8, n]</span></span><br><span class="line">    self.fc = tf.keras.layers.Dense(<span class="number">8</span>*<span class="number">8</span>*n, actication=<span class="string">'elu'</span>)</span><br><span class="line">    self.reshape = tf.keras.layers.Reshape([<span class="number">8</span>,<span class="number">8</span>,n])</span><br><span class="line">    self.conv1 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv2 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># upsample [b, 8, 8, n] -&gt; [b, 16, 16, n] </span></span><br><span class="line">    self.upsample1 = tf.keras.layers.Upsampling2D()</span><br><span class="line">    self.conv3 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv4 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># upsample [b, 16, 16, n] -&gt; [b, 32, 32, n]</span></span><br><span class="line">    self.upsample2 = tf.keras.layers.Upsampling2D()</span><br><span class="line">    self.conv5 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv6 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># 输出归一化的图像矩阵，激活函数选择tanh</span></span><br><span class="line">    self.conv7 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'tanh'</span>)</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">(self, inputs, training=None)</span>:</span></span><br><span class="line">    x = self.fc(inputs)</span><br><span class="line">    x = self.reshape(x)</span><br><span class="line">    x = self.conv1(x)</span><br><span class="line">   	x = self.conv2(x)</span><br><span class="line">    x = self.upsample1(x)</span><br><span class="line">    x = self.conv3(x)</span><br><span class="line">    x = self.conv4(x)</span><br><span class="line">    x = self.upsample2(x)</span><br><span class="line">    x = self.conv5(x)</span><br><span class="line">    x = self.conv6(x)</span><br><span class="line">    x = self.conv7(x)</span><br><span class="line">    <span class="keyword">return</span> x</span><br></pre></td></tr></table></figure>
+<h2 id="1-2-判别器-Discriminator"><a href="#1-2-判别器-Discriminator" class="headerlink" title="1.2 判别器(Discriminator)"></a>1.2 判别器(Discriminator)</h2><p><code>BEGAN</code>的判别器网络采用<code>Auto-Encoder</code>结构，分为<code>Encoder</code>和<code>Decoder</code>两部分，前者负责将图片编码成一维的特征向量，后者负责将特征向量解码复原成原本的图片。<code>BEGAN</code>采用的<code>Decoder</code>的结构和上一小节里的<code>Generator</code>一致，<code>Encoder</code>的结构则如下图所示。</p>
+<p><img src="/2020/02/19/gan-02/encoder.png" alt="encoder"></p>
+<p>值得注意的是上图中的<code>Subsampling(下采样)</code>也叫<code>Pooling(池化)</code>，官方源码中最初使用的是最大池化。</p>
+<p>使用<code>Tensorflow2</code>实现<code>Discriminator</code>的代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Discriminator</span><span class="params">(tf.keras.models.Model)</span>:</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,n,h)</span>:</span></span><br><span class="line">    <span class="comment"># =======Encoder======</span></span><br><span class="line">    <span class="comment"># conv0 [b, 32, 32, 3] -&gt; [b, 32, 32, n]</span></span><br><span class="line">    self.conv0 = tf.keras.layers.Conv2D(filters=n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv1 = tf.keras.layers.Conv2D(filters=n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># conv2 [b, 32, 32, n] -&gt; [b, 32, 32, 2*n]</span></span><br><span class="line">    self.conv2 = tf.keras.layers.Conv2D(filters=<span class="number">2</span>*n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># subsampling1 [b, 32, 32, 2*n] -&gt; [b, 16, 16, 2*n]</span></span><br><span class="line">    self.subsampling1 = tf.keras.layers.MaxPooling()</span><br><span class="line">    self.conv3 = tf.keras.layers.Conv2D(filters=<span class="number">2</span>*n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># conv4 [b, 16, 16, 2*n] -&gt; [b, 16, 16, 3*n]</span></span><br><span class="line">    self.conv4 = tf.keras.layers.Conv2D(filters=<span class="number">3</span>*n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># subsampling2 [b, 16, 16, 3*n] -&gt; [b, 8, 8, 3*n]</span></span><br><span class="line">    self.subsampling1 = tf.keras.layers.MaxPooling()</span><br><span class="line">    self.conv5 = tf.keras.layers.Conv2D(filters=<span class="number">3</span>*n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv6 = tf.keras.layers.Conv2D(filters=<span class="number">3</span>*n,kernel_size=(<span class="number">3</span>,<span class="number">3</span>),</span><br><span class="line">                                        strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># flatten [b, 8, 8, 3*n] -&gt; [b, 8*8*3*n]</span></span><br><span class="line">    self.flatten = tf.keras.layers.Flatten()</span><br><span class="line">    <span class="comment"># fc1 [b, 8*8*3*n] -&gt; [b, h]</span></span><br><span class="line">    self.fc1 = tf.keras.layers.Dense(h)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># ======Decoder======</span></span><br><span class="line">    <span class="comment"># fc2 + reshape [b, h] -&gt; [b, 8*8*n] -&gt; [b, 8, 8, n]</span></span><br><span class="line">    self.fc2 = tf.keras.layers.Dense(<span class="number">8</span>*<span class="number">8</span>*n)</span><br><span class="line">    self.reshape = tf.keras.layers.Reshape([<span class="number">8</span>,<span class="number">8</span>,n])</span><br><span class="line">    self.conv7 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv8 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># upsample [b, 8, 8, n] -&gt; [b, 16, 16, n] </span></span><br><span class="line">    self.upsample1 = tf.keras.layers.Upsampling2D()</span><br><span class="line">    self.conv9 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv10 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># upsample [b, 16, 16, n] -&gt; [b, 32, 32, n]</span></span><br><span class="line">    self.upsample2 = tf.keras.layers.Upsampling2D()</span><br><span class="line">    self.conv11 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    self.conv12 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'elu'</span>)</span><br><span class="line">    <span class="comment"># 输出归一化的图像矩阵，激活函数选择tanh</span></span><br><span class="line">    self.conv13 = tf.keras.layers.Conv2D(filters=n,kernel_size=</span><br><span class="line">                                        (<span class="number">3</span>,<span class="number">3</span>),strides=<span class="number">1</span>,activation=<span class="string">'tanh'</span>)</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">(self,inputs,training=None)</span>:</span></span><br><span class="line">    x = self.conv0(inputs)</span><br><span class="line">    x = self.conv1(x)</span><br><span class="line">    x = self.conv2(x)</span><br><span class="line">    x = self.subsampling1(x)</span><br><span class="line">    x = self.conv3(x)</span><br><span class="line">    x = self.conv4(x)</span><br><span class="line">    x = self.subsampling2(x)</span><br><span class="line">    x = self.conv5(x)</span><br><span class="line">    x = self.conv6(x)</span><br><span class="line">    x = self.flatten(x)</span><br><span class="line">    x = self.fc1(x)</span><br><span class="line">    <span class="comment"># fc1的输出就是长度为h的特征向量</span></span><br><span class="line">    x = self.fc2(x)</span><br><span class="line">    x = self.reshape(x)</span><br><span class="line">    x = self.conv7(x)</span><br><span class="line">    x = self.conv8(x)</span><br><span class="line">    x = self.upsample1(x)</span><br><span class="line">    x = self.conv9(x)</span><br><span class="line">    x = self.conv10(x)</span><br><span class="line">    x = self.upsample2(x)</span><br><span class="line">    x = self.conv11(x)</span><br><span class="line">    x = self.conv12(x)</span><br><span class="line">    x = self.conv13(x)</span><br><span class="line">    <span class="comment"># 论文采用输出图像和输入图像之间误差的L1范数作为Discriminator的输出</span></span><br><span class="line">    recon_error = tf.reduce_mean(tf.abs(x-inputs))</span><br><span class="line">    <span class="keyword">return</span> recon_error</span><br></pre></td></tr></table></figure>
+<h2 id="1-3-官方源码中的网络结构更新"><a href="#1-3-官方源码中的网络结构更新" class="headerlink" title="1.3 官方源码中的网络结构更新"></a>1.3 官方源码中的网络结构更新</h2><p>在<code>BEGAN</code>官方的<a href="https://github.com/carpedm20/BEGAN-tensorflow" target="_blank" rel="noopener">github仓库</a>中可以看到，官方后来改良了卷积网络的结构，将<code>MaxPooling</code>改成了一个<code>strides=2</code>的卷积层，即基本单元(对应下图中的一次for循环)从<code>2个卷积+1个池化层</code>变成了<code>3个卷积层</code>。下面是官方源码修改处的截图。</p>
+<p><img src="/2020/02/19/gan-02/dis_change.png" alt="dis_change"></p>
+<p>除此之外，官方没有在卷积层后加入<code>BatchNormalization</code>层，而根据其他<code>BEGAN</code>项目的经验，加入BN层可以加快模型收敛的时间。</p>
+<p>最后，官方在生成器中用于扩增特征图的方法是最邻近的上采样<code>Upsampling2D</code>，该层内没有可训练参数。与之有类似功能的转置卷积层<code>ConvTranspose2D</code>则可以训练卷积核，可能效果会比<code>Upsampling2D</code>好，在<code>WGAN</code>项目中我们用的就是转置卷积。</p>
+<p>关于转置卷积的理解，<a href="https://www.cnblogs.com/wmr95/p/9551490.html" target="_blank" rel="noopener">有一篇博客</a>总结的很好。</p>
+<h1 id="2-基于Wasserstein距离的损失函数"><a href="#2-基于Wasserstein距离的损失函数" class="headerlink" title="2.基于Wasserstein距离的损失函数"></a>2.基于Wasserstein距离的损失函数</h1><h2 id="2-1-Discriminator的输出"><a href="#2-1-Discriminator的输出" class="headerlink" title="2.1 Discriminator的输出"></a>2.1 Discriminator的输出</h2><p>传统GAN意图用JS散度判别生成数据和原始数据的相似程度，<code>WGAN</code>意图用<code>Wasserstein距离</code>判别生成数据和原始数据的相似程度。大多数GAN的变种训练的目标都是直接比较生成数据和原始数据的距离，让这个距离越小越好。<code>EBGAN</code>和<code>BEGAN</code>引入了<code>Auto-Encoder</code>，从而提出了一个新的思路，转而衡量是<code>Auto-Encoder</code>的重构误差，让真实图像的重构误差和生成图像的重构误差越接近越好。</p>
+<p>如下图是<code>EBGAN</code>的 <code>Discriminator</code>，输入的是一张图片，<code>Auto-Encoder</code>的网络结构会输出是一张相同尺寸的图片，我们要计算这两张图片之间的重构误差，<code>EBGAN</code>中是将两个矩阵做差值，然后求这个误差矩阵的二阶范数，<code>BEGAN</code>求的是一阶范数。</p>
+<p><img src="/2020/02/19/gan-02/ebgan-dx.png" alt="ebgan-dx"></p>
+<h2 id="2-2-Wasserstein距离"><a href="#2-2-Wasserstein距离" class="headerlink" title="2.2 Wasserstein距离"></a>2.2 Wasserstein距离</h2><p>由上一节我们知道，采用<code>Auto-Encoder</code>结构的<code>Discriminator</code>的输出为输入图像的重构误差，即：</p>
+<script type="math/tex; mode=display">
+recon\_loss(x)=||x-Discriminator(x)||^{\eta}</script><p>其中，$\eta\in{1,2}$，$x$为图片，$Discriminator(x)$是Auto-Encoder重构的图像。</p>
+<p><code>Wasserstein距离</code>又被称作推土机距离（earth moving distance），因为它的定义就是将一个分布迁移到另一个分布上需要”搬运“的数据量。在<code>BEGAN</code>中，要比较的两个分布分别是真实图像的重构误差<code>(recon_error)</code>和<code>Generator</code>生成图像的重构误差，这一场景下的Wasserstein距离计算式如下：</p>
+<script type="math/tex; mode=display">
+Wasserstein(\mu_{1},\mu_{2})=inf_{\gamma\in(\mu_{1},\mu_{2})}E_{(x_1,x_2)\in\gamma}[|x_1-x_2|]</script><p>使用Jeson不等式，我们有：</p>
+<script type="math/tex; mode=display">
+inf\ E[|x_1-x_2|]\geq inf\  |E[x_1-x_2]|=|m_1-m_2|</script><p>其中$m_1,m_2$分别是$recon_{-}error(x_{true})$的期望和$recon_{-}{error}(x_{fake})$的期望，在实验中也就是大量的batch的平均值。</p>
+<p>我们训练$Discrminator$的目标是让真实数据和生成数据的距离最大，要实现这点，只需$|m_1-m_2|$最大，只需$m_1\rightarrow\inf,m_2\rightarrow 0$。</p>
+<p>因此，作者设计了如下的<code>loss函数</code>，只要使用该loss，训练时的度量就是<code>Wasserstein距离</code>：</p>
+<p><img src="/2020/02/19/gan-02/w-loss.png" alt="w-loss"></p>
+<p>该<code>loss函数</code>的思路就是，<code>Discriminator</code>努力让真实图片的重建误差小，让生成图片的重建误差大；而<code>Generator</code>要努力让生成图片的重建误差小，骗过<code>Discriminator</code>。</p>
+<p>这里的<code>loss函数</code>看起来和<code>WGAN</code>的<code>loss函数</code>十分相似，都是去掉了<code>交叉墒</code>的log，直接用<code>Discrminator</code>的输出值。</p>
+<h1 id="3-均衡超参数-gamma"><a href="#3-均衡超参数-gamma" class="headerlink" title="3.均衡超参数$\gamma$"></a>3.均衡超参数$\gamma$</h1><p>生成对抗网络最理想的状态是生成器和判别器达到纳什均衡，此时生成的样本不能被判别器与真实样本区分，二者的误差分布应该是相同的，即：</p>
+<script type="math/tex; mode=display">
+E[recon\_loss(x_{true})]=E[recon\_loss(x_{fake})]</script><p>我们可以定义这样一个超参数$\gamma$控制这个平衡，限定这个参数的值域为$\gamma\in[0,1]$：</p>
+<script type="math/tex; mode=display">
+\gamma = \frac{E[recon\_{error}(x_{fake})]}{E[recon\_{error}(x_{true})]}</script><p>为什么$\gamma$总是小于1？这是因为生成器和判别器都是从头开始训练的，一开始判别器可能很难重构出真实图片这样复杂的图片，而生成样本一开始很简单的图片，导致生成样本从一开始的重构误差就比真实样本的重构误差要小，这个大小关系会一直持续到结束。</p>
+<p>这个均衡超参数允许我们平衡分配给生成器和鉴别器的工作，如果$\gamma$设定得较小，会减少生成样本的多样性但会增加生成图像的质量，因为生成样本的$recon_{-}error$比较小，实验上$\gamma=0.4$左右生成图片效果较好，且样本较丰富，在0.7左右图片效果较差。</p>
+<p>我在实验中发现，$\gamma$设置的过小(如0.25)会导致模型完全train不起来，这是因为实际<code>BEGAN</code>的loss在上一章的基础上做了改进，变得和实际的$\gamma$(即<strong>$\frac{E[recon_{-}error(x_{fake})]}{E[recon_{-}{error}(x_{true})]}$</strong>)有关，具体原因在下一章详细介绍。</p>
+<h1 id="4-满足-gamma-比例的损失函数"><a href="#4-满足-gamma-比例的损失函数" class="headerlink" title="4.满足$\gamma$比例的损失函数"></a>4.满足$\gamma$比例的损失函数</h1><p><code>BEGAN</code>的损失函数定义如下：</p>
+<p><img src="/2020/02/19/gan-02/began-loss.png" alt="began-loss"></p>
+<p>为了实现$\gamma$的功能，作者对第二章的loss函数做了如上改动，引入了$k_t$这一权重控制<code>Discriminator</code>训练时对减少真实图像重建误差和增加生成图像重建误差两个任务的侧重。</p>
+<p>考虑$k_{t}$的定义式，如论文所言，实际上借鉴了部分PID控制中比例控制的思想，当实际$\gamma$等于设定值时，权重$k_t$不变化；而当$recon_{-}error(x_{fake})$相对于真实样本的重构误差太小时（这也是每次训练开始的必然状态），会导致$k_t$从初始值0开始慢慢变大，从而<code>Discriminator</code>在训练时会越来越侧重于增加生成样本的重构误差。这也是每次训练刚开始都要经历的过程，经验上看，由于一开始生成样本的重构误差都要比$\gamma$倍的真实样本重构误差要小，所以$k_t$一开始会从0缓慢增加，一般增加到0.04左右会开始下落，最终收敛在0.02左右。</p>
+<p>在上一章中提到过如果$\gamma$设置得太小会导致模型train不起来，看着$k_t$的公式就很好理解了，如果$\gamma$太小，导致一开始时$\gamma L(x)-L(G(z_{G}))&lt;0$，那么$k_t$就永远为0，也就是说<code>Discriminator</code>在训练时从不会考虑<code>Generator</code>，这对GAN的训练是致命的。</p>
+<h1 id="5-收敛衡量参数-M-global"><a href="#5-收敛衡量参数-M-global" class="headerlink" title="5.收敛衡量参数$M_{global}$"></a>5.收敛衡量参数$M_{global}$</h1><p>作者人为地设计了一个参数来衡量模型的收敛情况：</p>
+<script type="math/tex; mode=display">
+M_{global}=recon\_error(x_{true})+|\gamma\cdot recon\_error(x_{true})-recon\_error(x_{fake})|</script><p>作者表示此度量可用于确定网络何时达到其最终状态或模型是否已经崩溃。</p>
+<h1 id="6-实验"><a href="#6-实验" class="headerlink" title="6.实验"></a>6.实验</h1><p>使用<code>Tensorflow 2.0</code>复现了<code>BEGAN</code>，batch_size=16，训练了20万个iterations，训练过程如下图所示：</p>
+<p><img src="/2020/02/19/gan-02/BEGAN-demo.gif" alt="BEGAN-demo"></p>
+<p>效果和官方有差距，原因可能有：</p>
+<ul>
+<li><p>iterations不够</p>
+</li>
+<li><p>训练集不够大，因为内存不足，只用了20000张图片，可以修改数据集对象为生成器模式，使用全部图片。</p>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CV/" rel="tag"># CV</a>
+              <a href="/tags/GAN/" rel="tag"># GAN</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/02/10/ssd/" rel="prev" title="目标检测[01]-SSD算法和预训练模型">
+      <i class="fa fa-chevron-left"></i> 目标检测[01]-SSD算法和预训练模型
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-网络结构"><span class="nav-text">1.网络结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-生成器-Generator"><span class="nav-text">1.1 生成器(Generator)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-判别器-Discriminator"><span class="nav-text">1.2 判别器(Discriminator)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-官方源码中的网络结构更新"><span class="nav-text">1.3 官方源码中的网络结构更新</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-基于Wasserstein距离的损失函数"><span class="nav-text">2.基于Wasserstein距离的损失函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-Discriminator的输出"><span class="nav-text">2.1 Discriminator的输出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-Wasserstein距离"><span class="nav-text">2.2 Wasserstein距离</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-均衡超参数-gamma"><span class="nav-text">3.均衡超参数$\gamma$</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-满足-gamma-比例的损失函数"><span class="nav-text">4.满足$\gamma$比例的损失函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-收敛衡量参数-M-global"><span class="nav-text">5.收敛衡量参数$M_{global}$</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-实验"><span class="nav-text">6.实验</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>
