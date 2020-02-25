@@ -207,6 +207,104 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/12/drl-02/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/11/12/drl-02/" class="post-title-link" itemprop="url">强化学习随笔[02]-DQN/AC/DDPG算法学习</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-12 14:01:42" itemprop="dateCreated datePublished" datetime="2019-11-12T14:01:42+08:00">2019-11-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:02:33" itemprop="dateModified" datetime="2019-12-12T16:02:33+08:00">2019-12-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>在<a href="https://yerfor.github.io/2019/11/05/drl-01/" target="_blank" rel="noopener">上篇强化学习随笔</a>里对强化学习中的三个基本算法进行了学习，分别是：</p>
+<ul>
+<li>Policy Gradient 算法<ul>
+<li>通过梯度下降法对Agent进行训练，输出的是在环境<code>s</code>下做所有操作的概率分布（归一化）。</li>
+</ul>
+</li>
+<li>Q-Learning 算法<ul>
+<li>定义了一个Q-Table, 该表可以不断迭代更新，在决策时Agent总会根据当前<code>s</code>从Q-Table中选择使Q值最大的操作<code>action</code>。</li>
+</ul>
+</li>
+<li>Actor-Critic算法<ul>
+<li>AC算法是PG算法和Q-Learning算法的结合体，它的主要思想是：<ul>
+<li>定义一个专注于决策的函数：Actor，它的优化采用PG算法</li>
+<li>定义一个用于对在环境<code>s</code>时做操作<code>a</code>进行评价的函数： Critic，它的优化采用Q-Learning算法</li>
+<li>Actor的PG算法提供梯度方向，Critic的Q-Learning算法提供权重，二者相乘执行Actor的参数更新。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>上述的三个算法都是强化学习比较naive的理论，目前学界使用的比较多的是在它们的基础上发展来的DQN、DDPG等模型。</p>
+<p>本文的主要内容有：</p>
+<ul>
+<li><code>DQN</code>（Deep Q Learning）</li>
+<li><code>AC</code> （Actor-Critic）</li>
+<li><code>DDPG</code> （Deep Deterministic Policy Gradient）</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/12/drl-02/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/09/dl-05/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -945,89 +1043,6 @@
   
   
 
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/19/px4-04/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
-      <meta itemprop="name" content="Zhenhui Ye">
-      <meta itemprop="description" content="Be a superhero.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="yerfor's Journey">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/19/px4-04/" class="post-title-link" itemprop="url">px4学习笔记[04]-飞行日志分析</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-10-19 13:28:16" itemprop="dateCreated datePublished" datetime="2019-10-19T13:28:16+08:00">2019-10-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-12-12 16:16:17" itemprop="dateModified" datetime="2019-12-12T16:16:17+08:00">2019-12-12</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>本文主要介绍了：</p>
-<ul>
-<li>日志分析软件flight review的使用</li>
-<li>飞行数据的分析方法，这包括对以下方面的分析<ul>
-<li>飞控程序中controller的各个控制器（PID、L1、TECS）的参数</li>
-<li>机架的振动</li>
-<li>GPS的品质</li>
-<li>推力和磁场之间有无影响</li>
-</ul>
-</li>
-<li>固定翼和扑翼飞行器，控制品质的对比（见2.1）</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/10/19/px4-04/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
   </div>
 
   
@@ -1100,7 +1115,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-count">29</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
