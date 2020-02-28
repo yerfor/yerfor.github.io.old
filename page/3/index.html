@@ -207,6 +207,93 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/21/px4-05/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/10/21/px4-05/" class="post-title-link" itemprop="url">px4学习笔记[05]-PID控制、L1控制和TECS控制</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-21 13:03:45" itemprop="dateCreated datePublished" datetime="2019-10-21T13:03:45+08:00">2019-10-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-12 16:17:58" itemprop="dateModified" datetime="2019-12-12T16:17:58+08:00">2019-12-12</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>本文介绍了几种应用在PX4固定翼飞控中的控制器的原理及调参方法，包括：</p>
+<ul>
+<li>PID控制，具体应用场景为<ul>
+<li>P控制器，应用于姿态控制的外环，输入期望姿态角和风速，输出期望角速度;</li>
+<li>PI控制器，应用于姿态控制的内环，输入期望角速度和风速，输出期望角加速度</li>
+</ul>
+</li>
+<li>L1控制，具体应用场景为<ul>
+<li>应用于位置控制，主要是用于得到飞机期望的滚转角(roll)和偏航(yaw)角</li>
+</ul>
+</li>
+<li>TECS控制，具体应用场景为<ul>
+<li>应用于位置控制，主要是用于得到期望的油门(Throttle)和俯仰(pitch)角</li>
+</ul>
+</li>
+</ul>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/10/21/px4-05/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/19/px4-04/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -988,7 +1075,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-count">30</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

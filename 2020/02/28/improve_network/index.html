@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要本博客是在学习《吴恩达深度学习第二课—改善深层神经网络：超参数调试、正则化以及优化》写的学习笔记。 主要内容有：  消除过拟合的方法，这包括： 数据增强 正则化：L1、L2、Dropout Early Stopping 批标准化（算半个）   加速网络训练的方法，这包括： 归一化输入（也叫标准化输入） 妥善初始化权重，以避免梯度消失和梯度爆炸 批标准化   优化器，这包括： Momentu">
+<meta property="og:type" content="article">
+<meta property="og:title" content="改善深层神经网络的方法：消除过拟合、加速训练与超参数调试">
+<meta property="og:url" content="http://yoursite.com/2020/02/28/improve_network/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要本博客是在学习《吴恩达深度学习第二课—改善深层神经网络：超参数调试、正则化以及优化》写的学习笔记。 主要内容有：  消除过拟合的方法，这包括： 数据增强 正则化：L1、L2、Dropout Early Stopping 批标准化（算半个）   加速网络训练的方法，这包括： 归一化输入（也叫标准化输入） 妥善初始化权重，以避免梯度消失和梯度爆炸 批标准化   优化器，这包括： Momentu">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/dropout.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/normal2.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/normal.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/mean-std.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/momentum.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/rms.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/2d.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/saddle.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/28/improve_network/random-values.png">
+<meta property="article:published_time" content="2020-02-28T11:40:45.000Z">
+<meta property="article:modified_time" content="2020-02-28T11:45:04.437Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="CV">
+<meta property="article:tag" content="MachineLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/02/28/improve_network/dropout.png">
+
+<link rel="canonical" href="http://yoursite.com/2020/02/28/improve_network/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>改善深层神经网络的方法：消除过拟合、加速训练与超参数调试 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/28/improve_network/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          改善深层神经网络的方法：消除过拟合、加速训练与超参数调试
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-02-28 19:40:45 / 修改时间：19:45:04" itemprop="dateCreated datePublished" datetime="2020-02-28T19:40:45+08:00">2020-02-28</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p>本博客是在学习《吴恩达深度学习第二课—改善深层神经网络：超参数调试、正则化以及优化》写的学习笔记。</p>
+<p>主要内容有：</p>
+<ul>
+<li>消除过拟合的方法，这包括：<ul>
+<li>数据增强</li>
+<li>正则化：L1、L2、Dropout</li>
+<li>Early Stopping</li>
+<li>批标准化（算半个）</li>
+</ul>
+</li>
+<li>加速网络训练的方法，这包括：<ul>
+<li>归一化输入（也叫标准化输入）</li>
+<li>妥善初始化权重，以避免梯度消失和梯度爆炸</li>
+<li>批标准化</li>
+</ul>
+</li>
+<li>优化器，这包括：<ul>
+<li>Momentum法</li>
+<li>RMSprop法</li>
+<li>Adam法</li>
+<li>学习率衰减</li>
+</ul>
+</li>
+<li>超参数调试，这包括：</li>
+</ul>
+<a id="more"></a>
+<h1 id="1-消除过拟合的方法"><a href="#1-消除过拟合的方法" class="headerlink" title="1.消除过拟合的方法"></a>1.消除过拟合的方法</h1><h2 id="1-1-过拟合和欠拟合"><a href="#1-1-过拟合和欠拟合" class="headerlink" title="1.1 过拟合和欠拟合"></a>1.1 过拟合和欠拟合</h2><h3 id="1-1-1-欠拟合-Underfitting"><a href="#1-1-1-欠拟合-Underfitting" class="headerlink" title="1.1.1 欠拟合 (Underfitting)"></a>1.1.1 欠拟合 (Underfitting)</h3><p>欠拟合：模型在训练集上表现就很糟糕，在测试集上也很糟糕。</p>
+<p>通常出现在任务比较复杂而模型结构过于简单的情况，也可能是数据标注的关联度不够高，或者是训练的iteration还不够，当然代码上的bug也常常导致欠拟合（所以出现欠拟合时首先检查代码，血和泪的教训）。</p>
+<p>解决方法：</p>
+<ol>
+<li>换用更复杂、更深的网络；</li>
+<li>对数据集质量进行优化，进行数据清洗，检查标注数据；</li>
+<li>训练更多的迭代步数；</li>
+<li>检查代码bug。</li>
+</ol>
+<h3 id="1-1-2-过拟合-Overfitting"><a href="#1-1-2-过拟合-Overfitting" class="headerlink" title="1.1.2 过拟合 (Overfitting)"></a>1.1.2 过拟合 (Overfitting)</h3><p>过拟合：模型在训练集上表现很好，但在测试集上表现却很糟糕，模型的泛化能力不够。</p>
+<p>通常出现在数据量不够，任务过于简单而模型的参数量过大的情况，因为复杂的模型会拟合过多的噪声数据（因此大量采用全连接层经常会导致过拟合，而采用卷积层可以避免这一点）。</p>
+<p>解决方法：</p>
+<ol>
+<li>获取更多的数据，做数据增强；</li>
+<li>降低模型的复杂度，减少模型的层数、神经元数，减少使用全连接层等；</li>
+<li><code>early stopping</code>，实时追踪训练集准确率和验证集准确率的曲线，在后者出现拐点时立刻停止。</li>
+<li>正则化方法，降低权重的大小，包括<code>L1正则化</code>和<code>L2正则化</code>；</li>
+<li><code>DropOut</code>方法，每次训练随机弃用固定比例的神经元，避免网络对某一些神经元过于依赖，提升了模型泛化能力。</li>
+<li><code>Batch Normalization</code>可以轻微地减轻过拟合，并且<code>batch_size</code>越小效果越强。</li>
+</ol>
+<h2 id="1-2-数据增强-data-augmentation"><a href="#1-2-数据增强-data-augmentation" class="headerlink" title="1.2 数据增强(data augmentation)"></a>1.2 数据增强(data augmentation)</h2><p>常见的数据增强方式有：</p>
+<ul>
+<li>将原始图片旋转一个小角度；</li>
+</ul>
+<ul>
+<li>加入随机噪声；</li>
+<li><p>修改图像的H、S、V通道；</p>
+</li>
+<li><p><code>截取(crop)</code>原始图片的一部分；</p>
+<ul>
+<li>论文《Deep learning face representation from predicting 10,000 classes》中，从一副人脸图中，截取出了100个小patch作为训练数据，极大地添加了数据集。</li>
+</ul>
+</li>
+<li>一些<code>有弹性的畸变（elastic distortions）</code>。<ul>
+<li>论文《Best practices for convolutional neural networks applied to visual document analysis》对MNIST做了各种变种扩增。</li>
+</ul>
+</li>
+</ul>
+<h2 id="1-3-正则化-Regularization"><a href="#1-3-正则化-Regularization" class="headerlink" title="1.3 正则化 (Regularization)"></a>1.3 正则化 (Regularization)</h2><h3 id="1-3-1-L2正则化"><a href="#1-3-1-L2正则化" class="headerlink" title="1.3.1 L2正则化"></a>1.3.1 L2正则化</h3><ul>
+<li>在损失函数后面加上一个L2正则化项，所谓的L2正则化项为：需要正则化的层的权重矩阵的二阶范数，取平均后，乘以一个超参数$\lambda$，公式如下：</li>
+</ul>
+<script type="math/tex; mode=display">
+Loss_{L2} = Loss + \frac{\lambda}{2\times batch_{-}size}\cdot ||w||_{2}^2</script><p>其中，二阶范数$||w||_2$的定义式为：</p>
+<script type="math/tex; mode=display">
+||w||_2 = \sqrt{\Sigma(w^2)}</script><p>L2正则化又名为<code>权重衰减(Weight Decay)</code>，这是因为在反向传播时<code>L2正则化项</code>的作用就是使对应层的权重按比例缩减，下面进行证明。</p>
+<p>先计算梯度：</p>
+<script type="math/tex; mode=display">
+\frac{\partial Loss_{L2}}{\partial w} = \frac{\partial Loss}{\partial w} + \frac{\lambda} {2\times batch_{-}size} \cdot \frac{\partial w^2} {\partial w} = \frac{\partial Loss}{\partial w} +\frac{\lambda} {batch_{-}size} \cdot w</script><p>在更新权重时：</p>
+<script type="math/tex; mode=display">
+w \leftarrow w - \eta \cdot ( \frac{\partial Loss}{\partial w} +\frac{\lambda} {batch_{-}size} \cdot w)</script><p>即：</p>
+<script type="math/tex; mode=display">
+w \leftarrow (1-\frac{\eta \cdot\lambda} {batch_{-}size})\cdot w - \eta \cdot \frac{\partial Loss}{\partial w}</script><p>相当于每次更新权重的时候，都会对其做一次等比例缩放，让权重的数值慢慢减小，这也是<code>权重衰减</code>这个别名的由来。</p>
+<p>下面解释为什么减小权重数值就可以减轻过拟合。</p>
+<p>过拟合的时候，拟合函数的系数往往非常大，为什么？过拟合，就是拟合函数须要顾忌每个点。因此过拟合的拟合函数波动非常大。在某些非常小的输入区间里，函数值的变化非常剧烈。这就意味着函数在这些小区间里的导数值（绝对值）非常大，由于自变量值可大可小，所以仅仅有系数足够大的时候，才会保证导数值非常大。</p>
+<p>而L2正则化是通过约束參数的范数使其不要太大，当参数的范数较小的时候，自变量波动导致的输出变化也会相应变小，不会拟合出过拟合时那种陡峭的曲线，所以能够在一定程度上降低过拟合情况。</p>
+<h3 id="1-3-2-L1正则化"><a href="#1-3-2-L1正则化" class="headerlink" title="1.3.2 L1正则化"></a>1.3.2 L1正则化</h3><ul>
+<li><code>L1正则化</code>和<code>L2正则化</code>类似，不同点在于采用的是一阶范数。</li>
+</ul>
+<script type="math/tex; mode=display">
+Loss_{L2} = Loss + \frac{\lambda}{2\times batch_{-}size}\cdot ||w||_{1}</script><p>其中，一阶范数的定义为：</p>
+<script type="math/tex; mode=display">
+||w||_1 = \Sigma(|w|)</script><p>在实验中发现L2正则化总是优于L1正则化，这可能是因为L1正则化对权重缩减的形式是每次改变固定大小，而L2正则化是按比例缩放。</p>
+<p>下面证明使用L1正则化后，每次迭代时权重都会缩小一个固定的值。</p>
+<p>先计算梯度：</p>
+<script type="math/tex; mode=display">
+\frac{\partial Loss_{L2}}{\partial w} = \frac{\partial Loss}{\partial w} + \frac{\lambda} {2\times batch_{-}size} \cdot \frac{\partial |w|} {\partial w} = \frac{\partial Loss}{\partial w} +\frac{\lambda} {2\times batch_{-}size} \cdot signal(w)</script><p>上式中的$\frac{\lambda} {2\times batch_{-}size} \cdot signal(w)$始终是一个大小固定的常数，因此使用L1正则化后，每次迭代时权重都会变化一个固定的值。</p>
+<p>关于上式中的$signal$函数，当$w$为正时，$signal(w)=1$, 则更新后的$w$变小。当$w$为负时，$signal(w)=-1$, 则更新后的w变大，特别的，当$w=0$时，$signal(w)=0$。L1正则化的<strong>效果就是让$w$往0靠近，使网络中的权重尽可能为0，也就相当于减小了网络复杂度，防止过拟合。</strong></p>
+<p>这里可以看出L1正则化和L2正则化的区别：当迭代步数足够大的时候，采用L1正则化的参数矩阵是非常稀疏(sparse)的，即很多地方都是0；而L2正则化的参数矩阵是整体范数比较小，各个神经元之间比较均衡，基本没有地方是0。</p>
+<h2 id="1-4-Dropout"><a href="#1-4-Dropout" class="headerlink" title="1.4 Dropout"></a>1.4 Dropout</h2><p>正则化是通过修改损失函数，从而对权重进行修改。而Dropout则是直接对网络结构进行修改。</p>
+<p>Dropout的思想非常简单，每次迭代的时候都临时禁用掉一定比例的神经元，在测试的时候再启用全部神经元（当然，需要按比例缩减权重大小）。</p>
+<p><img src="/2020/02/28/improve_network/dropout.png" alt="dropout"></p>
+<p>为什么Dropout可以解决过拟合？</p>
+<p>参考资料：<a href="https://blog.csdn.net/program_developer/article/details/80737724" target="_blank" rel="noopener">深度学习中Dropout原理解析</a></p>
+<p>（1）取平均的作用： 先回到标准的模型即没有dropout，我们用相同的训练数据去训练5个不同的神经网络，一般会得到5个不同的结果，此时我们可以采用 “5个结果取均值”或者“多数取胜的投票策略”去决定最终结果。例如3个网络判断结果为数字9,那么很有可能真正的结果就是数字9，其它两个网络给出了错误结果。这种“综合起来取平均”的策略通常可以有效防止过拟合问题。因为不同的网络可能产生不同的过拟合，取平均则有可能让一些“相反的”拟合互相抵消。dropout掉不同的隐藏神经元就类似在训练不同的网络，随机删掉一半隐藏神经元导致网络结构已经不同，整个dropout过程就相当于对很多个不同的神经网络取平均。而不同的网络产生不同的过拟合，一些互为“反向”的拟合相互抵消就可以达到整体上减少过拟合。</p>
+<p>（2）减少神经元之间复杂的共适应关系： 因为dropout程序导致两个神经元不一定每次都在一个dropout网络中出现。这样权值的更新不再依赖于有固定关系的隐含节点的共同作用，阻止了某些特征仅仅在其它特定特征下才有效果的情况 。迫使网络去学习更加鲁棒的特征 ，这些特征在其它的神经元的随机子集中也存在。换句话说假如我们的神经网络是在做出某种预测，它不应该对一些特定的线索片段太过敏感，即使丢失特定的线索，它也应该可以从众多其它线索中学习一些共同的特征。从这个角度看dropout就有点像L1，L2正则，减少权重使得网络对丢失特定神经元连接的鲁棒性提高。</p>
+<p>（3）Dropout类似于性别在生物进化中的角色：物种为了生存往往会倾向于适应这种环境，环境突变则会导致物种难以做出及时反应，性别的出现可以繁衍出适应新环境的变种，有效的阻止过拟合，即避免环境改变时物种可能面临的灭绝。</p>
+<h2 id="1-5-Early-Stopping"><a href="#1-5-Early-Stopping" class="headerlink" title="1.5 Early Stopping"></a>1.5 Early Stopping</h2><p>实时追踪训练集准确率和验证集准确率的曲线，在后者出现拐点时立刻停止。</p>
+<p>Early stopping方法的具体做法是，在每一个Epoch结束时（一个Epoch集为对所有的训练数据的一轮遍历）计算<code>validation data</code>的<code>accuracy</code>，当<code>accuracy</code>不再提高时，就停止训练。在实际训练的时候中，会记录到目前为止最好的<code>validation accuracy</code>，当连续10次Epoch（或者更多次）没达到最佳accuracy时，则可以认为accuracy不再提高了。此时便可以停止迭代了。</p>
+<h1 id="2-加速网络训练"><a href="#2-加速网络训练" class="headerlink" title="2.加速网络训练"></a>2.加速网络训练</h1><h2 id="2-1-归一化输入-标准化"><a href="#2-1-归一化输入-标准化" class="headerlink" title="2.1 归一化输入(标准化)"></a>2.1 归一化输入(标准化)</h2><p>假设网络的输入数据的各个元素服从$N(\mu,\sigma^2)$的高斯分布(但不是标准高斯分布)。例如现在输入一个$x=[1,10,100,1000，10000]$的向量，那么我们说它服从$N(2222.22,15263847.35)$的高斯分布。</p>
+<p>归一化输入的思想就是将原来服从高斯分布的数据转换成服从标准高斯分布，即$N(0,1)$的数据。根据概率论知识，通过下面的处理可以将$N(\mu,\sigma^2)$的数据转换成$N(0,1)$：</p>
+<script type="math/tex; mode=display">
+x\leftarrow \frac{x-\mu}{\sigma},\ where\ \mu = mean(x),\ \sigma^2=variance(x),</script><p>归一化的实质是将输入分布的各个特征修改到了相同量级，(因为所有特征现在都服从$N(0,1)$分布了)，下面给一个启发式的示例：</p>
+<p><img src="/2020/02/28/improve_network/normal2.png" alt="normal2"></p>
+<p>可以看到原来量级差异为指数级的输入向量，经过归一化后各个特征之间量级差异变小了，但彼此之间的差异信息还是被保留（参见1和10000经过归一化后的元素是-0.56853297和1.99078685，二者之间的差异相对于当前分布而言还是很大）。</p>
+<p>接下来看为什么归一化输入可以加速训练。</p>
+<p>当输入向量的特征之间量级差异很大的话，它的loss函数如左下图所示，在某些维度上十分陡峭，而在某些维度上十分平缓，这样单一的学习率就无法满足在所有维度上的训练都很合适了。如左下图所示，梯度下降在较窄方向上的迭代存在非常明显的震荡。</p>
+<p>而标准正态分布因为输入数据在同一量级，它的Loss函数一般呈一个圆型的碗装，如右下图所示，各个维度上的陡峭程度差异不大，这样我们可以找一个合适的学习率，不论初始化在哪个点，都可以快速收敛到极小值，且很少有震荡。</p>
+<p><img src="/2020/02/28/improve_network/normal.png" alt="normal"></p>
+<p>总之，当输入数据的各个特征之间量级差异很大，那么归一化势在必行。如果数据的各个特征在一个量级，那么归一化的效果就不那么明显了。但归一化并不会带来什么危害，所以我通常都会对数据进行归一化处理。</p>
+<ul>
+<li>归一化处理的<code>mean</code>和<code>variance</code>可以直接对所有数据进行计算平均得到，测试集归一化用的<code>mean</code>和<code>variance</code>必须和训练集一致。</li>
+</ul>
+<h2 id="2-2-梯度消失和梯度爆炸：权重初始化角度的解决方案"><a href="#2-2-梯度消失和梯度爆炸：权重初始化角度的解决方案" class="headerlink" title="2.2 梯度消失和梯度爆炸：权重初始化角度的解决方案"></a>2.2 梯度消失和梯度爆炸：权重初始化角度的解决方案</h2><p>梯度消失和梯度爆炸的原因是，前面层的权重梯度的计算公式，往往要乘上后面所有层的权重的连乘（全连接和卷积等所有涉及$y = w\cdot x + b$计算的层都是如此）。这样只要后面层的权重$w&gt;1$，层数一深，前面层的权重梯度就会非常巨大，这是梯度爆炸；而只要后面层的权重$w&lt;1$，层数一深，前面层的权重梯度就成了0，这是梯度消失</p>
+<ul>
+<li>梯度消失还和以前常用的激活函数<code>Sigmoid</code>有关，因为它在饱和时梯度接近于0，所以现在隐藏层的激活函数广泛使用的是<code>Relu</code>，但这里我们只介绍隐藏层权重对梯度消失和梯度爆炸的影响。</li>
+</ul>
+<p>由上面的论述可知，隐藏层的权重大小只要略大于1或略小于1，在网络较深的情况下都会导致梯度爆炸和梯度消失，如果能够控制权重大小满足下述分布，就可以缓解这个问题：</p>
+<script type="math/tex; mode=display">
+w\sim \frac{1}{\sqrt{n^{l}}}\times N(0,\frac{1}{n^{l-1}})</script><p>其中$n^{l}$是当前层的神经元个数，$n^{l-1}$是上一层的神经元个数。</p>
+<p>对于不同的激活函数，采用不同的方差效果会更好，下面是一些建议：</p>
+<ul>
+<li>对于$Relu$，$\sigma^2=\frac{2}{n^{l-1}}$</li>
+<li>对于$tanh$，$\sigma^2=\sqrt{\frac{1}{n^{l-1}}}$ （<code>Xavier</code>初始化）或$\sigma^2=\sqrt{\frac{1}{n^{l-1}+n^{l}}}$ (来自<code>Yoshua Bengio</code>)</li>
+</ul>
+<h2 id="2-3-批标准化-Batch-Normalization"><a href="#2-3-批标准化-Batch-Normalization" class="headerlink" title="2.3 批标准化(Batch Normalization)"></a>2.3 批标准化(Batch Normalization)</h2><p>关于Batch Normalization的基本概念，之前已经在<a href="https://yerfor.github.io/2019/12/23/dl-08/" target="_blank" rel="noopener">一篇文章</a>里介绍过了，可以去看那篇文章的第二章。</p>
+<p>这里只记录新的理解：</p>
+<h3 id="2-3-1-BatchNormalization层在训练和测试时的不同"><a href="#2-3-1-BatchNormalization层在训练和测试时的不同" class="headerlink" title="2.3.1 BatchNormalization层在训练和测试时的不同"></a>2.3.1 <code>BatchNormalization</code>层在训练和测试时的不同</h3><p><code>BatchNormalization</code>在训练阶段时使用的$mean$和$variance$都是通过对当前batch的数据进行计算得到的。但在测试/使用阶段，输入数据通常都是一张一张给的，所以$mean$和$variance$需要额外给出。一个常见的做法时在训练阶段额外计算两个参数：分别是平均数和方差的移动平均(Moving Average)，移动平均的概念会在第三章介绍。</p>
+<p>下面以<code>Tensorflow</code>为例，解释训练阶段和测试阶段时<code>BatchNormalization</code>层运行方式的不同：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</span><br><span class="line"></span><br><span class="line">batch_size = <span class="number">128</span></span><br><span class="line">width,height,channel = <span class="number">128</span>,<span class="number">128</span>,<span class="number">3</span></span><br><span class="line"><span class="comment"># 训练数据x_1,有128个图像</span></span><br><span class="line">x_1 = tf.random.normal([batch_size,width,height,channel])</span><br><span class="line"><span class="comment"># 测试数据x_2，只有1个图像</span></span><br><span class="line">x_2 = tf.random.normal([<span class="number">1</span>,width,height,channel])</span><br><span class="line"><span class="comment"># 训练阶段，training=True, mean和variance计算自x_1</span></span><br><span class="line">y_1 = tf.keras.layers.BatchNormalization(axis=<span class="number">-1</span>)(x_1, training=<span class="literal">True</span>)</span><br><span class="line"><span class="comment"># 测试阶段，training=False，mean和variance来自储存于类里的属性：mean和variance的移动平均值</span></span><br><span class="line">y_2 = tf.keras.layers.BatchNormalization(axis=<span class="number">-1</span>)(x_2, training=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+<h3 id="2-3-2-强调通道之间不能融合"><a href="#2-3-2-强调通道之间不能融合" class="headerlink" title="2.3.2 强调通道之间不能融合"></a>2.3.2 强调通道之间不能融合</h3><p>批标准化能够work的重要原因就是和归一化输入相同的：将输入的分布转化成一个特定的高斯分布，方便加速训练。</p>
+<p>批标准化和归一化输入都坚持了一个重要原则：</p>
+<ul>
+<li>通道之间不能融合。即mean、variance都是按照不同通道计算的。</li>
+</ul>
+<p>下面分别结合输入归一化和<code>BatchNormalization</code>的实例，加深一下印象：</p>
+<p>1.输入归一化时，RGB通道分别计算均值方差，得到两个$[3,1]$的向量：</p>
+<p><img src="/2020/02/28/improve_network/mean-std.png" alt="normal2"></p>
+<p>2.批标准化时，在API里设定axis属性，指向的是channel(在<code>[b,w,h,c]</code>的format中就是axis=-1)：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</span><br><span class="line">bn = tf.keras.layers.BatchNormalization(axis=<span class="number">-1</span>)</span><br></pre></td></tr></table></figure>
+<h1 id="3-优化器-Optimizer"><a href="#3-优化器-Optimizer" class="headerlink" title="3. 优化器(Optimizer)"></a>3. 优化器(Optimizer)</h1><h2 id="3-1-指数加权平均-移动平均-Moving-Average"><a href="#3-1-指数加权平均-移动平均-Moving-Average" class="headerlink" title="3.1 指数加权平均(移动平均, Moving Average)"></a>3.1 指数加权平均(移动平均, Moving Average)</h2><p>指数加权平均，也即金融领域常用的移动平均。移动平均法是利用一组最近的实际数据值来预测未来数值的一种常用方法，移动平均法能有效地消除预测中的随机波动。在股市中的10日均线、20日均线等都是用移动平均法得到的。下面给出计算公式：</p>
+<script type="math/tex; mode=display">
+v_t = \beta\cdot v_{t-1}+(1-\beta)\cdot\theta_t</script><p>其中，$\beta$为超参数，经验值为0.9；$\theta_t$为$t$时刻的实际数据；$v_t$为移动平均值。这里直接说结论：当$\beta=0.9$时，得到的是10日平均值；当$\beta=0.98$时，得到的是50日平均值。至于为什么会是这样，因为理论推导也是用的近似，我觉得没什么必要写出来。在深度学习中，我们通常使用默认值$\beta=0.9$，很少会去调整这个参数。</p>
+<p>上面的计算公式是迭代公式，如果将其转换成通项公式，则有：</p>
+<script type="math/tex; mode=display">
+v_t = (1-\beta)\cdot \theta_{t} + \beta \cdot(1-\beta)\cdot \theta_{t-1}+\beta^2\cdot(1-\beta)\cdot \theta_{t-2}+...+\beta^{t-1}\cdot (1-\beta)\cdot \theta_1</script><p> 可以看到每个时刻对应一个指数加权项，时间越是久远的项，其$\beta$项次数越高，值越小，说明时间过去越久的值对当前的移动平均值影响越小。</p>
+<ul>
+<li>移动平均的偏差修正</li>
+</ul>
+<p>当t较小的时候，例如t=1时，因为$v_0=0$，我们有$v_1=0+(1-\beta)\cdot \theta_1$，远远小于合理的值$\theta_1$，这个问题只出现在t较小(如$\beta=0.9$时，就是$t&lt;20$)的时候，当t较大的时候，由于有问题的前面几项对移动平均带来的影响已经可以忽略不计，已经基本没有误差。</p>
+<p>在<code>3.2</code>小节介绍的动量梯度下降法中，不修复这个偏差也没有问题；不过在<code>3.4</code>小节介绍的Adam中，还是修复了这个偏差。下面介绍如何修复这个t较小时的偏差，只需要将$v_t$的迭代计算公式修改为：</p>
+<script type="math/tex; mode=display">
+v_t = \frac{\beta}{1-\beta^t} \cdot v_{t-1}+(1-\beta)\cdot\theta_t</script><p>将$v_t$的权重由$\beta$修改为$\frac{\beta}{1-\beta^t}$,这个新的系数在t较小的时候可以增大$v_t$，在t较大的时候收敛于$\beta$。</p>
+<h2 id="3-2-动量梯度下降法-Momentum"><a href="#3-2-动量梯度下降法-Momentum" class="headerlink" title="3.2 动量梯度下降法 Momentum"></a>3.2 动量梯度下降法 Momentum</h2><ul>
+<li><code>Momentum</code>法将梯度的移动平均作为修改参数的方向，使训练更加稳定、快速。</li>
+</ul>
+<p>传统梯度下降法面临的一大问题是梯度方向的变化过于频繁，震荡现象比较明显，如下图所示：</p>
+<p><img src="/2020/02/28/improve_network/momentum.png" alt="momentum"></p>
+<p>动量梯度下降法将移动平均法应用到了梯度下降法中。我们将当前时刻的梯度$grads^t$表示为<code>3.1</code>小节提到的真实数据$\theta_t$，Momentum法关注$\theta_t$的变化，计算它的移动平均$v_t$：</p>
+<script type="math/tex; mode=display">
+v_t = \beta \cdot v_{t-1} + (1-\beta)\cdot grads_t</script><p>然后将$v_t$应用梯度下降法：</p>
+<script type="math/tex; mode=display">
+w\leftarrow w-\eta\cdot v_t</script><p>在上图中，你会发现这些纵轴上的摆动平均值接近于零，所以在纵轴方向，你希望放慢一点，平均过程中，正负数相互抵消，所以平均值接近于零。但在横轴方向，所有的微分都指向横轴方向，因此横轴方向的平均值仍然较大，因此用算法几次迭代后，你发现动量梯度下降法，最终纵轴方向的摆动变小了，横轴方向运动更快，因此你的算法走了一条更加直接的路径，在抵达最小值的路上减少了摆动。</p>
+<h2 id="3-3-RMSprop-Root-Mean-Square-prop"><a href="#3-3-RMSprop-Root-Mean-Square-prop" class="headerlink" title="3.3 RMSprop (Root Mean Square prop)"></a>3.3 RMSprop (Root Mean Square prop)</h2><ul>
+<li>在我看来，<code>RMSprop</code>可以看作是引入了“自适应学习率”这个概念，在梯度大的地方减小学习率，在梯度小的地方增大学习率。</li>
+</ul>
+<p>回忆一下下图这个例子，如果你执行梯度下降，虽然横轴方向正在推进，但纵轴方向会有大幅度摆动，我们想减缓  纵轴方向的学习，同时加快，至少不是减缓横轴方向的学习。</p>
+<p><img src="/2020/02/28/improve_network/rms.png" alt="momentum"></p>
+<p><code>Momentum法</code>使用移动平均的方法，求梯度的移动平均，将梯度中震荡的维度给中和了；而本节介绍的<code>RMSprop</code>法则是将梯度较大的维度（即上图中的纵向，该方向等高线密集，梯度大）的步长减小，梯度较小的维度（即上图中的横向，该方向等高线稀疏，梯度小）步长增大，从而在纵向上走得少，在横向上走的多，更快且更稳定地到达了极小值。</p>
+<p>下面介绍<code>RMSprop</code>具体的计算方法。</p>
+<p>首先，跟踪计算梯度大小(也就是梯度的平方)的移动平均值：</p>
+<script type="math/tex; mode=display">
+v_{grads^2}=\beta \cdot v_{grads^2}+(1-\beta)\cdot grads^2</script><p>这样我们得到了梯度的平方的移动平均值$v_{grads^2}$，我们之前提到要让梯度下降法在梯度较大的方向走得较慢，在梯度较小的地方走得较快，即：</p>
+<script type="math/tex; mode=display">
+w\leftarrow w- \eta\cdot\frac{grad}{\sqrt{v_{grads^2}}}</script><p>可以看到，上式中的梯度除以了梯度的均方根(<code>root mean square</code>)，这也是本方法的名字(<code>RMSprop</code>)的由来。</p>
+<p>此外，为了防止梯度较小时的$Division~by~zero$，还会在上式的分母的根号里面加一个极小值$\epsilon=10^{-8}$。</p>
+<h2 id="3-4-Adam-Adaptive-Moment-Estimation"><a href="#3-4-Adam-Adaptive-Moment-Estimation" class="headerlink" title="3.4 Adam(Adaptive Moment Estimation)"></a>3.4 Adam(Adaptive Moment Estimation)</h2><p><code>Adam法</code>是将<code>RMSprop</code>和<code>Momentum</code>结合起来的优化算法。</p>
+<p>我们看到这两个算法都使用了移动平均的概念，不同在于<code>RMSprop</code>求取的是梯度的平方的移动平均，<code>Momentum</code>求取的是梯度的移动平均。因为两种方法中都用到了符号$\beta$。所以我们做出约定：对<code>Momentum</code>法的参数，我们用$\beta_1$表示；对<code>RMSprop</code>法的参数，我们用$\beta_2$表示。</p>
+<p>对每个iteration，Adam都会计算<code>梯度的移动平均</code>和<code>梯度平方的移动平均</code>：</p>
+<script type="math/tex; mode=display">
+v_{grads} = \beta \cdot v_{grads} + (1-\beta)\cdot grads \\
+v_{grads^2} = \beta \cdot v_{grads^2} + (1-\beta)\cdot grads^2</script><p>然后，通过下式更新参数：</p>
+<script type="math/tex; mode=display">
+w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可以看到，Adam结合了<code>RMSprop</code>和<code>Momentum</code>的特点，与<code>RMSprop</code>相比，它将梯度$grads$换成了梯度的移动平均$v_{grads}$，参数改变的方向更加稳定；与<code>Momentum​</code>相比，它在梯度的移动平均$v_{grads}$下面除以了梯度的“均方根”$\sqrt{v_{grads^2}}$，在平坦的地方自动增大学习率，在陡峭的地方减小学习率。二者相辅相成，所以我一般都使用<code>Adam</code>作为训练的优化算法。</p>
+<p>Adam的超参数有：</p>
+<ul>
+<li>控制梯度的移动平均的$\beta_1=0.9$，越大则梯度方向的变化越平滑；</li>
+<li>控制”自适应学习率“的$\beta_2=0.999$，越小则自适应学习率对当前梯度的大小越敏感，所以为了训练的稳定性不宜设置的太小；</li>
+<li>防止”除以0“情况发生的$\epsilon=10^{-8}$。</li>
+</ul>
+<p>上述超参数的默认值已经足以应对大多数情况，一般我们不会去改变上述的任何一个默认参数。</p>
+<h2 id="3-5-学习率衰减"><a href="#3-5-学习率衰减" class="headerlink" title="3.5 学习率衰减"></a>3.5 学习率衰减</h2><p>另一个加速训练的方法是学习率衰减，即一开始采用较大的学习率，随着时间慢慢衰减，注意这里时间的单位是<code>epoch</code>，即对数据集做一次完整的遍历。</p>
+<p>下面提供几个常用的学习率衰减公式：</p>
+<ul>
+<li>$\eta = \frac{1}{1+\gamma\cdot t}\eta_{0}$，其中$\eta_{0}$是初始学习率，$t$是<code>epoch</code>数，$\gamma$是衰减因子，这是我们要设置的超参数。</li>
+<li>$\eta = 0.95^{t}\cdot \eta_0$，这也叫做指数衰减，学习率呈指数下降，我在一篇论文里看到过，看起来效果应该不错。</li>
+<li>$\eta=\frac{k}{\sqrt{t}}\cdot\eta_0$</li>
+<li>此外还有离散学习率，如前十个<code>epoch</code>学习率是$\eta=10^-2$，之后学习率是$\eta=10^-4$。</li>
+</ul>
+<h2 id="3-6-局部最优问题对梯度下降法而言是问题吗？"><a href="#3-6-局部最优问题对梯度下降法而言是问题吗？" class="headerlink" title="3.6 局部最优问题对梯度下降法而言是问题吗？"></a>3.6 局部最优问题对梯度下降法而言是问题吗？</h2><p>在深度学习研究早期，人们总是担心优化算法会困在极差的局部最优，不过随着深度学习理论不断发展，我们对局部最优的理解也发生了改变。本小节介绍现在我们怎么看待局部最优以及深度学习中的优化问题。</p>
+<p><img src="/2020/02/28/improve_network/2d.png" alt="2d"></p>
+<p>上图是曾经人们在想到局部最优时脑海里会出现的图，在图中似乎各处都分布着局部最优。梯度下降法或者某个算法可能困在一个局部最优中，而不会抵达全局最优。</p>
+<p>这些低维的图曾经影响了我们的理解，但是这些理解并不正确。事实上，如果你要创建一个神经网络，通常梯度为零的点并不是这个图中的局部最优点，而是鞍点，如下图所示：</p>
+<p><img src="/2020/02/28/improve_network/saddle.png" alt="saddle"></p>
+<p>很明显上图中的鞍点并不是局部最小值，这是因为虽然在该点的梯度为零，但该点在$w_2$方向上并不是极小值，相反在该点$w_2$方向上的其他点都比它更小。</p>
+<p>假设我们现在的网络有20000个参数，即上面这张图片中参数的维度要从二维扩充到20000维。计算梯度时，我们对这两万维求偏导，当导数为零的时候，对该点而言，每一维都有两种可能，即该点在这个维度是极大值还是极小值，只有当该点在这两万维的方向上都是极小值的时候，我们才来到了局部最优值，否则只要有一维是极大值，那么该点就只不过是鞍点而已。所以局部最优解没有这么多，不应成为否定梯度下降法的问题。</p>
+<p>如果局部最优不是问题，那么问题是什么？问题是梯度下降法在平稳段会减缓学习，传统的梯度下降法在鞍点处由于梯度为0，甚至会直接停止在那里。</p>
+<p>综上，本小节的主旨有两点：</p>
+<ol>
+<li>不用担心模型收敛在极差的局部最优中，只要你是在训练较大的神经网络，存在大量参数，并且成本函数被定义在较高的维度空间；</li>
+<li>损失函数的平稳段是一个问题，传统梯度下降在这些地方学习十分缓慢，这也是像<strong>Momentum</strong>或是<strong>RMSprop</strong>，<strong>Adam</strong>这样的算法，能够加速学习算法的地方。在这些情况下，优化算法能够加快速度，让你尽早往下走出平稳段。</li>
+</ol>
+<h1 id="4-超参数调试"><a href="#4-超参数调试" class="headerlink" title="4.超参数调试"></a>4.超参数调试</h1><p>常见的超参数和它的重要度分级为：</p>
+<ul>
+<li>第一档：<ul>
+<li>学习率$\eta$</li>
+</ul>
+</li>
+<li>第二档<ul>
+<li><code>Momentum</code>中的$\beta=0.9$</li>
+<li>隐藏单元的个数<code># hidden units</code></li>
+<li><code>batch size</code></li>
+</ul>
+</li>
+<li>第三档<ul>
+<li>网络层数<code># layers</code></li>
+<li>学习率衰减因子$\gamma$</li>
+</ul>
+</li>
+<li>第四档（从来不改）<ul>
+<li>Adam优化器中的$\beta_1,\beta_2,\epsilon$</li>
+</ul>
+</li>
+</ul>
+<h2 id="4-1-用随机数选取调试值"><a href="#4-1-用随机数选取调试值" class="headerlink" title="4.1 用随机数选取调试值"></a>4.1 用随机数选取调试值</h2><p>在早一代的机器学习算法中，如果有两个超参数，最常见的做法时画出正交的网格，然后再网格中取样点，例如左下图所示，你可以尝试所有的点，然后选择哪个参数效果最好，当参数的数量相对较少时，这个方法很实用。</p>
+<p><img src="/2020/02/28/improve_network/random-values.png" alt="random-values"></p>
+<p>然而在深度学习领域，我们通常使用随机数选择超参数（如右上图所示）。之所以这么做是因为，对于我们要解决的问题而言，很难提前知道哪个超参数最重要。举个例子，假设超参数1是学习率$\eta$，取一个极端的例子，假设超参数2是<strong>Adam</strong>算法中，分母中的$\epsilon$。在这种情况下，学习率的取值很重要，而$\epsilon$的取值则无关紧要。如果你在网格中取点，接着，你试验了相同学习率的5个取值，那你会发现，无论$\epsilon$取何值，结果基本上都是一样的。我们试验了25次，但试验的学习率却只有5个。对比而言，如果随机取值，我们会试验25个独立的学习率，似乎更有可能发现效果最好的那个。</p>
+<h2 id="4-2-由粗糙到精细"><a href="#4-2-由粗糙到精细" class="headerlink" title="4.2 由粗糙到精细"></a>4.2 由粗糙到精细</h2><p>此外，我们经常采用由粗糙到精细的策略。在之前的例子中，我们进行了取值，也许会发现效果最好的某个点，而这个点周围的其他一些点效果也很好，那我们接下来要做的是放大这块小区域，然后在其中更密集地随机取值。。</p>
+<h2 id="4-3-选择合适的标尺"><a href="#4-3-选择合适的标尺" class="headerlink" title="4.3 选择合适的标尺"></a>4.3 选择合适的标尺</h2><p>对学习率，选择范围可能是$[10^{-2},10^{-5}]$，最常见的做法应该是将其取$lg$，转移到$[-2,-5]$的范围随机取点。</p>
+<p>对$\beta\in[0.9,0.999]$，可以把$1-\beta$取$lg$，转移到$[-3,-1]$的范围随机取点。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CV/" rel="tag"># CV</a>
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/02/25/conv_deconv_upsample/" rel="prev" title="卷积、转置卷积与上采样">
+      <i class="fa fa-chevron-left"></i> 卷积、转置卷积与上采样
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-消除过拟合的方法"><span class="nav-text">1.消除过拟合的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-过拟合和欠拟合"><span class="nav-text">1.1 过拟合和欠拟合</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-欠拟合-Underfitting"><span class="nav-text">1.1.1 欠拟合 (Underfitting)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-过拟合-Overfitting"><span class="nav-text">1.1.2 过拟合 (Overfitting)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-数据增强-data-augmentation"><span class="nav-text">1.2 数据增强(data augmentation)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-正则化-Regularization"><span class="nav-text">1.3 正则化 (Regularization)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-L2正则化"><span class="nav-text">1.3.1 L2正则化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-L1正则化"><span class="nav-text">1.3.2 L1正则化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-Dropout"><span class="nav-text">1.4 Dropout</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-Early-Stopping"><span class="nav-text">1.5 Early Stopping</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-加速网络训练"><span class="nav-text">2.加速网络训练</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-归一化输入-标准化"><span class="nav-text">2.1 归一化输入(标准化)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-梯度消失和梯度爆炸：权重初始化角度的解决方案"><span class="nav-text">2.2 梯度消失和梯度爆炸：权重初始化角度的解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-批标准化-Batch-Normalization"><span class="nav-text">2.3 批标准化(Batch Normalization)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-1-BatchNormalization层在训练和测试时的不同"><span class="nav-text">2.3.1 BatchNormalization层在训练和测试时的不同</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-2-强调通道之间不能融合"><span class="nav-text">2.3.2 强调通道之间不能融合</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-优化器-Optimizer"><span class="nav-text">3. 优化器(Optimizer)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-指数加权平均-移动平均-Moving-Average"><span class="nav-text">3.1 指数加权平均(移动平均, Moving Average)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-动量梯度下降法-Momentum"><span class="nav-text">3.2 动量梯度下降法 Momentum</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-RMSprop-Root-Mean-Square-prop"><span class="nav-text">3.3 RMSprop (Root Mean Square prop)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-Adam-Adaptive-Moment-Estimation"><span class="nav-text">3.4 Adam(Adaptive Moment Estimation)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-5-学习率衰减"><span class="nav-text">3.5 学习率衰减</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-6-局部最优问题对梯度下降法而言是问题吗？"><span class="nav-text">3.6 局部最优问题对梯度下降法而言是问题吗？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-超参数调试"><span class="nav-text">4.超参数调试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-用随机数选取调试值"><span class="nav-text">4.1 用随机数选取调试值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-由粗糙到精细"><span class="nav-text">4.2 由粗糙到精细</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-选择合适的标尺"><span class="nav-text">4.3 选择合适的标尺</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">30</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>
