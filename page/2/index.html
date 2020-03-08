@@ -207,6 +207,97 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/14/drl-04/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/11/14/drl-04/" class="post-title-link" itemprop="url">强化学习随笔[04]-maddpg项目:创建场景Scenario</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-14 19:14:42" itemprop="dateCreated datePublished" datetime="2019-11-14T19:14:42+08:00">2019-11-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-12-31 00:11:17" itemprop="dateModified" datetime="2019-12-31T00:11:17+08:00">2019-12-31</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">基于深度强化学习的多机协同算法研究</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>在<a href="https://yerfor.github.io/2019/11/13/drl-03/" target="_blank" rel="noopener">上一篇文章</a>中，我们已经详细介绍了MADDPG算法的原理，并跑通了官方提供的代码。我们简单测试后发现，算法效果很不错，我们的主要工作应该集中在设计自己的Environment，也就是创建<code>Scenario</code>。</p>
+<p>那么，在maddpg项目框架里，创建一个Scenario需要什么呢？</p>
+<ul>
+<li><p>本文以<code>simple_push.py</code>为例介绍了Scenario类的接口、范式；</p>
+</li>
+<li><p>测试了官方提供的所有sample，归纳了设计reward需要遵循的规律和思想。</p>
+</li>
+</ul>
+<p>总的来说，本文为我们自己设计Scenario提供了基础。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/11/14/drl-04/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/13/drl-03/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -968,88 +1059,11 @@
   
   
 
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/22/dl-01/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
-      <meta itemprop="name" content="Zhenhui Ye">
-      <meta itemprop="description" content="Be a superhero.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="yerfor's Journey">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/22/dl-01/" class="post-title-link" itemprop="url">牛顿法和梯度下降法</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-10-22 18:03:41" itemprop="dateCreated datePublished" datetime="2019-10-22T18:03:41+08:00">2019-10-22</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-02-06 14:43:31" itemprop="dateModified" datetime="2020-02-06T14:43:31+08:00">2020-02-06</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0. 摘要"></a>0. 摘要</h1><p>今天上《导航与控制》的时候，被黄添添老师问了这么一个问题：牛顿法和梯度下降法有什么区别？我不由陷入了沉思，确实二者的计算公式在形式上十分相似，我曾经一度将其混淆，以为原理大概一致。在课上花了四十分钟将牛顿法的概念复习了一遍，从头做了一次推导，觉得勉强解答了这个问题。</p>
-<p>所以，本文的主要内容就是：</p>
-<ul>
-<li>回顾了牛顿法和梯度下降法的理论</li>
-<li>讨论了牛顿法和梯度下降法的异同</li>
-</ul>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/10/22/dl-01/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
   </div>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -1117,7 +1131,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">30</span>
+          <span class="site-state-item-count">31</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

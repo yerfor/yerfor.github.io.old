@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.7.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: './public/search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="0.摘要优先级经验回放是对强化学习中传统经验回放机制的一种改进，可以加快收敛速度，提升网络性能。 本文主要介绍了：  《Prioritized Experience Replay》论文精读 Prioritized Experience Replay的Python实现 将Prioritized Experience Replay与MADDPG进行结合，比较加入该机制前后算法的性能">
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习随笔[06]-优先级经验回放">
+<meta property="og:url" content="http://yoursite.com/2020/03/09/drl-06/index.html">
+<meta property="og:site_name" content="yerfor&#39;s Journey">
+<meta property="og:description" content="0.摘要优先级经验回放是对强化学习中传统经验回放机制的一种改进，可以加快收敛速度，提升网络性能。 本文主要介绍了：  《Prioritized Experience Replay》论文精读 Prioritized Experience Replay的Python实现 将Prioritized Experience Replay与MADDPG进行结合，比较加入该机制前后算法的性能">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/cliff.png">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/oracle_vs_uniform.png">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/rank_vs_propor.png">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/sum-tree.jpg">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/PER.png">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/sum-tree.jpg">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/Uniform-PER1.png">
+<meta property="og:image" content="http://yoursite.com/2020/03/09/drl-06/Uniform-PER2.png">
+<meta property="article:published_time" content="2020-03-08T17:21:42.000Z">
+<meta property="article:modified_time" content="2020-03-08T17:22:24.251Z">
+<meta property="article:author" content="Zhenhui Ye">
+<meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="ReinforceLearning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/03/09/drl-06/cliff.png">
+
+<link rel="canonical" href="http://yoursite.com/2020/03/09/drl-06/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>强化学习随笔[06]-优先级经验回放 | yerfor's Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">yerfor's Journey</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/03/09/drl-06/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="name" content="Zhenhui Ye">
+      <meta itemprop="description" content="Be a superhero.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="yerfor's Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          强化学习随笔[06]-优先级经验回放
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-03-09 01:21:42 / 修改时间：01:22:24" itemprop="dateCreated datePublished" datetime="2020-03-09T01:21:42+08:00">2020-03-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">基于深度强化学习的多机协同算法研究</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="0-摘要"><a href="#0-摘要" class="headerlink" title="0.摘要"></a>0.摘要</h1><p>优先级经验回放是对强化学习中传统经验回放机制的一种改进，可以加快收敛速度，提升网络性能。</p>
+<p>本文主要介绍了：</p>
+<ul>
+<li>《Prioritized Experience Replay》论文精读</li>
+<li><strong>Prioritized Experience Replay</strong>的Python实现</li>
+<li>将<strong>Prioritized Experience Replay</strong>与<strong>MADDPG</strong>进行结合，比较加入该机制前后算法的性能</li>
+</ul>
+<a id="more"></a>
+<h1 id="1-《Prioritized-Experience-Replay》论文精读"><a href="#1-《Prioritized-Experience-Replay》论文精读" class="headerlink" title="1.《Prioritized Experience Replay》论文精读"></a>1.《Prioritized Experience Replay》论文精读</h1><p>《Prioritized Experience Replay》是谷歌的DeepMind团队于2015年提出的一种经验回放<code>(Experience Replay)</code>机制的改良方法，本方法基于“RL agent可以从某些经验<code>(transition)</code>中学到比其他经验更多的知识”的假设，以<code>TD-error</code>作为衡量各个经验价值的尺度<code>(criterion)</code>，对价值更高经验更频繁地进行”回放“<code>(replay)</code>。作者团队将该方法应用2013年推出的<code>DQN</code>算法，在当时达到了更快的收敛速度和<code>State of the Art</code>的效果。</p>
+<h2 id="1-1-算法提出的背景和概要"><a href="#1-1-算法提出的背景和概要" class="headerlink" title="1.1 算法提出的背景和概要"></a>1.1 算法提出的背景和概要</h2><p>在经验回放机制推出之前，强化学习算法不会储存训练过程中的数据，如Q-Learning、Policy Gradient等经典算法，在更新完参数后立即丢弃输入(即$state_t$)和输出(即$action$、$reward$和$state_{t+1}$)。这会造成两个问题：</p>
+<ol>
+<li>更新的输入输出数据之间总是在时序上强相关的，打破了随机梯度下降法要求保证的独立同分布假设，容易造成算法的不稳定和发散；</li>
+<li>可能放弃了十分有用的稀有经验。</li>
+</ol>
+<p>1992年提出的经验回放机制<code>(Experience Replay)</code>部分解决了上述的问题，在2013年提出的<code>DQN</code>算法中得到应用。但是，原始的DQN进行经验回放的方式只是从经验池中随机取样(Uniformly Sampling)并回放利用。所以准确的说原始的经验回放机制只完全解决了第一个问题，对第二个问题而言，由于十分有用的稀有经验被大量的“无用经验”埋没在经验池中，只是简单地进行随机取样找到稀有经验的概率仍然是很低的。</p>
+<p>因此作者团队希望找到一种更加合适的采样方式，能够更频繁地采样到有用的稀有经验，从而使强化学习的训练过程收敛更加迅速、性能更加强健。要将稀有经验和无用经验进行区别对待，就需要设计一个价值尺度<code>(criterion)</code>来衡量一个经验<code>(transition)</code>对训练的价值，作者选择了<code>TD-error</code>来表示优先级的大小（关于为什么选择<code>TD-error</code>，见<code>1.2.2</code>小节）。</p>
+<p>一开始，作者团队尝试了<code>Greedy Prioritized Replay</code>（即每次采样都选择<code>TD-error</code>最大的那个经验，见<code>1.2.3</code>小节），在一些简单的例子中获得了不错的效果，但是发现这种贪心的采样方法存在两个问题：</p>
+<ol>
+<li>这种方法会损失多样性<code>(diversity)</code>，在一些复杂环境中很可能只能找到次优解。作者的解决方法是转而采取给予概率的采样方法(即<code>Stochastic Prioritization</code>，见<code>1.3.1</code>小节)，最后发现这个改进有效地改善了本方法在复杂环境下的效果。</li>
+<li>这种采样方式(没错，不仅仅是说Greedy，即使是Stochastic的方法也一样)，因为改变了输入的分布（原来是<code>Uniform</code>分布，现在是基于<code>TD-error</code>的概率分布），会引入新的偏置<code>(bias)</code>，所以作者在<code>Stochastic Prioritization</code>的基础上，还引入了对梯度下降公式中的梯度项进行加权调整的方法来弥补偏置（即<code>Importance Sample Weights,ISweights</code>，见<code>1.3.2</code>小节）。</li>
+</ol>
+<h2 id="1-2-基于TD-error的优先级回放"><a href="#1-2-基于TD-error的优先级回放" class="headerlink" title="1.2 基于TD-error的优先级回放"></a>1.2 基于TD-error的优先级回放</h2><h3 id="1-2-1-优先级回放的重要性"><a href="#1-2-1-优先级回放的重要性" class="headerlink" title="1.2.1 优先级回放的重要性"></a>1.2.1 优先级回放的重要性</h3><p>作者提供了一个简单的例子<strong>“Blind Cliffwalk”</strong>，该例子诠释了优先级回放在某些场景（尤其是reward设计得十分sharp，即很难获得非零值的时候）的优越性。</p>
+<p><strong>Blind Cliffwalk</strong>场景的设计如下图所示，下图的每个圆代表一个<code>state</code>，agent只有向左或向右两个动作，agent的初始位置在<code>state=1</code>，只有当其到达<code>state=n</code>时才能获得<code>reward=1</code>，其他时候都有<code>reward=0</code>。假设我们规定一个<code>episode</code>的最大步数是<code>n</code>,那么agent一共有$2^n$种走法，但是只有一直向右走n次的那个轨迹才能带来<code>reward=1</code>的情况。也就是说，如果使用随机取样的方法，选择到能使$reward\neq 0$的经验的概率是$\frac{1}{2^n}$。有用的稀有经验被埋没在大量的无用经验中了。</p>
+<p><img src="/2020/03/09/drl-06/cliff.png" alt="cliff"></p>
+<p>作者使用传统采样方法和优先级采样方法对上述场景进行训练，得到了下图：</p>
+<p><img src="/2020/03/09/drl-06/oracle_vs_uniform.png" alt="oracle_vs_uniform"></p>
+<p>可以看到，在最理想的情况下，采用优先级回放的方法可以指数级地缩短训练的迭代步数。（虽然由于引入了优先级回放，会导致采样部分代码的时间复杂度、空间复杂度的提到，进而导致单次迭代用时的增加）</p>
+<h3 id="1-2-2-使用TD-error进行优先级回放"><a href="#1-2-2-使用TD-error进行优先级回放" class="headerlink" title="1.2.2 使用TD-error进行优先级回放"></a>1.2.2 使用TD-error进行优先级回放</h3><p>优先级经验回放的核心是设计一个对每个经验的重要性进行衡量的尺度(<code>critierion</code>)，最理想的尺度当然是“RL agent可以从该经验中学到的道理”(即<code>expected learning progress</code>)，但这个概念是无法直接量化的。一个合理的近似是一个经验(<code>transition</code>)的时序差分误差$\delta$(<code>TD-error, Temporary Difference Error</code>)。<code>TD-error</code>描述了该经验有多么出乎<code>Critic</code>网络的意料，因为它是实际Q值（$reward+\gamma\cdot maxQ(s_{t+1},a_{t+1})$）和估计Q值$Q(s_t,a_t)$的差值，即：</p>
+<script type="math/tex; mode=display">
+\delta = reward+\gamma\cdot max Q(s_{t+1},a_{t+1})-Q(s_t,a_t)</script><p>由于<code>TD-error</code>在Q-Learning、DQN中广泛使用，实际上DQN中Q网络的学习目标就是最小化<code>TD-error</code>，所以在DQN、DDPG乃至MADDPG中使用<code>TD-error</code>作为优先级的度量标准是十分方便且合适的。</p>
+<h3 id="1-2-3-基于贪心策略的优先级回放"><a href="#1-2-3-基于贪心策略的优先级回放" class="headerlink" title="1.2.3 基于贪心策略的优先级回放"></a>1.2.3 基于贪心策略的优先级回放</h3><p>确定好衡量标准后，还需要设计如何根据优先级进行采样。最简单直接的方法就是贪心策略，即总是选取<code>TD-error</code>最大的那个经验进行训练。</p>
+<p> 看到这里可能有个疑惑，即如果总是选取<code>TD-error</code>最大的那个经验，会不会一直选择同一个经验呢？答案是不会的。因为TD-error实质上是实际Q值和估计Q值的差值，而训练Q网络的目标函数就是这个差值，所以每次更新参数后，对更新后的网络而言，该经验的<code>TD-error</code>实际上是会减小的。我们在每次网络更新后都会再次计算本次采样的经验的新的<code>TD-error</code>，更新到经验池中。</p>
+<p>作者对贪心策略的具体实现方法是，设计了一个最大堆来存储经验，<code>TD-error</code>最大的那个经验位于二叉树的根节点。每次更新网络后，根节点的经验的<code>TD-error</code>也会随之改变（准确的说是减小），因此每次更新网络也会对这个最大堆进行一次更新。</p>
+<p>基于贪心策略的优先级回放算法在简单环境中有不错的效果，然而贪心策略存在以下四个问题：</p>
+<ol>
+<li>由于只会采样并更新<code>TD-error</code>最大的经验，<code>TD-error</code>较小的经验可能永远都无法被选择到，导致算法的探索性欠佳；</li>
+<li><code>TD-error</code>这个度量本身对于噪声很敏感，很容易将噪声的误差加入；</li>
+<li>贪心策略只专注于<code>TD-error</code>最大的一小部分经验，而<code>TD-error</code>的减小比较慢，会导致<code>TD-error</code>比较高的经验被重放得十分频繁，从而导致网络过拟合；（强化学习中的过拟合，指的是网络对某一小部分训练时一直重放的state的决策十分英明，而对其他大部分state的效果都很差）</li>
+<li>关于经验池模块的性能，最大堆的结构导致经验池更新一次的时间复杂度是$O(log~n)$，采样一次的时间复杂度是$O(1)$。</li>
+</ol>
+<h2 id="1-3-对优先级回放的改进"><a href="#1-3-对优先级回放的改进" class="headerlink" title="1.3 对优先级回放的改进"></a>1.3 对优先级回放的改进</h2><h3 id="1-3-1-基于概率的优先级回放"><a href="#1-3-1-基于概率的优先级回放" class="headerlink" title="1.3.1 基于概率的优先级回放"></a>1.3.1 基于概率的优先级回放</h3><p>由于贪心决策的优先级回放有上述四点缺陷，作者团队提出了基于概率的优先级回放，即论文中的<code>Stochastic sampling</code>，这是介于纯贪心决策和Uniform Sampling之间的一种方法。我个人认为可以将其形象地理解为<code>Weighted Uniform Sampling</code>，即对经验池中的各个经验，我们仍然像传统方法一样按照概率采样，但是不同经验被抽到的概率是不同的。具体的标号为$i$的经验被抽取到的概率为：</p>
+<script type="math/tex; mode=display">
+P(i)=\frac{p_{i}^{\alpha}}{\Sigma_{k}p_{k}^{\alpha}}</script><p>其中，$p_{i}$为$i$号经验的优先级度量（之前介绍说就是<code>TD-error</code>，实际上还要在<code>TD-error</code>的基础上做一些修正）；$\alpha$是一个超参数，有$\alpha\in[0,+\infin)$，它决定了优先级度量的程度，$\alpha $越大，则优先级度量比较大的经验就越容易被选取到。如果$\alpha=0$，就相当于我之前所说的<code>Weighted Uniform Sampling</code>。一般经验上我们设定$\alpha=0.7$。</p>
+<p>关于优先级度量$p_i$的定义，作者提供了两种方法，分别是：</p>
+<ol>
+<li>$p_i=|\delta|+\epsilon$，其中$\epsilon$是一个极小值，一般设定为$\epsilon=0.01$，这是为了保证每个经验都有可能被选到，这个方法被称作<code>Proportional</code>；</li>
+<li>$p_i=\frac{1}{rank(i)}$，其中$rank(i)$是$i$号经验在经验池中<code>TD-error</code>大小的排名，这个方法被称作<code>Rank-Based</code>。</li>
+</ol>
+<p>两种方法得到的优先级度量$p_i$都和<code>TD-error</code>高度相关，但是后者显得更加鲁棒，对<code>outliers</code>更不敏感。两种方法都大大加速了网络的训练。二者的表现如下图所示：</p>
+<p><img src="/2020/03/09/drl-06/rank_vs_propor.png" alt="rank_vs_propor"></p>
+<p>关于<code>Stochastic Sampling</code>的具体实现，目前只了解了<code>Proportional</code>方法的实现，作者采用了Sum-Tree的数据结构来构成经验池。Sum-Tree是一种特殊的二叉树，父节点的值等于两个子节点的值的总和，如下图所示（在<code>2.1</code>小节中我具体实现了Sum-Tree，编码的过程中参考了论文附录的<code>B2.1</code>小节、莫烦Python的<a href="https://morvanzhou.github.io/tutorials/machine-learning/reinforcement-learning/4-6-prioritized-replay/" target="_blank" rel="noopener">Github项目</a>、陈弈宁师兄的<code>AC+Proportional</code>的代码）。</p>
+<p><img src="/2020/03/09/drl-06/sum-tree.jpg" alt="sum-tree"></p>
+<h3 id="1-3-2-消除偏置：Importance-Sample-Weights"><a href="#1-3-2-消除偏置：Importance-Sample-Weights" class="headerlink" title="1.3.2 消除偏置：Importance Sample Weights"></a>1.3.2 消除偏置：Importance Sample Weights</h3><p>传统DQN中，更新Q网络的公式为：</p>
+<script type="math/tex; mode=display">
+Q\leftarrow Q - \alpha \cdot \nabla [r_i+\gamma \cdot max~Q(s_{t+1},a_{t+1})-Q(s_t,a_t)]^2</script><p>根据<code>TD-error</code>的定义，我们有：</p>
+<script type="math/tex; mode=display">
+Q\leftarrow Q-\alpha \cdot \nabla (\delta^2)</script><p>所以DQN中训练Q网络的实际目标就是最小化$\delta ^2$。上式进行变换后也即：</p>
+<script type="math/tex; mode=display">
+Q\leftarrow Q-2\times \alpha \cdot \delta \cdot \nabla \delta</script><p>所以，更新DQN的时候，<code>TD-error</code>实际上也作为权重$\delta$对梯度下降的步长产生了影响。</p>
+<p>回过头来说经验回放，随机更新对期望值的估计依赖于与预期相同的分布相对应的更新。优先级回放机制引入了bias，它以一种不受控制的方式改变了输入的分布，因此改变了收敛的结果（即使策略和状态分布是固定的）。作者认为可以通过引入<code>Importance Sample weights</code>项$w_i$来补偿这个偏差，具体做法为：</p>
+<script type="math/tex; mode=display">
+Q\leftarrow Q-2\times \alpha \cdot w_i \delta \cdot \nabla \delta</script><p>其中$w_i$的定义式为：</p>
+<script type="math/tex; mode=display">
+w_i=\frac{1}{[N\cdot P(i)]^{\beta}}</script><p>其中，$N$为经验池储存经验的上限，一般设置为$N=10^{6}$，$P(i)$即为<code>1.3.1</code>小节中定义的$i$号经验被抽中的概率，$\beta$是一个超参数，当$\beta=1$时，该项恰好补偿了由于不均匀采样带来的误差。经验上我们一般取$\beta=0.6$。</p>
+<p>此外，为了训练的稳定性，我们总是会对$w_i$进行归一化处理，即：</p>
+<script type="math/tex; mode=display">
+w_i = \frac{w_i}{max~w_k}</script><ul>
+<li>顺带一提，由于我们的MADDPG项目中优化器部分是高度封装好的，所以我无法对梯度下降部分进行修改，因此实作中这个改进没有被我添加进去，但是实验结果还是不错的。所以这一项好像影响也没有那么大？</li>
+</ul>
+<h2 id="1-4-算法伪代码"><a href="#1-4-算法伪代码" class="headerlink" title="1.4 算法伪代码"></a>1.4 算法伪代码</h2><p>下图是<strong>Prioritized Experience Replay</strong>的伪代码：</p>
+<p><img src="/2020/03/09/drl-06/PER.png" alt="PER"></p>
+<h1 id="2-优先级经验回放的具体实现"><a href="#2-优先级经验回放的具体实现" class="headerlink" title="2. 优先级经验回放的具体实现"></a>2. 优先级经验回放的具体实现</h1><h2 id="2-1-SumTree"><a href="#2-1-SumTree" class="headerlink" title="2.1 SumTree"></a>2.1 SumTree</h2><p>SumTree是一种特殊的二叉树，它的父节点总是子节点的值之和。</p>
+<p>通过下图这个例子，介绍如何用SumTree实现优先级概率采样。每个叶节点代表一个经验，叶节点中的值对应该叶节点被采样到的概率。SumTree的根节点的值对应所有经验的概率之和，如下图中的例子，是42。</p>
+<p>我们会在[0,42]之间uniformly得到一个随机数，如下图所示，我们得到了24。</p>
+<p>我们考察下图中根节点的两个子节点，其值分别是29和13，他们将[0,42]这个空间分成了[0,29]和(29,42]两个空间，$24<29$，所以进入根节点的左子树。接下来考察29节点的两个子节点，这两个子节点将[0,29]这个空间分成了[0,13]和(13,29]两个空间。$24>13$，所以进入右子树，并且减去左子树的值，即$11=24-13$。以此类推，由于$11&lt;12$，所以进入12节点，由于12节点已经是叶节点，所以随机数24采样得到的经验就是12节点。</29$，所以进入根节点的左子树。接下来考察29节点的两个子节点，这两个子节点将[0,29]这个空间分成了[0,13]和(13,29]两个空间。$24></p>
+<p>事实上，对任何随机数$x\in[13,25]$，采样得到的经验都是12节点，也就是说，采样得到12节点的经验的概率是$\frac{25-13}{42}=\frac{12}{42}$。</p>
+<p>总之，SumTree结构实现了对不同概率的经验进行采样。具体的数学推导就赘述了。</p>
+<p><img src="/2020/03/09/drl-06/sum-tree.jpg" alt="sum-tree"></p>
+<p>SumTree的算法流程上面已经介绍了，下面给出Python实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SumTree</span>:</span></span><br><span class="line">  <span class="string">"""SumTree数据结构，用于储存经验池</span></span><br><span class="line"><span class="string">  """</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, buffer_size)</span>:</span></span><br><span class="line">        self.buffer_size = buffer_size</span><br><span class="line">        <span class="comment"># tree_arr 前buffer_size-1位储存parent,后buffer_size位储存possibility</span></span><br><span class="line">        self.tree_arr = np.zeros(<span class="number">2</span> * buffer_size - <span class="number">1</span>)</span><br><span class="line">        <span class="comment"># buffer_arr 储存的是buffer_size位的transition(s,r,a,s',gamma)</span></span><br><span class="line">        self.buffer_lst = list(np.zeros(buffer_size))</span><br><span class="line">        self.buffer_pointer = <span class="number">0</span></span><br><span class="line">        <span class="comment"># tree_index = buffer_pointer + (buffer_size - 1)</span></span><br><span class="line">        self.is_full = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span><span class="params">(self)</span>:</span></span><br><span class="line">      <span class="comment"># 这里定义了一个不可逆哨兵self.is_full，这是因为MADDPG中使用了__len__方法</span></span><br><span class="line">      <span class="comment"># 更高层的应用对我们做出了限制</span></span><br><span class="line">        <span class="keyword">if</span> self.is_full:</span><br><span class="line">            <span class="keyword">return</span> self.buffer_size</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> self.buffer_pointer + <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span><span class="params">(self, possibility, transition)</span>:</span></span><br><span class="line">      <span class="string">"""往当前经验池中加入一个经验</span></span><br><span class="line"><span class="string">      possibility: 该经验对应的概率</span></span><br><span class="line"><span class="string">      transition: 经验元组，一般形式为(action,state,reward,state_)</span></span><br><span class="line"><span class="string">      """</span></span><br><span class="line">        tree_index = self.buffer_pointer + self.buffer_size - <span class="number">1</span></span><br><span class="line">        self.buffer_lst[self.buffer_pointer] = transition</span><br><span class="line">        self.update_tree(tree_index, possibility)</span><br><span class="line"></span><br><span class="line">        self.buffer_pointer += <span class="number">1</span></span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> self.buffer_pointer &gt;= self.buffer_size:</span><br><span class="line">            self.buffer_pointer = <span class="number">0</span></span><br><span class="line">            self.is_full = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">update_tree</span><span class="params">(self, tree_index, possibility)</span>:</span></span><br><span class="line">        <span class="string">"""进行一次参数更新后，之前采样的经验对应的possibility需要更新</span></span><br><span class="line"><span class="string">        tree_index: 之前采样的经验在SumTree中对应的下标</span></span><br><span class="line"><span class="string">        possibility: 更新后的possibility</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        <span class="comment"># 更新叶节点</span></span><br><span class="line">        possibility_change = possibility - self.tree_arr[tree_index]</span><br><span class="line">        self.tree_arr[tree_index] = possibility</span><br><span class="line">        <span class="comment"># 更新所有parent</span></span><br><span class="line">        <span class="keyword">while</span> tree_index != <span class="number">0</span>:</span><br><span class="line">            tree_index = SumTree._cal_parent_index(tree_index)</span><br><span class="line">            self.tree_arr[tree_index] += possibility_change</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">sample_with_v</span><span class="params">(self, v)</span>:</span></span><br><span class="line">      <span class="string">"""根据随机数v，选取对应的经验</span></span><br><span class="line"><span class="string">      v：通过uniformly得到的随机数，必须满足 v属于[0,self.total_possibility]</span></span><br><span class="line"><span class="string">      """</span></span><br><span class="line">      	<span class="comment"># 断言v属于[0,self.total_possibility]</span></span><br><span class="line">        <span class="keyword">assert</span> v&gt;=<span class="number">0</span> <span class="keyword">and</span> &lt;= self.total_possibility</span><br><span class="line">        tree_index = <span class="number">0</span></span><br><span class="line">        <span class="comment"># SumTree的搜索逻辑</span></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            left_child_index = <span class="number">2</span> * tree_index + <span class="number">1</span></span><br><span class="line">            right_child_index = <span class="number">2</span> * tree_index + <span class="number">2</span></span><br><span class="line">            <span class="comment"># 如果是叶子节点，break，当前节点就是我们要的经验对应的节点</span></span><br><span class="line">            <span class="keyword">if</span> left_child_index &gt;= len(self.tree_arr):</span><br><span class="line">                sampled_tree_index = tree_index</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="comment"># 如果v小于左子树，进入左子树</span></span><br><span class="line">                <span class="keyword">if</span> v &lt; self.tree_arr[left_child_index]:</span><br><span class="line">                    tree_index = left_child_index</span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                <span class="comment"># 如果v大雨左子树，进入右子树，且v-=left</span></span><br><span class="line">                    v -= self.tree_arr[left_child_index]</span><br><span class="line">                    tree_index = right_child_index</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 将tree_index转化成buffer_index</span></span><br><span class="line">        sample_buffer_index = sampled_tree_index - (self.buffer_size - <span class="number">1</span>)</span><br><span class="line">        <span class="comment"># 从SumTree中获取possibility，从buffer中获取经验元组transition</span></span><br><span class="line">        sampled_possibility = self.tree_arr[sampled_tree_index]</span><br><span class="line">        sampled_transition = self.buffer_lst[sample_buffer_index]</span><br><span class="line">        <span class="keyword">return</span> sampled_tree_index, sampled_possibility, sampled_transition</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">total_possibility</span><span class="params">(self)</span>:</span></span><br><span class="line">      <span class="comment">#SumTree根节点储存必然是概率之和 </span></span><br><span class="line">        <span class="keyword">return</span> self.tree_arr[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_cal_parent_index</span><span class="params">(index)</span>:</span></span><br><span class="line">      <span class="string">"""计算某个节点的父节点的下标</span></span><br><span class="line"><span class="string">      """</span></span><br><span class="line">        <span class="keyword">return</span> (index - <span class="number">1</span>) // <span class="number">2</span></span><br></pre></td></tr></table></figure>
+<h2 id="2-2-Proportional-Sampling"><a href="#2-2-Proportional-Sampling" class="headerlink" title="2.2 Proportional Sampling"></a>2.2 Proportional Sampling</h2><p>定义了<code>PrioritizedSampling</code>类，对<code>1.3.1</code>小节的采样算法进行了实现。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">PrioritizedSampling</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, buffer_size=<span class="number">1e6</span>)</span>:</span></span><br><span class="line">      <span class="comment"># 使用之前定义的SumTree作为底层存储结构</span></span><br><span class="line">        self.sum_tree = SumTree(buffer_size)</span><br><span class="line">        self.epsilon = <span class="number">1e-2</span></span><br><span class="line">        self.alpha = <span class="number">0.6</span></span><br><span class="line">        self.beta = <span class="number">0.4</span></span><br><span class="line">        self.abs_error_upper = <span class="number">1.</span></span><br><span class="line">        self.beta_increment_per_sampling = <span class="number">0.001</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add_transition</span><span class="params">(self, transition)</span>:</span></span><br><span class="line">        <span class="comment"># 每个新加进来的transition,都有和当前buffer中最大概率的transition一样的概率被抽到</span></span><br><span class="line">        max_possibility = np.max(self.sum_tree.tree_arr[-self.sum_tree.buffer_size:])</span><br><span class="line">        <span class="keyword">if</span> max_possibility == <span class="number">0</span>:</span><br><span class="line">            max_possibility = self.abs_error_upper</span><br><span class="line">        self.sum_tree.add(max_possibility, transition)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">sample</span><span class="params">(self, batch_size)</span>:</span></span><br><span class="line">        <span class="string">"""根据batch_size随机采样,不能保证不同agent采样的transition是同一个index的,适用于DDPG</span></span><br><span class="line"><span class="string">        batch_size : mini-batch的大小</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        <span class="comment"># 定义numpy变量</span></span><br><span class="line">        batch_idx, batch_transition, batch_ISweight = \</span><br><span class="line">        		np.empty((batch_size,), dtype=np.int32), list(), np.empty(batch_size)</span><br><span class="line">        <span class="comment"># 优先级分量，除以batch_size，结合后面的代码，意在将[0,total]切成batch_size块，保证采样均匀</span></span><br><span class="line">        pri_seg = self.sum_tree.total_possibility / batch_size</span><br><span class="line">        <span class="comment"># beta会随时间变大，但我们没用上</span></span><br><span class="line">        self.beta = np.min([<span class="number">1.</span>, self.beta + self.beta_increment_per_sampling])</span><br><span class="line">				</span><br><span class="line">        <span class="comment"># 计算经验池中的最小概率，用于计算ISweight，但我们没用上</span></span><br><span class="line">        min_prob = np.min(self.sum_tree.tree_arr[-self.sum_tree.buffer_size:]) \</span><br><span class="line">        																		/ self.sum_tree.total_possibility</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(batch_size):</span><br><span class="line">          	<span class="comment">#每个[a,b]都是[0,total_possibility]的batch_size个子空间之一</span></span><br><span class="line">            a, b = pri_seg * i, pri_seg * (i + <span class="number">1</span>)</span><br><span class="line">            v = np.random.uniform(a, b)</span><br><span class="line">            <span class="comment"># 通过随机数v采样，得到对应经验的“tree_index“、概率和经验元组</span></span><br><span class="line">            idx, p, transition = self.sum_tree.sample_with_v(v)</span><br><span class="line">            <span class="comment"># 将原来的概率进行归一化</span></span><br><span class="line">            prob = p / self.sum_tree.total_possibility</span><br><span class="line">            <span class="comment"># 计算ISweight，但我们没用上</span></span><br><span class="line">            batch_ISweight[i] = np.power(prob / (min_prob + self.epsilon), -self.beta)</span><br><span class="line">            batch_idx[i] = idx</span><br><span class="line">            batch_transition.append(transition)</span><br><span class="line">        <span class="keyword">return</span> batch_idx, batch_transition, batch_ISweight</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">sample_with_tree_index</span><span class="params">(self, batch_tree_index)</span>:</span></span><br><span class="line">        <span class="string">"""根据指定的index进行采样,保证不同agent采样的transition是同一个index的,适用于MADDPG</span></span><br><span class="line"><span class="string">        batch_tree_index : 一个mini-batch的经验的tree_index，来自于self.sample(batch_size)</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        batch_buffer_index = [tree_index - (self.sum_tree.buffer_size - <span class="number">1</span>) \</span><br><span class="line">                              <span class="keyword">for</span> tree_index <span class="keyword">in</span> batch_tree_index]</span><br><span class="line">        batch_transition = [self.sum_tree.buffer_lst[buffer_index] \</span><br><span class="line">                            <span class="keyword">for</span> buffer_index <span class="keyword">in</span> batch_buffer_index]</span><br><span class="line">        <span class="keyword">return</span> batch_transition</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">batch_update</span><span class="params">(self, tree_idx, errors)</span>:</span></span><br><span class="line">      <span class="string">"""进行一次参数更新后，之前采样的经验对应的possibility需要更新</span></span><br><span class="line"><span class="string">      tree_idx: 一个batch中的经验的tree_index</span></span><br><span class="line"><span class="string">      errors: 一个batch中的经验更新后的TD-errors，需要处理成possibility后拿去更新SumTree</span></span><br><span class="line"><span class="string">      """</span></span><br><span class="line">        abs_errors = np.abs(errors) + self.epsilon</span><br><span class="line">        clipped_errors = np.minimum(abs_errors, self.abs_error_upper)</span><br><span class="line">        ps = np.power(clipped_errors, self.alpha)</span><br><span class="line">        <span class="keyword">for</span> ti, p <span class="keyword">in</span> zip(tree_idx, ps):</span><br><span class="line">            self.sum_tree.update_tree(ti, p)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> len(self.sum_tree)</span><br></pre></td></tr></table></figure>
+<h1 id="3-优先级经验回放在MADDPG中的应用"><a href="#3-优先级经验回放在MADDPG中的应用" class="headerlink" title="3. 优先级经验回放在MADDPG中的应用"></a>3. 优先级经验回放在MADDPG中的应用</h1><h2 id="3-1-DQN-gt-MADDPG：迁移到多智能体算法时所作的修改"><a href="#3-1-DQN-gt-MADDPG：迁移到多智能体算法时所作的修改" class="headerlink" title="3.1 DQN-&gt;MADDPG：迁移到多智能体算法时所作的修改"></a>3.1 DQN-&gt;MADDPG：迁移到多智能体算法时所作的修改</h2><p>下面是MADDPG项目核心策略部分的代码，从传统<code>Uniformly Sampling</code>迁移到<code>Prioritized Experience Replay</code>的算法改变，可以通过比较下面代码中<code>if PRIORITIZED</code>语句和<code>else</code>语句的不同来体会。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MADDPGAgentTrainer</span><span class="params">(AgentTrainer)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, name, model, obs_shape_n, act_space_n, agent_index, args, local_q_func=False)</span>:</span></span><br><span class="line">        <span class="string">"""</span></span><br><span class="line"><span class="string">        省略</span></span><br><span class="line"><span class="string">        """</span></span><br><span class="line">        PRIORTIZED = <span class="literal">True</span></span><br><span class="line">        <span class="comment"># 创建经验池</span></span><br><span class="line">        <span class="keyword">if</span> PRIORTIZED:</span><br><span class="line">            self.replay_buffer = PrioritizedReplayBuffer(<span class="number">1e6</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.replay_buffer = ReplayBuffer(<span class="number">1e6</span>)</span><br><span class="line">        self.max_replay_buffer_len = args.batch_size * args.max_episode_len</span><br><span class="line">        self.replay_sample_index = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    省略</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">update</span><span class="params">(self, agents, t)</span>:</span></span><br><span class="line">      <span class="string">"""训练网络的核心方法</span></span><br><span class="line"><span class="string">      agents: 其他agent的MADDPGAgentTrainer类</span></span><br><span class="line"><span class="string">      t: 迭代的总次数</span></span><br><span class="line"><span class="string">      """</span></span><br><span class="line">      </span><br><span class="line">      	<span class="comment"># 除非buffer已经达到某个阈值，否则不会开始训练</span></span><br><span class="line">        <span class="keyword">if</span> len(self.replay_buffer) &lt; self.max_replay_buffer_len:  </span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="comment"># 每100次迭代才更新一次网络</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> t % <span class="number">100</span> == <span class="number">0</span>:  </span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># collect replay sample from all agents</span></span><br><span class="line">        obs_n = []</span><br><span class="line">        obs_next_n = []</span><br><span class="line">        act_n = []</span><br><span class="line">        batch_tree_idx_n = []</span><br><span class="line">        rew_n = []</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 获取batch_tree_index</span></span><br><span class="line">        <span class="keyword">if</span> PRIORTIZED:</span><br><span class="line">            _, _, _, _, _, batch_tree_idx = \</span><br><span class="line">            						self.replay_buffer.sample_transition(self.args.batch_size)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            index = self.replay_buffer.make_index(self.args.batch_size)</span><br><span class="line">				</span><br><span class="line">        <span class="comment"># 通过index从buffer里面获取经验元组(s,a,r,s')</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(self.n):</span><br><span class="line">            <span class="keyword">if</span> PRIORTIZED:</span><br><span class="line">                <span class="comment"># 根据self的batch_tree_index,每个agent采样相同index的经验</span></span><br><span class="line">                obs, act, rew, obs_next, done = \</span><br><span class="line">                	agents[i].replay_buffer.sample_transition_with_index(batch_tree_idx)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                obs, act, rew, obs_next, done = agents[i].replay_buffer.sample_index(index)</span><br><span class="line">            obs_n.append(obs)</span><br><span class="line">            obs_next_n.append(obs_next)</span><br><span class="line">            act_n.append(act)</span><br><span class="line">            rew_n.append(rew)</span><br><span class="line">            </span><br><span class="line">				<span class="comment"># 源码中有计算self agent的obs, act, rew等，其实没什么用</span></span><br><span class="line">        <span class="comment"># 但为了一致性，我也写了一个PRIORTIZED的情况</span></span><br><span class="line">        <span class="keyword">if</span> PRIORTIZED:</span><br><span class="line">            obs, act, rew, obs_next, done = \</span><br><span class="line">            	self.replay_buffer.sample_transition_with_index(batch_tree_idx)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            obs, act, rew, obs_next, done = self.replay_buffer.sample_index(index)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 训练Critic网络</span></span><br><span class="line">        num_sample = <span class="number">1</span></span><br><span class="line">        target_q = <span class="number">0.0</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(num_sample):</span><br><span class="line">            target_act_next_n = [agents[i].p_debug[<span class="string">'target_act'</span>](obs_next_n[i]) \</span><br><span class="line">                                 <span class="keyword">for</span> i <span class="keyword">in</span> range(self.n)]</span><br><span class="line">            target_q_next = self.q_debug[<span class="string">'target_q_values'</span>]\</span><br><span class="line">            											(*(obs_next_n + target_act_next_n))</span><br><span class="line">            target_q += rew + self.args.gamma * (<span class="number">1.0</span> - done) * target_q_next</span><br><span class="line">        target_q /= num_sample</span><br><span class="line">        q_loss = self.q_train(*(obs_n + act_n + [target_q]))</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 训练Actor网络</span></span><br><span class="line">        p_loss = self.p_train(*(obs_n + act_n))</span><br><span class="line"></span><br><span class="line">        self.p_update()</span><br><span class="line">        self.q_update()</span><br><span class="line">				</span><br><span class="line">        <span class="comment"># 在网络的参数更新后，重新计算刚才采样的经验现在的TD-error，更新经验池</span></span><br><span class="line">        <span class="keyword">if</span> PRIORTIZED:</span><br><span class="line">            <span class="comment"># 计算a_&#123;t+1&#125;</span></span><br><span class="line">            act_next_n = [agents[i].act(obs_next_n[i]) <span class="keyword">for</span> i <span class="keyword">in</span> range(self.n)]</span><br><span class="line">            <span class="comment"># 计算Q(s_&#123;t+1&#125;,a_&#123;t+1&#125;)</span></span><br><span class="line">            q_value_s2 = np.array(self.q(*(obs_next_n + act_next_n)))</span><br><span class="line">            <span class="comment"># 计算Q(s_&#123;t&#125;,a_&#123;t&#125;)</span></span><br><span class="line">            q_value_s1 = np.array(self.q(*(obs_n + act_n)))</span><br><span class="line">            <span class="comment"># 计算 td_error = reward + Q(s_&#123;t+1&#125;,a_&#123;t+1&#125;) - Q(s_&#123;t&#125;,a_&#123;t&#125;)</span></span><br><span class="line">            td_error = rew + self.args.gamma * (<span class="number">1.0</span> - done) * q_value_s2 - q_value_s1</span><br><span class="line">            <span class="comment"># 更新经验池</span></span><br><span class="line">            self.replay_buffer.batch_update(batch_tree_idx, td_error)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> [q_loss, p_loss, np.mean(target_q), np.mean(rew), np.mean(target_q_next), np.std(target_q)]</span><br></pre></td></tr></table></figure>
+<h2 id="3-2-性能评价"><a href="#3-2-性能评价" class="headerlink" title="3.2 性能评价"></a>3.2 性能评价</h2><p>下图是MADDPG算法在使用传统<code>Uniformly Sampling</code>和<code>Prioritized Experience Replay</code>两种采样策略下的性能对比，训练场景是上周完成的<strong>多无人机移动基站</strong>。</p>
+<p><img src="/2020/03/09/drl-06/Uniform-PER1.png" alt="Uniform-PER1"></p>
+<p>由上图可以发现，加入优先级经验回放后：</p>
+<ul>
+<li>前期收敛速度较<code>Uniformly Sampling</code>略微降低了（这一点有些违背直觉）；</li>
+<li><p>算法表现较<code>Uniformly Sampling</code>有较大提高，这体现在：</p>
+<ul>
+<li>在1万个episode之后</li>
+<li>在1万个episode之后，<code>Uniformly Sampling</code>的训练结果达到上限，而优先级经验回放的实验组在10万个episode之后仍然在缓慢优化，如下图所示：</li>
+<li><img src="/2020/03/09/drl-06/Uniform-PER2.png" alt="Uniform-PER1"></li>
+</ul>
+</li>
+<li><p>此外，关于实际训练时间，，训练1000个episode的时间从100秒左右增加到了160秒左右。</p>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/ReinforceLearning/" rel="tag"># ReinforceLearning</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/02/28/improve_network/" rel="prev" title="改善深层神经网络的方法：消除过拟合、加速训练与超参数调试">
+      <i class="fa fa-chevron-left"></i> 改善深层神经网络的方法：消除过拟合、加速训练与超参数调试
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-《Prioritized-Experience-Replay》论文精读"><span class="nav-text">1.《Prioritized Experience Replay》论文精读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-算法提出的背景和概要"><span class="nav-text">1.1 算法提出的背景和概要</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-基于TD-error的优先级回放"><span class="nav-text">1.2 基于TD-error的优先级回放</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-1-优先级回放的重要性"><span class="nav-text">1.2.1 优先级回放的重要性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-2-使用TD-error进行优先级回放"><span class="nav-text">1.2.2 使用TD-error进行优先级回放</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-3-基于贪心策略的优先级回放"><span class="nav-text">1.2.3 基于贪心策略的优先级回放</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-对优先级回放的改进"><span class="nav-text">1.3 对优先级回放的改进</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-基于概率的优先级回放"><span class="nav-text">1.3.1 基于概率的优先级回放</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-消除偏置：Importance-Sample-Weights"><span class="nav-text">1.3.2 消除偏置：Importance Sample Weights</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-算法伪代码"><span class="nav-text">1.4 算法伪代码</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-优先级经验回放的具体实现"><span class="nav-text">2. 优先级经验回放的具体实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-SumTree"><span class="nav-text">2.1 SumTree</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-Proportional-Sampling"><span class="nav-text">2.2 Proportional Sampling</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-优先级经验回放在MADDPG中的应用"><span class="nav-text">3. 优先级经验回放在MADDPG中的应用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-DQN-gt-MADDPG：迁移到多智能体算法时所作的修改"><span class="nav-text">3.1 DQN-&gt;MADDPG：迁移到多智能体算法时所作的修改</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-性能评价"><span class="nav-text">3.2 性能评价</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
+      src="/images/face.jpg">
+  <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
+  <div class="site-description" itemprop="description">Be a superhero.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">31</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.1
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+</body>
+</html>
