@@ -58,6 +58,16 @@
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/l2.jpg">
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/1.jpg">
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/0.gif">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/erode.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/dilate.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/open.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/close.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/gradient.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/tophat.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/blackhat.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/111.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/gaussian.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/median.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/bilateral.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/threshold.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/5threshold.png">
@@ -74,7 +84,7 @@
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/auto.jpg">
 <meta property="og:image" content="http://yoursite.com/2019/11/03/opencv-04/propId.png">
 <meta property="article:published_time" content="2019-11-03T10:02:42.000Z">
-<meta property="article:modified_time" content="2019-12-12T08:13:16.000Z">
+<meta property="article:modified_time" content="2021-04-06T07:56:23.550Z">
 <meta property="article:author" content="Zhenhui Ye">
 <meta property="article:tag" content="CV">
 <meta name="twitter:card" content="summary">
@@ -261,7 +271,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-12-12 16:13:16" itemprop="dateModified" datetime="2019-12-12T16:13:16+08:00">2019-12-12</time>
+                <time title="修改时间：2021-04-06 15:56:23" itemprop="dateModified" datetime="2021-04-06T15:56:23+08:00">2021-04-06</time>
               </span>
 
           
@@ -355,12 +365,69 @@
 <ul>
 <li><p>我们用<code>cv2.getStrucrturingElement</code>来生成卷积核，有RECT（矩形）、ELLIPSE（椭圆）、CROSS（十字形）三种形状。</p>
 </li>
-<li><p>```python<br>kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">### 3.2.2 腐蚀操作</span><br><span class="line"></span><br><span class="line">我们用&#96;cv2.erode(img,kernel,iteration&#x3D;1)&#96;来进行腐蚀操作。</span><br><span class="line"></span><br><span class="line">下图是iteration&#x3D;1时的输出，可以增加iteration来进行多次腐蚀。</span><br><span class="line"></span><br><span class="line">可以看到腐蚀的主要作用是把颜色深的部分变大，白色部分变少。</span><br><span class="line"></span><br><span class="line">![erode](opencv-04&#x2F;erode.jpg)</span><br><span class="line"></span><br><span class="line">## 3.3 膨胀</span><br><span class="line"></span><br><span class="line">和腐蚀相反，取局部最大值。</span><br><span class="line"></span><br><span class="line">- 用&#96;cv2.dilate(img,kernel,iteration&#x3D;1)&#96;来进行膨胀操作。</span><br><span class="line"></span><br><span class="line">![dilate](opencv-04&#x2F;dilate.jpg)</span><br><span class="line"></span><br><span class="line">## 3.4 开运算</span><br><span class="line"></span><br><span class="line">所谓开运算，即为先腐蚀后膨胀，其作用是**消除小白点**。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.morphologyEX(img,cv2.MORPH_OPEN,kernel)&#96;执行开运算操作</span><br><span class="line"></span><br><span class="line">![open](opencv-04&#x2F;open.jpg)</span><br><span class="line"></span><br><span class="line">## 3.5 闭运算</span><br><span class="line"></span><br><span class="line">闭运算则相反，先膨胀后腐蚀，作用是消除小黑点。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.morphologyEX(img,cv2.MORPH_CLOSE,kernel)&#96;执行闭运算操作</span><br><span class="line"></span><br><span class="line">![close](opencv-04&#x2F;close.jpg)</span><br><span class="line"></span><br><span class="line">- 我们可以先执行开运算后执行闭运算，以消除噪点。</span><br><span class="line"></span><br><span class="line">## 3.6 形态学梯度</span><br><span class="line"></span><br><span class="line">- 形态学梯度的求法就是膨胀图减去腐蚀图，dilation - erosion</span><br><span class="line"></span><br><span class="line">得到的是类似于梯度的图片，在图像颜色变化大的地方可以看到其颜色变化的趋势。</span><br><span class="line"></span><br><span class="line">![gradient](opencv-04&#x2F;gradient.jpg)</span><br><span class="line"></span><br><span class="line">## 3.7 顶帽&#x2F;白帽</span><br><span class="line"></span><br><span class="line">- 原图减去开运算，src - open，这样理解，open得到的是去掉白点后的图，所以顶帽就是被去掉的白色轮廓和白点！</span><br><span class="line">- 我们用&#96;cv2.morphologyEX(img,cv2.MORPH_TOPHAT,kernel)&#96;进行顶帽操作。</span><br><span class="line"></span><br><span class="line">![tophat](opencv-04&#x2F;tophat.jpg)</span><br><span class="line"></span><br><span class="line">## 3.8 黑帽</span><br><span class="line"></span><br><span class="line">- 闭运算减去原图，close - src，和上面相反，黑帽就是黑色的轮廓和点。</span><br><span class="line">- ![blackhat](opencv-04&#x2F;blackhat.jpg)</span><br><span class="line"></span><br><span class="line"># 4. 图像平滑</span><br><span class="line"></span><br><span class="line">## 4.1 平均</span><br><span class="line"></span><br><span class="line"> 计算卷积框覆盖区域所有像素的平均值得到卷积的结果，卷积核为全部都是1，如5x5的卷积核则为：</span><br></pre></td></tr></table></figure>
-<p>[[1 1 1 1 1]<br>[1 1 1 1 1]<br>[1 1 1 1 1]<br>[1 1 1 1 1]<br>[1 1 1 1 1]] </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">- 我们用&#96;cv2.blur(img,kernelsize)&#96;来进行平均平滑。</span><br><span class="line">- 下图是分别采用5x5、9x9、15x15卷积处理图像的结果。</span><br><span class="line"></span><br><span class="line">![](opencv-04&#x2F;111.png)</span><br><span class="line"></span><br><span class="line">## 4.2 高斯模糊</span><br><span class="line"></span><br><span class="line">高斯模糊，其卷积核内的值符合高斯分布（正态分布），以其卷积核中心为概率分布中心，中心的值最大，其余方框随距离中心的距离递减，原来的求平均数变成加权求平均数。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.GaussianBlur(img,kernelsize,sigmaX)&#96;，sigmaX是标准差</span><br><span class="line"></span><br><span class="line">![gaussian](opencv-04&#x2F;gaussian.png)</span><br><span class="line"></span><br><span class="line">## 4.3 中值模糊</span><br><span class="line"></span><br><span class="line">顾名思义就是用与卷积框对应的像素的中值来替代中心像素的值。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.median(img,kernelsize)&#96;来进行中值模糊</span><br><span class="line">- 注意这里的&#96;kernelsize&#96;是int![median](opencv-04&#x2F;median.png)</span><br><span class="line"></span><br><span class="line">## 4.4 双边滤波Bilateral</span><br><span class="line"></span><br><span class="line">**双边滤波能在保持边界清晰的情况下有效的去除噪音。**</span><br><span class="line"></span><br><span class="line">我们已经知道高斯滤波器是求中心点邻近区域像素的高斯加权平均值。这种高斯滤波器只考虑像素之间的空间关系，而不会考虑像素值之间的关系（像素的相似度）。所以这种方法不会考虑一个像素是否位于边界。因此边界也会别模糊掉，而这正不是我们想要。</span><br><span class="line"></span><br><span class="line">双边滤波在同时使用空间高斯权重和灰度值相似性高斯权重。空间高斯函数确保只有邻近区域的像素对中心点有影响，**灰度值相似性高斯函数确保只有与中心像素灰度值相近的才会被用来做模糊运算**。所以这种方法会确保边界不会被模糊掉，因为边界处的灰度值变化比较大。</span><br><span class="line"></span><br><span class="line">- 我们用&#96;cv2.bilateralFilter(img, diameter,sigmaColor,sigmaSpace)&#96;执行双边滤波</span><br><span class="line"></span><br><span class="line">&#96;&#96;&#96;python</span><br><span class="line">params &#x3D; [(11,21,7),(11,41,21),(15,75,75)]# 邻域直径，灰度值相似性高斯函数标准差，空间高斯函数标准差</span><br><span class="line">for i,(diameter,sigmaColor,sigmaSpace) in enumerate(params):</span><br><span class="line">	img1 &#x3D; cv2.bilateralFilter(img, diameter,sigmaColor,sigmaSpace)</span><br></pre></td></tr></table></figure>
+<li><p>kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))</p>
 </li>
 </ul>
+<h3 id="3-2-2-腐蚀操作"><a href="#3-2-2-腐蚀操作" class="headerlink" title="3.2.2 腐蚀操作"></a>3.2.2 腐蚀操作</h3><p>我们用<code>cv2.erode(img,kernel,iteration=1)</code>来进行腐蚀操作。</p>
+<p>下图是iteration=1时的输出，可以增加iteration来进行多次腐蚀。</p>
+<p>可以看到腐蚀的主要作用是把颜色深的部分变大，白色部分变少。</p>
+<p><img src="/2019/11/03/opencv-04/erode.jpg" alt="erode"></p>
+<h2 id="3-3-膨胀"><a href="#3-3-膨胀" class="headerlink" title="3.3 膨胀"></a>3.3 膨胀</h2><p>和腐蚀相反，取局部最大值。</p>
+<ul>
+<li>用<code>cv2.dilate(img,kernel,iteration=1)</code>来进行膨胀操作。</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/dilate.jpg" alt="dilate"></p>
+<h2 id="3-4-开运算"><a href="#3-4-开运算" class="headerlink" title="3.4 开运算"></a>3.4 开运算</h2><p>所谓开运算，即为先腐蚀后膨胀，其作用是<strong>消除小白点</strong>。</p>
+<ul>
+<li>我们用<code>cv2.morphologyEX(img,cv2.MORPH_OPEN,kernel)</code>执行开运算操作</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/open.jpg" alt="open"></p>
+<h2 id="3-5-闭运算"><a href="#3-5-闭运算" class="headerlink" title="3.5 闭运算"></a>3.5 闭运算</h2><p>闭运算则相反，先膨胀后腐蚀，作用是消除小黑点。</p>
+<ul>
+<li>我们用<code>cv2.morphologyEX(img,cv2.MORPH_CLOSE,kernel)</code>执行闭运算操作</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/close.jpg" alt="close"></p>
+<ul>
+<li>我们可以先执行开运算后执行闭运算，以消除噪点。</li>
+</ul>
+<h2 id="3-6-形态学梯度"><a href="#3-6-形态学梯度" class="headerlink" title="3.6 形态学梯度"></a>3.6 形态学梯度</h2><ul>
+<li>形态学梯度的求法就是膨胀图减去腐蚀图，dilation - erosion</li>
+</ul>
+<p>得到的是类似于梯度的图片，在图像颜色变化大的地方可以看到其颜色变化的趋势。</p>
+<p><img src="/2019/11/03/opencv-04/gradient.jpg" alt="gradient"></p>
+<h2 id="3-7-顶帽-白帽"><a href="#3-7-顶帽-白帽" class="headerlink" title="3.7 顶帽/白帽"></a>3.7 顶帽/白帽</h2><ul>
+<li>原图减去开运算，src - open，这样理解，open得到的是去掉白点后的图，所以顶帽就是被去掉的白色轮廓和白点！</li>
+<li>我们用<code>cv2.morphologyEX(img,cv2.MORPH_TOPHAT,kernel)</code>进行顶帽操作。</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/tophat.jpg" alt="tophat"></p>
+<h2 id="3-8-黑帽"><a href="#3-8-黑帽" class="headerlink" title="3.8 黑帽"></a>3.8 黑帽</h2><ul>
+<li>闭运算减去原图，close - src，和上面相反，黑帽就是黑色的轮廓和点。</li>
+<li><img src="/2019/11/03/opencv-04/blackhat.jpg" alt="blackhat"></li>
+</ul>
+<h1 id="4-图像平滑"><a href="#4-图像平滑" class="headerlink" title="4. 图像平滑"></a>4. 图像平滑</h1><h2 id="4-1-平均"><a href="#4-1-平均" class="headerlink" title="4.1 平均"></a>4.1 平均</h2><p> 计算卷积框覆盖区域所有像素的平均值得到卷积的结果，卷积核为全部都是1，如5x5的卷积核则为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[[1 1 1 1 1]</span><br><span class="line">[1 1 1 1 1]</span><br><span class="line">[1 1 1 1 1]</span><br><span class="line">[1 1 1 1 1]</span><br><span class="line">[1 1 1 1 1]]</span><br></pre></td></tr></table></figure>
+<ul>
+<li>我们用<code>cv2.blur(img,kernelsize)</code>来进行平均平滑。</li>
+<li>下图是分别采用5x5、9x9、15x15卷积处理图像的结果。</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/111.png" alt></p>
+<h2 id="4-2-高斯模糊"><a href="#4-2-高斯模糊" class="headerlink" title="4.2 高斯模糊"></a>4.2 高斯模糊</h2><p>高斯模糊，其卷积核内的值符合高斯分布（正态分布），以其卷积核中心为概率分布中心，中心的值最大，其余方框随距离中心的距离递减，原来的求平均数变成加权求平均数。</p>
+<ul>
+<li>我们用<code>cv2.GaussianBlur(img,kernelsize,sigmaX)</code>，sigmaX是标准差</li>
+</ul>
+<p><img src="/2019/11/03/opencv-04/gaussian.png" alt="gaussian"></p>
+<h2 id="4-3-中值模糊"><a href="#4-3-中值模糊" class="headerlink" title="4.3 中值模糊"></a>4.3 中值模糊</h2><p>顾名思义就是用与卷积框对应的像素的中值来替代中心像素的值。</p>
+<ul>
+<li>我们用<code>cv2.median(img,kernelsize)</code>来进行中值模糊</li>
+<li>注意这里的<code>kernelsize</code>是int<img src="/2019/11/03/opencv-04/median.png" alt="median"></li>
+</ul>
+<h2 id="4-4-双边滤波Bilateral"><a href="#4-4-双边滤波Bilateral" class="headerlink" title="4.4 双边滤波Bilateral"></a>4.4 双边滤波Bilateral</h2><p><strong>双边滤波能在保持边界清晰的情况下有效的去除噪音。</strong></p>
+<p>我们已经知道高斯滤波器是求中心点邻近区域像素的高斯加权平均值。这种高斯滤波器只考虑像素之间的空间关系，而不会考虑像素值之间的关系（像素的相似度）。所以这种方法不会考虑一个像素是否位于边界。因此边界也会别模糊掉，而这正不是我们想要。</p>
+<p>双边滤波在同时使用空间高斯权重和灰度值相似性高斯权重。空间高斯函数确保只有邻近区域的像素对中心点有影响，<strong>灰度值相似性高斯函数确保只有与中心像素灰度值相近的才会被用来做模糊运算</strong>。所以这种方法会确保边界不会被模糊掉，因为边界处的灰度值变化比较大。</p>
+<ul>
+<li>我们用<code>cv2.bilateralFilter(img, diameter,sigmaColor,sigmaSpace)</code>执行双边滤波</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">params = [(<span class="number">11</span>,<span class="number">21</span>,<span class="number">7</span>),(<span class="number">11</span>,<span class="number">41</span>,<span class="number">21</span>),(<span class="number">15</span>,<span class="number">75</span>,<span class="number">75</span>)]<span class="comment"># 邻域直径，灰度值相似性高斯函数标准差，空间高斯函数标准差</span></span><br><span class="line"><span class="keyword">for</span> i,(diameter,sigmaColor,sigmaSpace) <span class="keyword">in</span> enumerate(params):</span><br><span class="line">	img1 = cv2.bilateralFilter(img, diameter,sigmaColor,sigmaSpace)</span><br></pre></td></tr></table></figure>
 <p><img src="/2019/11/03/opencv-04/bilateral.png" alt="bilateral"></p>
 <h1 id="5-二值化"><a href="#5-二值化" class="headerlink" title="5. 二值化"></a>5. 二值化</h1><p> 在图像处理中，Thresholding中文翻译过来叫二值化或者阈值化。</p>
 <p>二值化就是把图片传换成只有white和black这两种颜色。通过Thresholding，可以让图片中感兴趣的颜色变成主角—white，其余的颜色全部隐藏—black。另外，二值化后的图片也便于计算机进行分析，因为边缘轮廓十分清晰，所以计算机可以轻松找到边界线。然而，在找边界这方面，Thresholding并不是特别好的算法，有些时候遇到某些特殊图片效果也不好。 </p>
@@ -517,7 +584,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-图像的位操作："><span class="nav-text">1. 图像的位操作：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-位操作的实例：蒙板"><span class="nav-text">1.1 位操作的实例：蒙板</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-切分、合并通道"><span class="nav-text">2. 切分、合并通道</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-图像金字塔"><span class="nav-text">2. 图像金字塔</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-高斯金字塔"><span class="nav-text">2.1 高斯金字塔</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-拉普拉斯金字塔"><span class="nav-text">2.2 拉普拉斯金字塔</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-形态学"><span class="nav-text">3. 形态学</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-卷积"><span class="nav-text">3.1 卷积</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-腐蚀"><span class="nav-text">3.2 腐蚀</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-1-创建卷积核"><span class="nav-text">3.2.1 创建卷积核</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-二值化"><span class="nav-text">5. 二值化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-1-二值化操作"><span class="nav-text">5.1 二值化操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-2-自动选择阈值：Otsu方法"><span class="nav-text">5.2 自动选择阈值：Otsu方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-3-自适应阈值"><span class="nav-text">5.3 自适应阈值</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-图像梯度"><span class="nav-text">6. 图像梯度</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#6-1-Sobel算子-Scharr算子-Laplacian算子"><span class="nav-text">6.1 Sobel算子&#x2F;Scharr算子&#x2F;Laplacian算子</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-Canny边缘检测"><span class="nav-text">7. Canny边缘检测</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-理论过程"><span class="nav-text">7.1 理论过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-Canny的使用"><span class="nav-text">7.2 Canny的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-3-自动确定阈值"><span class="nav-text">7.3 自动确定阈值</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-视频读取补充"><span class="nav-text">8. 视频读取补充</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-图像的位操作："><span class="nav-text">1. 图像的位操作：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-位操作的实例：蒙板"><span class="nav-text">1.1 位操作的实例：蒙板</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-切分、合并通道"><span class="nav-text">2. 切分、合并通道</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-图像金字塔"><span class="nav-text">2. 图像金字塔</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-高斯金字塔"><span class="nav-text">2.1 高斯金字塔</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-拉普拉斯金字塔"><span class="nav-text">2.2 拉普拉斯金字塔</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-形态学"><span class="nav-text">3. 形态学</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-卷积"><span class="nav-text">3.1 卷积</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-腐蚀"><span class="nav-text">3.2 腐蚀</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-1-创建卷积核"><span class="nav-text">3.2.1 创建卷积核</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-2-腐蚀操作"><span class="nav-text">3.2.2 腐蚀操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-膨胀"><span class="nav-text">3.3 膨胀</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-开运算"><span class="nav-text">3.4 开运算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-5-闭运算"><span class="nav-text">3.5 闭运算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-6-形态学梯度"><span class="nav-text">3.6 形态学梯度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-7-顶帽-白帽"><span class="nav-text">3.7 顶帽&#x2F;白帽</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-8-黑帽"><span class="nav-text">3.8 黑帽</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-图像平滑"><span class="nav-text">4. 图像平滑</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-平均"><span class="nav-text">4.1 平均</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-高斯模糊"><span class="nav-text">4.2 高斯模糊</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-中值模糊"><span class="nav-text">4.3 中值模糊</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-4-双边滤波Bilateral"><span class="nav-text">4.4 双边滤波Bilateral</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-二值化"><span class="nav-text">5. 二值化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-1-二值化操作"><span class="nav-text">5.1 二值化操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-2-自动选择阈值：Otsu方法"><span class="nav-text">5.2 自动选择阈值：Otsu方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-3-自适应阈值"><span class="nav-text">5.3 自适应阈值</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-图像梯度"><span class="nav-text">6. 图像梯度</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#6-1-Sobel算子-Scharr算子-Laplacian算子"><span class="nav-text">6.1 Sobel算子&#x2F;Scharr算子&#x2F;Laplacian算子</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-Canny边缘检测"><span class="nav-text">7. Canny边缘检测</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-理论过程"><span class="nav-text">7.1 理论过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-Canny的使用"><span class="nav-text">7.2 Canny的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-3-自动确定阈值"><span class="nav-text">7.3 自动确定阈值</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-视频读取补充"><span class="nav-text">8. 视频读取补充</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -579,7 +646,7 @@
 <div class="copyright">
   
   &copy; 2019 – 
-  <span itemprop="copyrightYear">2020</span>
+  <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
