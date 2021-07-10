@@ -15,36 +15,10 @@
 
 <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
 
-
 <script id="hexo-configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    hostname: new URL('http://yoursite.com').hostname,
-    root: '/',
-    scheme: 'Mist',
-    version: '7.7.1',
-    exturl: false,
-    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
-    copycode: {"enable":false,"show_result":false,"style":null},
-    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
-    bookmark: {"enable":false,"color":"#222","save":"auto"},
-    fancybox: false,
-    mediumzoom: false,
-    lazyload: false,
-    pangu: false,
-    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
-    algolia: {
-      appID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    },
-    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
-    path: './public/search.xml',
-    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
-  };
-</script>
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"./public/search.xml"};
+  </script>
 
   <meta name="description" content="0.摘要生成对抗网络(Generative Adversarial Networks, GAN)是Ian J. Goodfellow在2014年提出的机器学习框架，广泛应用于生成任务中(目前有图像生成&#x2F;AI换脸&#x2F;风格迁移等应用)，是近年来计算机视觉领域最热门的研究方向之一。 GAN包含两个模块：生成模型（Generative Model）和判别模型（Discriminative Model），生成">
 <meta property="og:type" content="article">
@@ -82,8 +56,9 @@
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome: false,
-    isPost: true
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
   };
 </script>
 
@@ -126,17 +101,6 @@
 
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
-  <div class="site-meta">
-
-    <div>
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">yerfor's Journey</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-  </div>
-
   <div class="site-nav-toggle">
     <div class="toggle" aria-label="切换导航栏">
       <span class="toggle-line toggle-line-first"></span>
@@ -144,11 +108,26 @@
       <span class="toggle-line toggle-line-last"></span>
     </div>
   </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yerfor's Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
 </div>
 
 
+
+
 <nav class="site-nav">
-  
   <ul id="menu" class="menu">
         <li class="menu-item menu-item-home">
 
@@ -175,34 +154,12 @@
     <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
 
   </li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
   </ul>
-
 </nav>
-  <div class="site-search">
-    <div class="popup search-popup">
-    <div class="search-header">
-  <span class="search-icon">
-    <i class="fa fa-search"></i>
-  </span>
-  <div class="search-input-container">
-    <input autocomplete="off" autocorrect="off" autocapitalize="none"
-           placeholder="搜索..." spellcheck="false"
-           type="text" id="search-input">
-  </div>
-  <span class="popup-btn-close">
-    <i class="fa fa-times-circle"></i>
-  </span>
-</div>
-<div id="search-result"></div>
 
-</div>
-<div class="search-pop-overlay"></div>
 
-  </div>
+
+
 </div>
     </header>
 
@@ -218,18 +175,17 @@
         <div class="content-wrap">
           
 
-          <div class="content">
+          <div class="content post posts-expand">
             
 
-  <div class="posts-expand">
-      
+    
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/06/gan-01/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="image" content="/images/avatar.gif">
       <meta itemprop="name" content="Zhenhui Ye">
       <meta itemprop="description" content="Be a superhero.">
     </span>
@@ -260,13 +216,6 @@
               </span>
 
           
-            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
 
         </div>
       </header>
@@ -418,7 +367,6 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
   
   
 
-  </div>
 
 
           </div>
@@ -426,7 +374,7 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
 
 <script>
   window.addEventListener('tabs:register', () => {
-    let activeClass = CONFIG.comments.activeClass;
+    let { activeClass } = CONFIG.comments;
     if (CONFIG.comments.storage) {
       activeClass = localStorage.getItem('comments_active') || activeClass;
     }
@@ -469,14 +417,12 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-生成对抗网络-GAN-介绍"><span class="nav-text">1. 生成对抗网络(GAN)介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-Generator和Discriminator"><span class="nav-text">1.1 Generator和Discriminator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-算法流程"><span class="nav-text">1.2 算法流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-最小化目标函数使Discriminator判别分布间的的JS散度"><span class="nav-text">1.3 最小化目标函数使Discriminator判别分布间的的JS散度</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Wasertein-GAN-WGAN"><span class="nav-text">2. Wasertein GAN (WGAN)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-传统GAN的问题"><span class="nav-text">2.1 传统GAN的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-WGAN"><span class="nav-text">2.2 WGAN</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-Coding"><span class="nav-text">2.3 Coding</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-number">1.</span> <span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-生成对抗网络-GAN-介绍"><span class="nav-number">2.</span> <span class="nav-text">1. 生成对抗网络(GAN)介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-Generator和Discriminator"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 Generator和Discriminator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-算法流程"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 算法流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-最小化目标函数使Discriminator判别分布间的的JS散度"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 最小化目标函数使Discriminator判别分布间的的JS散度</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Wasertein-GAN-WGAN"><span class="nav-number">3.</span> <span class="nav-text">2. Wasertein GAN (WGAN)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-传统GAN的问题"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 传统GAN的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-WGAN"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 WGAN</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-Coding"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 Coding</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
       <div class="site-overview-wrap sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
-      src="/images/face.jpg">
   <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
   <div class="site-description" itemprop="description">Be a superhero.</div>
 </div>
@@ -503,14 +449,6 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
       </div>
   </nav>
 </div>
-  <div class="links-of-author motion-element">
-      <span class="links-of-author-item">
-        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
-      </span>
-      <span class="links-of-author-item">
-        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
-      </span>
-  </div>
 
 
 
@@ -528,42 +466,21 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
       <div class="footer-inner">
         
 
+        
+
 <div class="copyright">
   
-  &copy; 2019 – 
+  &copy; 
   <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
   <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
 </div>
-  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
-  </div>
-  <span class="post-meta-divider">|</span>
-  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.1
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>
 
         
-<div class="busuanzi-count">
-  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-user"></i>
-      </span>
-      <span class="site-uv" title="总访客量">
-        <span id="busuanzi_value_site_uv"></span>
-      </span>
-    </span>
-    <span class="post-meta-divider">|</span>
-    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-eye"></i>
-      </span>
-      <span class="site-pv" title="总访问量">
-        <span id="busuanzi_value_site_pv"></span>
-      </span>
-    </span>
-</div>
 
 
 
@@ -599,10 +516,6 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
 
 
 
-  
-<script src="/js/local-search.js"></script>
-
-
 
 
 
@@ -615,56 +528,6 @@ V(G,D) =\underset{D}{max}({E_{x\in P_{data}}}[D(x))-E_{\overset{*}{x}\in P_{G}}(
 
 
   
-
-  
-      
-<script type="text/x-mathjax-config">
-
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
-      processEscapes: true,
-      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-    },
-    TeX: {
-      equationNumbers: {
-        autoNumber: 'AMS'
-      }
-    }
-  });
-
-  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
-    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
-      if (data.display) {
-        var next = data.script.nextSibling;
-        while (next && next.nodeName.toLowerCase() === '#text') {
-          next = next.nextSibling;
-        }
-        if (next && next.nodeName.toLowerCase() === 'br') {
-          next.parentNode.removeChild(next);
-        }
-      }
-    });
-  });
-
-  MathJax.Hub.Queue(function() {
-    var all = MathJax.Hub.getAllJax(), i;
-    for (i = 0; i < all.length; i += 1) {
-      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
-      if (element.nodeName.toLowerCase() == 'li') {
-        element = element.parentNode;
-      }
-      element.classList.add('has-jax');
-    }
-  });
-</script>
-<script>
-  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
-    MathJax.Hub.Typeset();
-  }, window.MathJax);
-</script>
-
-    
 
   
 

@@ -15,36 +15,10 @@
 
 <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
 
-
 <script id="hexo-configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    hostname: new URL('http://yoursite.com').hostname,
-    root: '/',
-    scheme: 'Mist',
-    version: '7.7.1',
-    exturl: false,
-    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
-    copycode: {"enable":false,"show_result":false,"style":null},
-    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
-    bookmark: {"enable":false,"color":"#222","save":"auto"},
-    fancybox: false,
-    mediumzoom: false,
-    lazyload: false,
-    pangu: false,
-    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
-    algolia: {
-      appID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    },
-    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
-    path: './public/search.xml',
-    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
-  };
-</script>
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"./public/search.xml"};
+  </script>
 
   <meta name="description" content="0. 摘要在上一篇文章中，我们已经详细介绍了MADDPG算法的原理，并跑通了官方提供的代码。我们简单测试后发现，算法效果很不错，我们的主要工作应该集中在设计自己的Environment，也就是创建Scenario。 那么，在maddpg项目框架里，创建一个Scenario需要什么呢？  本文以simple_push.py为例介绍了Scenario类的接口、范式；  测试了官方提供的所有sample">
 <meta property="og:type" content="article">
@@ -80,8 +54,9 @@
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome: false,
-    isPost: true
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
   };
 </script>
 
@@ -124,17 +99,6 @@
 
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
-  <div class="site-meta">
-
-    <div>
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">yerfor's Journey</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-  </div>
-
   <div class="site-nav-toggle">
     <div class="toggle" aria-label="切换导航栏">
       <span class="toggle-line toggle-line-first"></span>
@@ -142,11 +106,26 @@
       <span class="toggle-line toggle-line-last"></span>
     </div>
   </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yerfor's Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
 </div>
 
 
+
+
 <nav class="site-nav">
-  
   <ul id="menu" class="menu">
         <li class="menu-item menu-item-home">
 
@@ -173,34 +152,12 @@
     <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
 
   </li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
   </ul>
-
 </nav>
-  <div class="site-search">
-    <div class="popup search-popup">
-    <div class="search-header">
-  <span class="search-icon">
-    <i class="fa fa-search"></i>
-  </span>
-  <div class="search-input-container">
-    <input autocomplete="off" autocorrect="off" autocapitalize="none"
-           placeholder="搜索..." spellcheck="false"
-           type="text" id="search-input">
-  </div>
-  <span class="popup-btn-close">
-    <i class="fa fa-times-circle"></i>
-  </span>
-</div>
-<div id="search-result"></div>
 
-</div>
-<div class="search-pop-overlay"></div>
 
-  </div>
+
+
 </div>
     </header>
 
@@ -216,18 +173,17 @@
         <div class="content-wrap">
           
 
-          <div class="content">
+          <div class="content post posts-expand">
             
 
-  <div class="posts-expand">
-      
+    
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/14/drl-04/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="image" content="/images/avatar.gif">
       <meta itemprop="name" content="Zhenhui Ye">
       <meta itemprop="description" content="Be a superhero.">
     </span>
@@ -262,20 +218,11 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index">
-                    <span itemprop="name">基于深度强化学习的多机协同算法研究</span>
-                  </a>
+                  <a href="/categories/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%8D%8F%E5%90%8C%E7%AE%97%E6%B3%95%E7%A0%94%E7%A9%B6/" itemprop="url" rel="index"><span itemprop="name">基于深度强化学习的多机协同算法研究</span></a>
                 </span>
             </span>
 
           
-            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
 
         </div>
       </header>
@@ -507,7 +454,6 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
   
   
 
-  </div>
 
 
           </div>
@@ -515,7 +461,7 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
 
 <script>
   window.addEventListener('tabs:register', () => {
-    let activeClass = CONFIG.comments.activeClass;
+    let { activeClass } = CONFIG.comments;
     if (CONFIG.comments.storage) {
       activeClass = localStorage.getItem('comments_active') || activeClass;
     }
@@ -558,14 +504,12 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-定义Scenario类"><span class="nav-text">1. 定义Scenario类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-make-world-self"><span class="nav-text">1.1 make_world(self)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-World类"><span class="nav-text">1.1.1 World类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-Agent类"><span class="nav-text">1.1.2 Agent类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-3-Landmark类"><span class="nav-text">1.1.3 Landmark类</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-reset-world-self-world"><span class="nav-text">1.2 reset_world(self, world)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-reward-self-agent-world"><span class="nav-text">1.3 reward(self, agent, world)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-关于reward的确定"><span class="nav-text">1.4 关于reward的确定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-Observation-self-agent-world"><span class="nav-text">1.5 Observation(self, agent, world)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-讨论：如何设计reward？"><span class="nav-text">2. 讨论：如何设计reward？</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-number">1.</span> <span class="nav-text">0. 摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-定义Scenario类"><span class="nav-number">2.</span> <span class="nav-text">1. 定义Scenario类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-make-world-self"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 make_world(self)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-World类"><span class="nav-number">2.1.1.</span> <span class="nav-text">1.1.1 World类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-Agent类"><span class="nav-number">2.1.2.</span> <span class="nav-text">1.1.2 Agent类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-3-Landmark类"><span class="nav-number">2.1.3.</span> <span class="nav-text">1.1.3 Landmark类</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-reset-world-self-world"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 reset_world(self, world)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-reward-self-agent-world"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 reward(self, agent, world)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-关于reward的确定"><span class="nav-number">2.4.</span> <span class="nav-text">1.4 关于reward的确定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-Observation-self-agent-world"><span class="nav-number">2.5.</span> <span class="nav-text">1.5 Observation(self, agent, world)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-讨论：如何设计reward？"><span class="nav-number">3.</span> <span class="nav-text">2. 讨论：如何设计reward？</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
       <div class="site-overview-wrap sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
-      src="/images/face.jpg">
   <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
   <div class="site-description" itemprop="description">Be a superhero.</div>
 </div>
@@ -592,14 +536,6 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
       </div>
   </nav>
 </div>
-  <div class="links-of-author motion-element">
-      <span class="links-of-author-item">
-        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
-      </span>
-      <span class="links-of-author-item">
-        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
-      </span>
-  </div>
 
 
 
@@ -617,42 +553,21 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
       <div class="footer-inner">
         
 
+        
+
 <div class="copyright">
   
-  &copy; 2019 – 
+  &copy; 
   <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
   <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
 </div>
-  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
-  </div>
-  <span class="post-meta-divider">|</span>
-  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.1
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>
 
         
-<div class="busuanzi-count">
-  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-user"></i>
-      </span>
-      <span class="site-uv" title="总访客量">
-        <span id="busuanzi_value_site_uv"></span>
-      </span>
-    </span>
-    <span class="post-meta-divider">|</span>
-    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-eye"></i>
-      </span>
-      <span class="site-pv" title="总访问量">
-        <span id="busuanzi_value_site_pv"></span>
-      </span>
-    </span>
-</div>
 
 
 
@@ -688,10 +603,6 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
 
 
 
-  
-<script src="/js/local-search.js"></script>
-
-
 
 
 
@@ -704,56 +615,6 @@ neg_{rew} = \sqrt{\Sigma_{i} (\Delta x_{i}^{2}+\Delta y_{i}^{2})}</script><p>可
 
 
   
-
-  
-      
-<script type="text/x-mathjax-config">
-
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
-      processEscapes: true,
-      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-    },
-    TeX: {
-      equationNumbers: {
-        autoNumber: 'AMS'
-      }
-    }
-  });
-
-  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
-    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
-      if (data.display) {
-        var next = data.script.nextSibling;
-        while (next && next.nodeName.toLowerCase() === '#text') {
-          next = next.nextSibling;
-        }
-        if (next && next.nodeName.toLowerCase() === 'br') {
-          next.parentNode.removeChild(next);
-        }
-      }
-    });
-  });
-
-  MathJax.Hub.Queue(function() {
-    var all = MathJax.Hub.getAllJax(), i;
-    for (i = 0; i < all.length; i += 1) {
-      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
-      if (element.nodeName.toLowerCase() == 'li') {
-        element = element.parentNode;
-      }
-      element.classList.add('has-jax');
-    }
-  });
-</script>
-<script>
-  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
-    MathJax.Hub.Typeset();
-  }, window.MathJax);
-</script>
-
-    
 
   
 

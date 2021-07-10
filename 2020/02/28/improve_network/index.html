@@ -15,36 +15,10 @@
 
 <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
 
-
 <script id="hexo-configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    hostname: new URL('http://yoursite.com').hostname,
-    root: '/',
-    scheme: 'Mist',
-    version: '7.7.1',
-    exturl: false,
-    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
-    copycode: {"enable":false,"show_result":false,"style":null},
-    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
-    bookmark: {"enable":false,"color":"#222","save":"auto"},
-    fancybox: false,
-    mediumzoom: false,
-    lazyload: false,
-    pangu: false,
-    comments: {"style":"tabs","active":null,"storage":true,"nav":null},
-    algolia: {
-      appID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    },
-    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
-    path: './public/search.xml',
-    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
-  };
-</script>
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"./public/search.xml"};
+  </script>
 
   <meta name="description" content="0.摘要本博客是在学习《吴恩达深度学习第二课—改善深层神经网络：超参数调试、正则化以及优化》时写的学习笔记。 主要内容有：  消除过拟合的方法，这包括： 数据增强 正则化：L1、L2、Dropout Early Stopping 批标准化（算半个）   加速网络训练的方法，这包括： 归一化输入（也叫标准化输入） 妥善初始化权重，以避免梯度消失和梯度爆炸 批标准化   优化器，这包括： Moment">
 <meta property="og:type" content="article">
@@ -65,8 +39,8 @@
 <meta property="article:published_time" content="2020-02-28T11:40:45.000Z">
 <meta property="article:modified_time" content="2020-02-28T11:49:16.996Z">
 <meta property="article:author" content="Zhenhui Ye">
-<meta property="article:tag" content="CV">
 <meta property="article:tag" content="MachineLearning">
+<meta property="article:tag" content="CV">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://yoursite.com/2020/02/28/improve_network/dropout.png">
 
@@ -77,8 +51,9 @@
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome: false,
-    isPost: true
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
   };
 </script>
 
@@ -121,17 +96,6 @@
 
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
-  <div class="site-meta">
-
-    <div>
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">yerfor's Journey</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-  </div>
-
   <div class="site-nav-toggle">
     <div class="toggle" aria-label="切换导航栏">
       <span class="toggle-line toggle-line-first"></span>
@@ -139,11 +103,26 @@
       <span class="toggle-line toggle-line-last"></span>
     </div>
   </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">yerfor's Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
 </div>
 
 
+
+
 <nav class="site-nav">
-  
   <ul id="menu" class="menu">
         <li class="menu-item menu-item-home">
 
@@ -170,34 +149,12 @@
     <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
 
   </li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
   </ul>
-
 </nav>
-  <div class="site-search">
-    <div class="popup search-popup">
-    <div class="search-header">
-  <span class="search-icon">
-    <i class="fa fa-search"></i>
-  </span>
-  <div class="search-input-container">
-    <input autocomplete="off" autocorrect="off" autocapitalize="none"
-           placeholder="搜索..." spellcheck="false"
-           type="text" id="search-input">
-  </div>
-  <span class="popup-btn-close">
-    <i class="fa fa-times-circle"></i>
-  </span>
-</div>
-<div id="search-result"></div>
 
-</div>
-<div class="search-pop-overlay"></div>
 
-  </div>
+
+
 </div>
     </header>
 
@@ -213,18 +170,17 @@
         <div class="content-wrap">
           
 
-          <div class="content">
+          <div class="content post posts-expand">
             
 
-  <div class="posts-expand">
-      
+    
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/28/improve_network/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/face.jpg">
+      <meta itemprop="image" content="/images/avatar.gif">
       <meta itemprop="name" content="Zhenhui Ye">
       <meta itemprop="description" content="Be a superhero.">
     </span>
@@ -249,13 +205,6 @@
             </span>
 
           
-            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
 
         </div>
       </header>
@@ -520,8 +469,8 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/CV/" rel="tag"># CV</a>
               <a href="/tags/MachineLearning/" rel="tag"># MachineLearning</a>
+              <a href="/tags/CV/" rel="tag"># CV</a>
           </div>
 
         
@@ -545,7 +494,6 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
   
   
 
-  </div>
 
 
           </div>
@@ -553,7 +501,7 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
 
 <script>
   window.addEventListener('tabs:register', () => {
-    let activeClass = CONFIG.comments.activeClass;
+    let { activeClass } = CONFIG.comments;
     if (CONFIG.comments.storage) {
       activeClass = localStorage.getItem('comments_active') || activeClass;
     }
@@ -596,14 +544,12 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-消除过拟合的方法"><span class="nav-text">1.消除过拟合的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-过拟合和欠拟合"><span class="nav-text">1.1 过拟合和欠拟合</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-欠拟合-Underfitting"><span class="nav-text">1.1.1 欠拟合 (Underfitting)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-过拟合-Overfitting"><span class="nav-text">1.1.2 过拟合 (Overfitting)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-数据增强-data-augmentation"><span class="nav-text">1.2 数据增强(data augmentation)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-正则化-Regularization"><span class="nav-text">1.3 正则化 (Regularization)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-L2正则化"><span class="nav-text">1.3.1 L2正则化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-L1正则化"><span class="nav-text">1.3.2 L1正则化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-Dropout"><span class="nav-text">1.4 Dropout</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-Early-Stopping"><span class="nav-text">1.5 Early Stopping</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-加速网络训练"><span class="nav-text">2.加速网络训练</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-归一化输入-标准化"><span class="nav-text">2.1 归一化输入(标准化)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-梯度消失和梯度爆炸：权重初始化角度的解决方案"><span class="nav-text">2.2 梯度消失和梯度爆炸：权重初始化角度的解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-批标准化-Batch-Normalization"><span class="nav-text">2.3 批标准化(Batch Normalization)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-1-BatchNormalization层在训练和测试时的不同"><span class="nav-text">2.3.1 BatchNormalization层在训练和测试时的不同</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-2-强调通道之间不能融合"><span class="nav-text">2.3.2 强调通道之间不能融合</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-优化器-Optimizer"><span class="nav-text">3. 优化器(Optimizer)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-指数加权平均-移动平均-Moving-Average"><span class="nav-text">3.1 指数加权平均(移动平均, Moving Average)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-动量梯度下降法-Momentum"><span class="nav-text">3.2 动量梯度下降法 Momentum</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-RMSprop-Root-Mean-Square-prop"><span class="nav-text">3.3 RMSprop (Root Mean Square prop)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-Adam-Adaptive-Moment-Estimation"><span class="nav-text">3.4 Adam(Adaptive Moment Estimation)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-5-学习率衰减"><span class="nav-text">3.5 学习率衰减</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-6-局部最优问题对梯度下降法而言是问题吗？"><span class="nav-text">3.6 局部最优问题对梯度下降法而言是问题吗？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-超参数调试"><span class="nav-text">4.超参数调试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-用随机数选取调试值"><span class="nav-text">4.1 用随机数选取调试值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-由粗糙到精细"><span class="nav-text">4.2 由粗糙到精细</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-选择合适的标尺"><span class="nav-text">4.3 选择合适的标尺</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0-摘要"><span class="nav-number">1.</span> <span class="nav-text">0.摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-消除过拟合的方法"><span class="nav-number">2.</span> <span class="nav-text">1.消除过拟合的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-过拟合和欠拟合"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 过拟合和欠拟合</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1-欠拟合-Underfitting"><span class="nav-number">2.1.1.</span> <span class="nav-text">1.1.1 欠拟合 (Underfitting)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-2-过拟合-Overfitting"><span class="nav-number">2.1.2.</span> <span class="nav-text">1.1.2 过拟合 (Overfitting)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-数据增强-data-augmentation"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 数据增强(data augmentation)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-正则化-Regularization"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 正则化 (Regularization)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-1-L2正则化"><span class="nav-number">2.3.1.</span> <span class="nav-text">1.3.1 L2正则化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-2-L1正则化"><span class="nav-number">2.3.2.</span> <span class="nav-text">1.3.2 L1正则化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-4-Dropout"><span class="nav-number">2.4.</span> <span class="nav-text">1.4 Dropout</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-5-Early-Stopping"><span class="nav-number">2.5.</span> <span class="nav-text">1.5 Early Stopping</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-加速网络训练"><span class="nav-number">3.</span> <span class="nav-text">2.加速网络训练</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-归一化输入-标准化"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 归一化输入(标准化)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-梯度消失和梯度爆炸：权重初始化角度的解决方案"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 梯度消失和梯度爆炸：权重初始化角度的解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-3-批标准化-Batch-Normalization"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 批标准化(Batch Normalization)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-1-BatchNormalization层在训练和测试时的不同"><span class="nav-number">3.3.1.</span> <span class="nav-text">2.3.1 BatchNormalization层在训练和测试时的不同</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-2-强调通道之间不能融合"><span class="nav-number">3.3.2.</span> <span class="nav-text">2.3.2 强调通道之间不能融合</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-优化器-Optimizer"><span class="nav-number">4.</span> <span class="nav-text">3. 优化器(Optimizer)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-指数加权平均-移动平均-Moving-Average"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 指数加权平均(移动平均, Moving Average)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-动量梯度下降法-Momentum"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 动量梯度下降法 Momentum</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3-RMSprop-Root-Mean-Square-prop"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 RMSprop (Root Mean Square prop)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-Adam-Adaptive-Moment-Estimation"><span class="nav-number">4.4.</span> <span class="nav-text">3.4 Adam(Adaptive Moment Estimation)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-5-学习率衰减"><span class="nav-number">4.5.</span> <span class="nav-text">3.5 学习率衰减</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-6-局部最优问题对梯度下降法而言是问题吗？"><span class="nav-number">4.6.</span> <span class="nav-text">3.6 局部最优问题对梯度下降法而言是问题吗？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-超参数调试"><span class="nav-number">5.</span> <span class="nav-text">4.超参数调试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#4-1-用随机数选取调试值"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 用随机数选取调试值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-2-由粗糙到精细"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 由粗糙到精细</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-3-选择合适的标尺"><span class="nav-number">5.3.</span> <span class="nav-text">4.3 选择合适的标尺</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
       <div class="site-overview-wrap sidebar-panel">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Zhenhui Ye"
-      src="/images/face.jpg">
   <p class="site-author-name" itemprop="name">Zhenhui Ye</p>
   <div class="site-description" itemprop="description">Be a superhero.</div>
 </div>
@@ -630,14 +576,6 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
       </div>
   </nav>
 </div>
-  <div class="links-of-author motion-element">
-      <span class="links-of-author-item">
-        <a href="https://github.com/yerfor" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yerfor" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
-      </span>
-      <span class="links-of-author-item">
-        <a href="mailto:zhenhuiye@zju.edu.com" title="E-Mail → mailto:zhenhuiye@zju.edu.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
-      </span>
-  </div>
 
 
 
@@ -655,42 +593,21 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
       <div class="footer-inner">
         
 
+        
+
 <div class="copyright">
   
-  &copy; 2019 – 
+  &copy; 
   <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
   <span class="author" itemprop="copyrightHolder">Zhenhui Ye</span>
 </div>
-  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
-  </div>
-  <span class="post-meta-divider">|</span>
-  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.1
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>
 
         
-<div class="busuanzi-count">
-  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-user"></i>
-      </span>
-      <span class="site-uv" title="总访客量">
-        <span id="busuanzi_value_site_uv"></span>
-      </span>
-    </span>
-    <span class="post-meta-divider">|</span>
-    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
-      <span class="post-meta-item-icon">
-        <i class="fa fa-eye"></i>
-      </span>
-      <span class="site-pv" title="总访问量">
-        <span id="busuanzi_value_site_pv"></span>
-      </span>
-    </span>
-</div>
 
 
 
@@ -726,10 +643,6 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
 
 
 
-  
-<script src="/js/local-search.js"></script>
-
-
 
 
 
@@ -742,56 +655,6 @@ w \leftarrow w - \eta \cdot \frac{v_{grads}}{\sqrt{v_{grads^2}}}</script><p>可�
 
 
   
-
-  
-      
-<script type="text/x-mathjax-config">
-
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
-      processEscapes: true,
-      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-    },
-    TeX: {
-      equationNumbers: {
-        autoNumber: 'AMS'
-      }
-    }
-  });
-
-  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
-    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
-      if (data.display) {
-        var next = data.script.nextSibling;
-        while (next && next.nodeName.toLowerCase() === '#text') {
-          next = next.nextSibling;
-        }
-        if (next && next.nodeName.toLowerCase() === 'br') {
-          next.parentNode.removeChild(next);
-        }
-      }
-    });
-  });
-
-  MathJax.Hub.Queue(function() {
-    var all = MathJax.Hub.getAllJax(), i;
-    for (i = 0; i < all.length; i += 1) {
-      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
-      if (element.nodeName.toLowerCase() == 'li') {
-        element = element.parentNode;
-      }
-      element.classList.add('has-jax');
-    }
-  });
-</script>
-<script>
-  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
-    MathJax.Hub.Typeset();
-  }, window.MathJax);
-</script>
-
-    
 
   
 
